@@ -77,8 +77,8 @@ export default function LoginView({ onLogin, onBack }) {
 
         const user = {
           email,
-          displayName: email === 'contacto@ganancy.cl' ? 'Admin Ganancy' : formattedName,
-          avatarInitials: email === 'contacto@ganancy.cl' ? 'GY' : formattedName.substring(0, 2).toUpperCase(),
+          displayName: (email === 'contacto@ganancy.cl' || email === 'metincacontacto@gmail.com') ? 'Admin Ganancy' : formattedName,
+          avatarInitials: (email === 'contacto@ganancy.cl' || email === 'metincacontacto@gmail.com') ? 'GY' : formattedName.substring(0, 2).toUpperCase(),
           provider: 'local_demo',
           photoURL: null
         };

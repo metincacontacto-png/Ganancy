@@ -1674,7 +1674,7 @@ export default function App() {
               <ShieldCheck size={16} /> Mi Suscripción
             </button>
           </li>
-          {currentUser && currentUser.email === 'contacto@ganancy.cl' && (
+          {currentUser && (currentUser.email === 'contacto@ganancy.cl' || currentUser.email === 'metincacontacto@gmail.com') && (
             <li>
               <button 
                 className={activeTab === "editor_landing" ? "active" : ""} 
