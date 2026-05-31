@@ -101,26 +101,9 @@ export default function DashboardView({
   const egresosFijosTotal = egresosFijosState.reduce((sum, item) => sum + item.value, 0);
   const balanceFijo = ingresosFijosTotal - egresosFijosTotal;
 
-  // 3. Calculate average variable flows from monthlyDetailsState
-  let totalVarIncome = 0;
-  let totalVarExpense = 0;
-  let monthsWithVarData = 0;
-
-  Object.keys(monthlyDetailsState).forEach(month => {
-    const monthData = monthlyDetailsState[month];
-    if (monthData) {
-      const varInc = (monthData.ingresos || []).filter(item => item.isVariable).reduce((s, i) => s + i.value, 0);
-      const varExp = (monthData.egresos || []).filter(item => item.isVariable).reduce((s, i) => s + i.value, 0);
-      if (varInc > 0 || varExp > 0) {
-        totalVarIncome += varInc;
-        totalVarExpense += varExp;
-        monthsWithVarData++;
-      }
-    }
-  });
-
-  const avgVarIncome = monthsWithVarData > 0 ? Math.round(totalVarIncome / monthsWithVarData) : 0;
-  const avgVarExpense = monthsWithVarData > 0 ? Math.round(totalVarExpense / monthsWithVarData) : 0;
+  // 3. Calculate dynamic variable structural flows from state tables
+  const avgVarIncome = ingresosVariablesState.reduce((sum, item) => sum + item.value, 0);
+  const avgVarExpense = egresosVariablesState.reduce((sum, item) => sum + item.value, 0);
   const balanceVariable = avgVarIncome - avgVarExpense;
 
   // Format Helper
