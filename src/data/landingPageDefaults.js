@@ -44,91 +44,61 @@ export const LANDING_PAGE_DEFAULTS = {
   },
   plans: [
     {
-      id: "plan_persona",
-      name: "Plan Persona",
+      id: "plan_personal",
+      name: "Plan Personal",
       price: 3990,
+      originalPrice: 7990,
       period: "mes",
       iconName: "User",
       color: "#38bdf8",
-      desc: "Ideal para individuos y profesionales independientes que buscan ordenar su presupuesto familiar.",
+      desc: "Ideal para ordenar tu presupuesto familiar y deudas individuales de forma sencilla y 100% privada.",
       features: [
-        "Control de gastos e ingresos personales",
-        "Recordatorios de vencimiento simples",
-        "Dashboard con gráficos de presupuesto",
-        "Soporte por correo electrónico",
-        "1 cuenta de usuario"
+        "Control de ingresos y egresos personales",
+        "Gestión de deudas y cuotas individuales",
+        "Bloqueo absoluto de vistas de Negocio",
+        "🚫 Sin escáner IA de boletas ni almacenamiento",
+        "🚫 Sin inventario de Activos Productivos",
+        "1 cuenta de usuario / Soporte por email"
       ],
       popular: false,
       tag: "Finanzas Personales"
     },
     {
-      id: "plan_emprendedor",
-      name: "Plan Emprendedor",
+      id: "plan_completo",
+      name: "Plan Completo (Empresa + Personal)",
       price: 9990,
-      period: "mes",
-      iconName: "TrendingUp",
-      color: "#fb7185",
-      desc: "Perfecto para freelancers y fundadores iniciales que manejan su caja de forma consolidada.",
-      features: [
-        "Vista Consolidada (Todo en Uno)",
-        "Seguimiento de Activos y Deudas básico",
-        "Planificador financiero e IA CFO simple",
-        "Recordatorios automatizados en la nube",
-        "Dashboard interactivo unificado"
-      ],
-      popular: false,
-      tag: "Consolidado"
-    },
-    {
-      id: "plan_micro",
-      name: "Plan Micro Empresa",
-      price: 24990,
+      originalPrice: 24990,
       period: "mes",
       iconName: "Briefcase",
-      color: "#fbbf24",
-      desc: "Diseñado para pequeños negocios que necesitan separar obligatoriamente sus cuentas personales.",
+      color: "#fb7185",
+      desc: "La solución total para separar de verdad tu vida de tu negocio. Controla tu caja, IA y auditoría tributaria en vivo.",
       features: [
-        "Aislamiento Contable Absoluto (1-Click)",
-        "Escáner Inteligente de Boletas (IA)",
-        "Visor Tributario de Respaldo para el SII",
-        "Consolidador contable mensual",
-        "Reportabilidad automatizada"
+        "Separación Contable 1-Click (Vistas Negocio/Personal)",
+        "Vista Consolidada Unificada en Tiempo Real",
+        "📷 Escáner Inteligente OCR de boletas y facturas",
+        "📦 Visor Tributario y almacenamiento para el SII",
+        "🛠️ Gestor de Activos y Categorías con drag-and-drop",
+        "🤖 Asesor Contable y CFO Inteligente IA de Élite completo",
+        "Simulador de punto de equilibrio y márgenes"
       ],
       popular: true,
       tag: "Más Recomendado"
     },
     {
-      id: "plan_mediana",
-      name: "Plan Mediana Empresa",
-      price: 49900,
-      period: "mes",
-      iconName: "LineChart",
-      color: "#10b981",
-      desc: "Para empresas consolidadas que requieren proyecciones avanzadas y CFO de élite con IA.",
-      features: [
-        "Todo lo del Plan Micro Empresa",
-        "Asesor Financiero CFO IA de Élite completo",
-        "Simulador de puntos de equilibrio y márgenes",
-        "Proyecciones de flujo de caja automatizadas",
-        "Visor y exportación masiva para SII"
-      ],
-      popular: false,
-      tag: "CFO Estratégico"
-    },
-    {
-      id: "plan_gran_empresa",
-      name: "Gran Empresa",
+      id: "plan_custom",
+      name: "Plan Corporativo (A Medida)",
       price: null,
+      originalPrice: null,
       period: "a medida",
       iconName: "Cpu",
       color: "#a78bfa",
-      desc: "Solución hecha a medida para corporativos que buscan integración total y reportabilidad premium.",
+      desc: "Solución a medida para empresas que buscan automatización total, múltiples roles y reportabilidad premium.",
       features: [
-        "Conectores API personalizados",
-        "Modelación financiera CFO a medida",
-        "Múltiples cuentas y roles de usuario",
-        "Ejecutivo de cuentas dedicado 24/7",
-        "Acuerdo de nivel de servicio (SLA) garantizado"
+        "Todo lo del Plan Completo",
+        "🔌 Conectores API automáticos con bancos y SII",
+        "👥 Cuentas multi-usuario (Administrador, Contador)",
+        "👔 Consultoría CFO directa de nuestro equipo financiero",
+        "📞 Canal de soporte prioritario VIP 24/7"
       ],
       popular: false,
       tag: "Enterprise"

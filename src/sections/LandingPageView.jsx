@@ -375,9 +375,31 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
               </div>
 
               {/* Price block */}
-              <div>
-                <span style={{ fontSize: '26px', fontWeight: 800 }}>{formatMoney(plan.price)}</span>
-                <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '4px' }}>/ {plan.period}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {plan.originalPrice && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '11.5px', color: '#64748b', textDecoration: 'line-through', fontWeight: '500' }}>
+                      {formatMoney(plan.originalPrice)}
+                    </span>
+                    <span style={{ 
+                      fontSize: '8.5px', 
+                      background: 'rgba(74, 222, 128, 0.15)', 
+                      color: '#4ade80', 
+                      padding: '1px 5px', 
+                      borderRadius: '4px', 
+                      fontWeight: '700',
+                      textTransform: 'uppercase'
+                    }}>
+                      Lanzamiento
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <span style={{ fontSize: '26px', fontWeight: 800 }}>{formatMoney(plan.price)}</span>
+                  {plan.price !== null && (
+                    <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '4px' }}>/ {plan.period}</span>
+                  )}
+                </div>
               </div>
 
               <p style={{ fontSize: '12px', color: '#94a3b8', lineHeight: '1.4', margin: 0, minHeight: '42px' }}>
