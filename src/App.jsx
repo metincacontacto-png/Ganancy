@@ -188,16 +188,24 @@ export default function App() {
       const syncCloudData = async () => {
         setIsDataLoading(true);
         try {
-          // Check if assets are empty
-          const { data: assetsCheck, error: checkError } = await supabase
-            .from('activos')
-            .select('id')
-            .eq('user_id', currentUser.id)
-            .limit(1);
+          // Fetch full database blocks first
+          const dbData = await fetchAllUserData(currentUser.id);
 
-          if (checkError) throw checkError;
+          // Check if there is any financial data populated in the cloud
+          const hasCloudData = 
+            (dbData.assetsState.categories.some(c => c.items.length > 0)) ||
+            (dbData.debtsState.length > 0) ||
+            (dbData.ingresosFijosState.length > 0) ||
+            (dbData.egresosFijosState.length > 0) ||
+            (dbData.ingresosVariablesState.length > 0) ||
+            (dbData.egresosVariablesState.length > 0) ||
+            (dbData.historicalFlowsState.length > 0) ||
+            (Object.keys(dbData.monthlyDetailsState).some(m => 
+              dbData.monthlyDetailsState[m].ingresos.length > 0 || 
+              dbData.monthlyDetailsState[m].egresos.length > 0
+            ));
 
-          if (!assetsCheck || assetsCheck.length === 0) {
+          if (!hasCloudData) {
             // NEW USER IN CLOUD: As requested, the system starts completely at $0!
             // No automatic default seeding is triggered.
             console.log("Nuevo usuario en la nube. Iniciando sistema limpio en $0.");
@@ -212,8 +220,7 @@ export default function App() {
             setHistoricalFlowsState([]);
             setMonthlyDetailsState({});
           } else {
-            // Existing user: Fetch full database blocks
-            const dbData = await fetchAllUserData(currentUser.id);
+            // Existing user: Load all database states
             setAssetsState(dbData.assetsState);
             setDebtsState(dbData.debtsState);
             setIngresosFijosState(dbData.ingresosFijosState);
