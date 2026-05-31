@@ -1518,8 +1518,7 @@ He procesado tu consulta y analizado tus números integrados.
     if (isNaN(val) || val < 0) return;
 
     if (modalMode === "add") {
-      if (type === "income" && addIncome) addIncome(formName, val, formContext);
-      else if (modalType === "income" && addIncome) addIncome(formName, val, formContext);
+      if (modalType === "income" && addIncome) addIncome(formName, val, formContext);
       else if (modalType === "expense" && addExpense) addExpense(formName, val, formContext);
       else if (modalType === "var_income" && addVariableIncome) addVariableIncome(formName, val, formContext);
       else if (modalType === "var_expense" && addVariableExpense) addVariableExpense(formName, val, formContext);
