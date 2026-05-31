@@ -1756,6 +1756,20 @@ He procesado tu consulta y analizado tus números integrados.
           onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
           style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
         >
+          <div className="kpi-icon" style={{ backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
+            <TrendingDown size={22} />
+          </div>
+          <div className="kpi-info">
+            <h3>Egresos Fijos Mensuales</h3>
+            <p className="num-negative">{formatMoney(egresosFijosTotal)}</p>
+          </div>
+        </div>
+
+        <div 
+          className="card kpi-card"
+          onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
+          style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+        >
           <div className="kpi-icon" style={{ 
             backgroundColor: balanceFijo >= 0 ? 'var(--success-light)' : 'var(--danger-light)', 
             color: balanceFijo >= 0 ? 'var(--success)' : 'var(--danger)' 
