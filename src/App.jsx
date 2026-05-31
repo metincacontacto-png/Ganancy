@@ -304,6 +304,13 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Lock context to personal if user is on the Personal plan
+  useEffect(() => {
+    if (currentUser?.subscription_status === 'plan_personal') {
+      setCurrentContext('personal');
+    }
+  }, [currentUser]);
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
@@ -1241,6 +1248,7 @@ export default function App() {
       case "dashboard":
         return (
           <DashboardView 
+            currentUser={currentUser}
             debtsState={filteredDebtsState} 
             assetsTotal={filteredAssetsState.total}
             ingresosFijosState={filteredIngresosFijos}
@@ -1271,6 +1279,40 @@ export default function App() {
           />
         );
       case "activos_pasivos":
+        if (currentUser?.subscription_status === 'plan_personal') {
+          return (
+            <div style={{ 
+              padding: '60px 24px', 
+              textAlign: 'center', 
+              color: 'var(--text-secondary)',
+              background: 'var(--bg-secondary)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-color)',
+              maxWidth: '600px',
+              margin: '40px auto'
+            }}>
+              <h3 style={{ color: 'var(--text-primary)', marginBottom: '12px' }}>🔒 Sección Exclusiva del Plan Completo</h3>
+              <p style={{ fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
+                La gestión detallada de Activos no está disponible en el Plan Personal. 
+                Actualiza tu cuenta para habilitar el Inventario de Activos Productivos y Pasivos Comerciales con reclasificación drag-and-drop.
+              </p>
+              <button 
+                onClick={() => setActiveTab("suscripcion")}
+                style={{
+                  background: 'linear-gradient(135deg, var(--accent) 0%, #0056b3 100%)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Ver Planes de Suscripción
+              </button>
+            </div>
+          );
+        }
         return (
           <ActivosPasivosView 
             debtsState={filteredDebtsState} 
@@ -1313,6 +1355,7 @@ export default function App() {
             ingresosFijosState={filteredIngresosFijos}
             egresosFijosState={filteredEgresosFijos}
             historicalFlowsState={filteredHistoricalFlows}
+            currentUser={currentUser}
           />
         );
       case "suscripcion":
@@ -1369,8 +1412,10 @@ export default function App() {
     return <LandingPageView onEnterLogin={() => setShowLogin(true)} landingPageData={landingPageData} />;
   }
 
-  // Paywall check: If not 'active' and not 'trial', lock user out
-  const isSubscribed = currentUser.subscription_status === 'active' || currentUser.subscription_status === 'trial';
+  // Paywall check: If not 'active', not 'trial', and doesn't match custom plans, lock user out
+  const isSubscribed = currentUser.subscription_status === 'active' || 
+                       currentUser.subscription_status === 'trial' || 
+                       currentUser.subscription_status?.startsWith('plan_');
 
   if (!isSubscribed) {
     return (
@@ -1452,45 +1497,63 @@ export default function App() {
         </div>
 
         {/* Global Context Switcher (WOW feature: Personal vs Business differentiation) */}
-        <div style={{
-          display: 'flex',
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px',
-          padding: '2px',
-          gap: '2px',
-          alignSelf: 'center',
-          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)'
-        }}>
-          {[
-            { id: 'empresa', label: '🏢 Negocio', desc: 'Muestra solo ingresos/egresos del negocio' },
-            { id: 'personal', label: '🏠 Personal', desc: 'Muestra solo tus gastos personales familiares' },
-            { id: 'consolidado', label: '📊 Vista Consolidada', desc: 'Integra y sobrepone ambos flujos en tiempo real' }
-          ].map(opt => (
-            <button
-              key={opt.id}
-              onClick={() => setCurrentContext(opt.id)}
-              title={opt.desc}
-              style={{
-                background: currentContext === opt.id ? 'var(--accent, #0a84ff)' : 'transparent',
-                color: currentContext === opt.id ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
-                border: 'none',
-                padding: '6px 14px',
-                borderRadius: '10px',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: currentContext === opt.id ? '0 4px 10px rgba(10, 132, 255, 0.25)' : 'none'
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        {currentUser?.subscription_status !== 'plan_personal' ? (
+          <div style={{
+            display: 'flex',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '12px',
+            padding: '2px',
+            gap: '2px',
+            alignSelf: 'center',
+            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)'
+          }}>
+            {[
+              { id: 'empresa', label: '🏢 Negocio', desc: 'Muestra solo ingresos/egresos del negocio' },
+              { id: 'personal', label: '🏠 Personal', desc: 'Muestra solo tus gastos personales familiares' },
+              { id: 'consolidado', label: '📊 Vista Consolidada', desc: 'Integra y sobrepone ambos flujos en tiempo real' }
+            ].map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setCurrentContext(opt.id)}
+                title={opt.desc}
+                style={{
+                  background: currentContext === opt.id ? 'var(--accent, #0a84ff)' : 'transparent',
+                  color: currentContext === opt.id ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
+                  border: 'none',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: currentContext === opt.id ? '0 4px 10px rgba(10, 132, 255, 0.25)' : 'none'
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            alignSelf: 'center',
+            background: 'rgba(56, 189, 248, 0.1)',
+            border: '1px solid rgba(56, 189, 248, 0.2)',
+            color: '#38bdf8',
+            padding: '6px 14px',
+            borderRadius: '10px',
+            fontSize: '12.5px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            🏠 Vista Personal Activa
+          </div>
+        )}
 
         <div className="header-controls">
           {currentUser && (
@@ -1569,14 +1632,16 @@ export default function App() {
               <LayoutDashboard size={16} /> Dashboard
             </button>
           </li>
-          <li>
-            <button 
-              className={activeTab === "activos_pasivos" ? "active" : ""} 
-              onClick={() => setActiveTab("activos_pasivos")}
-            >
-              <Database size={16} /> Activos / Pasivos
-            </button>
-          </li>
+          {currentUser?.subscription_status !== 'plan_personal' && (
+            <li>
+              <button 
+                className={activeTab === "activos_pasivos" ? "active" : ""} 
+                onClick={() => setActiveTab("activos_pasivos")}
+              >
+                <Database size={16} /> Activos / Pasivos
+              </button>
+            </li>
+          )}
           <li>
             <button 
               className={activeTab === "flujo" ? "active" : ""} 

@@ -25,90 +25,64 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
   const [errorMessage, setErrorMessage] = useState("");
 
   const formatMoney = (val) => val === null ? "Cotizar" : (formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL'));
-
   const plans = [
     {
-      id: "plan_persona",
-      name: "Plan Persona",
+      id: "plan_personal",
+      name: "Plan Personal",
       price: 3990,
+      originalPrice: 7990,
       icon: User,
       color: "#38bdf8",
       target: "Finanzas Personales",
-      desc: "Ideal para individuos y profesionales independientes que buscan ordenar su presupuesto familiar.",
+      desc: "Ideal para ordenar tu presupuesto familiar y deudas individuales de forma sencilla y 100% privada.",
       features: [
-        "Control de gastos e ingresos personales",
-        "Recordatorios de vencimiento simples",
-        "Dashboard con gráficos de presupuesto",
-        "Soporte por correo electrónico",
-        "1 cuenta de usuario"
+        "Control de ingresos y egresos personales",
+        "Gestión de deudas y cuotas individuales",
+        "Bloqueo absoluto de vistas de Negocio",
+        "🚫 Sin escáner IA de boletas ni almacenamiento",
+        "🚫 Sin inventario de Activos Productivos",
+        "1 cuenta de usuario / Soporte por email"
       ]
     },
     {
-      id: "plan_emprendedor",
-      name: "Plan Emprendedor",
+      id: "plan_completo",
+      name: "Plan Completo (Empresa + Personal)",
       price: 9990,
-      icon: TrendingUp,
-      color: "#fb7185",
-      target: "Freelancers y Emprendedores",
-      desc: "Perfecto para freelancers y fundadores iniciales que manejan su caja de forma consolidada.",
-      features: [
-        "Vista Consolidada (Todo en Uno)",
-        "Seguimiento de Activos y Deudas básico",
-        "Planificador financiero e IA CFO simple",
-        "Recordatorios automatizados en la nube",
-        "Dashboard interactivo unificado"
-      ]
-    },
-    {
-      id: "plan_micro",
-      name: "Plan Micro Empresa",
-      price: 24990,
+      originalPrice: 24990,
       icon: Briefcase,
-      color: "#fbbf24",
-      target: "Microempresas / PYMEs",
-      desc: "Diseñado para pequeños negocios que necesitan separar obligatoriamente sus cuentas personales.",
+      color: "#fb7185",
+      target: "Emprendedores, Freelancers y PYMEs",
+      desc: "La solución total para separar de verdad tu vida de tu negocio. Controla tu caja, IA y auditoría tributaria en vivo.",
       features: [
-        "Aislamiento Contable Absoluto (1-Click)",
-        "Escáner Inteligente de Boletas (IA)",
-        "Visor Tributario de Respaldo para el SII",
-        "Consolidador contable mensual",
-        "Reportabilidad automatizada"
+        "Separación Contable 1-Click (Vistas Negocio/Personal)",
+        "Vista Consolidada Unificada en Tiempo Real",
+        "📷 Escáner Inteligente OCR de boletas y facturas",
+        "📦 Visor Tributario y almacenamiento para el SII",
+        "🛠️ Gestor de Activos y Categorías con drag-and-drop",
+        "🤖 Asesor Contable y CFO Inteligente IA de Élite completo",
+        "Simulador de punto de equilibrio y márgenes"
       ],
       popular: true
     },
     {
-      id: "plan_mediana",
-      name: "Plan Mediana Empresa",
-      price: 49900,
-      icon: LineChart,
-      color: "#10b981",
-      target: "Medianas Empresas",
-      desc: "Para empresas consolidadas que requieren proyecciones avanzadas y CFO de élite con IA.",
-      features: [
-        "Todo lo del Plan Micro Empresa",
-        "Asesor Financiero CFO IA de Élite completo",
-        "Simulador de puntos de equilibrio y márgenes",
-        "Proyecciones de flujo de caja automatizadas",
-        "Visor y exportación masiva para SII"
-      ]
-    },
-    {
-      id: "plan_gran_empresa",
-      name: "Gran Empresa",
+      id: "plan_custom",
+      name: "Plan Corporativo (A Medida)",
       price: null,
+      originalPrice: null,
       icon: Cpu,
       color: "#a78bfa",
-      target: "Grandes Empresas (Custom)",
-      desc: "Solución hecha a medida para corporativos que buscan integración total y reportabilidad premium.",
+      target: "PYMEs consolidadas y corporativos",
+      desc: "Solución a medida para empresas que buscan automatización total, múltiples roles y reportabilidad premium.",
       features: [
-        "Conectores API personalizados",
-        "Modelación financiera CFO a medida",
-        "Múltiples cuentas y roles de usuario",
-        "Ejecutivo de cuentas dedicado 24/7",
-        "Acuerdo de nivel de servicio (SLA) garantizado"
+        "Todo lo del Plan Completo",
+        "🔌 Conectores API automáticos con bancos y SII",
+        "👥 Cuentas multi-usuario (Administrador, Contador)",
+        "👔 Consultoría CFO directa de nuestro equipo financiero",
+        "📞 Canal de soporte prioritario VIP 24/7"
       ]
     }
   ];
+
 
   // Card formatting helpers
   const handleCardNumberChange = (e) => {
@@ -171,14 +145,13 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
       setTimeout(() => {
         setProcessingStep(3); // Saving credentials & Securing db
         
-        // Step 3: Sincronizando con base de datos de Supabase real
         setTimeout(async () => {
           try {
             if (currentUser && currentUser.provider === 'supabase') {
               const { error } = await supabase
                 .from('profiles')
                 .update({ 
-                  subscription_status: 'active',
+                  subscription_status: selectedPlan.id,
                   updated_at: new Date().toISOString()
                 })
                 .eq('id', currentUser.id);
@@ -194,11 +167,10 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
             // Update parent app context with active plan
             setTimeout(() => {
               if (onUpdateSubscription) {
-                onUpdateSubscription('active');
+                onUpdateSubscription(selectedPlan.id);
               }
               setCheckoutOpen(false);
             }, 2500);
-
           } catch (err) {
             console.error("Error al actualizar la suscripción en Supabase:", err);
             setErrorMessage("Transacción aprobada, pero hubo un error al sincronizar tu perfil con la nube. Por favor inténtalo de nuevo.");
@@ -312,13 +284,34 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
               </div>
 
               {/* Price Tag */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-                <span style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                  {formatMoney(plan.price)}
-                </span>
-                {plan.price !== null && (
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>/ mensual</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '20px' }}>
+                {plan.originalPrice && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-tertiary)', textDecoration: 'line-through', fontWeight: '500' }}>
+                      {formatMoney(plan.originalPrice)}
+                    </span>
+                    <span style={{ 
+                      fontSize: '9px', 
+                      background: 'rgba(52, 199, 89, 0.15)', 
+                      color: 'var(--success)', 
+                      padding: '2px 6px', 
+                      borderRadius: '4px', 
+                      fontWeight: '700',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.02em'
+                    }}>
+                      Lanzamiento
+                    </span>
+                  </div>
                 )}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                    {formatMoney(plan.price)}
+                  </span>
+                  {plan.price !== null && (
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>/ mensual</span>
+                  )}
+                </div>
               </div>
 
               <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: '0 0 24px 0', flexShrink: 0 }}>

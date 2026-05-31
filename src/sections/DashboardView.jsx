@@ -11,6 +11,7 @@ import Tesseract from 'tesseract.js';
 import * as XLSX from 'xlsx';
 
 export default function DashboardView({ 
+  currentUser,
   debtsState, 
   assetsTotal, 
   ingresosFijosState, 
@@ -39,6 +40,7 @@ export default function DashboardView({
   addAsset,
   addDebt
 }) {
+  const isPersonalPlan = currentUser?.subscription_status === 'plan_personal';
   const getCleanName = (name) => {
     if (!name) return "";
     return name.replace(' [Personal]', '').replace(' [Empresa]', '');
@@ -713,7 +715,24 @@ export default function DashboardView({
 
   // Initialize AI CFO Welcome message with strategic questions based on real database numbers
   useEffect(() => {
-    const defaultWelcome = 
+    const defaultWelcome = isPersonalPlan ? 
+`🏠 **¡Hola! Soy tu Asesor Financiero Personal, Coach de Ahorro y Planificación de Élite.** 
+
+Estoy aquí para ayudarte a estructurar tu presupuesto individual, optimizar tus ahorros familiares, erradicar gastos innecesarios y acelerar la eliminación de tus deudas de consumo con orden matemático absoluto.
+
+He auditado tus cuentas personales actuales:
+*   **Ingresos Fijos:** ${formatMoney(ingresosFijosTotal)} (Remuneraciones y rentas mensuales).
+*   **Egresos Fijos:** ${formatMoney(egresosFijosTotal)} (Gastos y arriendos recurrentes).
+*   **Deudas Individuales:** ${formatMoney(liabilitiesTotal)} (Saldo pendiente total de deudas).
+*   **Balance Mensual Recurrente:** ${formatMoney(ingresosFijosTotal - egresosFijosTotal)} (${(ingresosFijosTotal - egresosFijosTotal) >= 0 ? 'Favorable para ahorro' : 'En déficit mensual'}).
+
+Para realizar un diagnóstico preciso y comenzar a optimizar tu bolsillo, por favor respóndeme estas **4 preguntas clave**:
+1.  **Objetivo Financiero:** ¿Cuál es tu meta principal hoy? (¿Crear un fondo de emergencia, salir de deudas de consumo, o ahorrar para un proyecto importante?)
+2.  **Gastos Hormiga:** ¿Sientes que tus ingresos se diluyen en compras menores (delivery, transportes, suscripciones) que no tienes bien identificadas?
+3.  **Tarjetas de Crédito:** ¿Utilizas la tarjeta como extensión de tus ingresos o pagas el total facturado cada mes sin acumular intereses?
+4.  **Capacidad de Ahorro:** ¿Logras guardar de forma recurrente al menos el 10% al 20% de tus ingresos netos mensuales?
+
+*Escríbeme tus respuestas o hazme cualquier consulta de presupuesto. Seré directo, práctico y numéricamente preciso.*` : 
 `💼 **¡Hola! Soy tu CFO, asesor cuantitativo y estratega de negocios de élite.** 
 
 Combino las habilidades de un director financiero corporativo y un consultor de crecimiento empresarial. Estoy aquí para ordenar tus finanzas, erradicar costos innecesarios y escalar tu rentabilidad con precisión matemática absoluta.
@@ -739,7 +758,7 @@ Para realizar un diagnóstico preciso e inmediato, por favor respóndeme estas *
     setChatMessages([
       { sender: 'ai', text: defaultWelcome }
     ]);
-  }, [assetsTotal, liabilitiesTotal, balanceFijo, patrimonioNeto]);
+  }, [assetsTotal, liabilitiesTotal, balanceFijo, patrimonioNeto, ingresosFijosTotal, egresosFijosTotal]);
 
   // Confined scroll inside chat container (only scrolls the chat box container, preventing main page scrolls)
   useEffect(() => {
@@ -1239,25 +1258,104 @@ Los balances de caja de tu panel y las proyecciones de flujo se han reajustado e
     setUserInput("");
     setIsAiLoading(true);
 
-    // AI CFO Brain Logic
+    // AI CFO/Personal Coach Brain Logic
     setTimeout(() => {
       const normalizedText = userText.toLowerCase();
       let aiResponseText = "";
 
-      // 1. SCENARIOS AND CALCULATIONS FOR LIABILITIES/DEBTS
-      if (normalizedText.includes("deuda") || normalizedText.includes("pasivo") || normalizedText.includes("pagar")) {
-        if (liabilitiesTotal === 0) {
+      if (isPersonalPlan) {
+        // PERSONAL COACH RESPONSES
+        if (normalizedText.includes("deuda") || normalizedText.includes("pasivo") || normalizedText.includes("pagar") || normalizedText.includes("credito")) {
+          if (liabilitiesTotal === 0) {
+            aiResponseText = 
+`### 🛡️ Diagnóstico de Deudas: Libre de Compromisos
+Actualmente **no registras deudas financieras** en el sistema ($0). ¡Excelente logro! Esto te da una gran libertad.
+
+**Siguiente Paso Estratégico:**
+Destina tus excedentes mensuales a construir un **Fondo de Emergencia** equivalente a 3 o 6 meses de tus gastos fijos recurrentes (${formatMoney(egresosFijosTotal * 3)} a ${formatMoney(egresosFijosTotal * 6)}). Guárdalo en un instrumento líquido y seguro (como depósitos a plazo o fondos mutuos de bajo riesgo) y no contraigas deudas de consumo para comprar bienes depreciables.`;
+          } else {
+            aiResponseText = 
+`### 📉 Plan de Amortización de Deudas Personales
+
+Tu saldo total de deudas individuales asciende a **${formatMoney(liabilitiesTotal)}**. Analizaron dos metodologías efectivas para recuperar tu tranquilidad financiera:
+
+| Método de Pago | Descripción | Ventajas | Recomendación de Aplicación |
+| :--- | :--- | :--- | :--- |
+| **Estrategia Bola de Nieve** | Pagar la deuda más pequeña primero, pagando el mínimo en las demás. | **Rápido éxito emocional.** Libera acreedores pronto. | Ideal para deudas menores y recuperar enfoque mental. |
+| **Estrategia Avalancha** | Pagar la deuda con la tasa de interés más alta primero. | **Ahorro matemático máximo.** Pagas menos intereses en total. | Recomendado si tienes créditos de consumo grandes o deudas de tarjeta de crédito. |
+
+**Plan de Acción Inmediato:**
+1.  **Prioriza deudas informales o menores:** Cancela saldos pequeños para liberar flujo mensual rápido.
+2.  **Acelera prepagos:** En el menú de deudas verás que algunas de tus deudas tienen montos de prepago sugeridos. Inyecta excedentes para amortizar y ahorrar intereses.
+3.  **Evita el endeudamiento:** Cancela o congela tarjetas de crédito que te tienten a gastar por sobre tus ingresos fijos reales.`;
+          }
+        } 
+        else if (normalizedText.includes("gasto") || normalizedText.includes("costo") || normalizedText.includes("egreso") || normalizedText.includes("ahorrar")) {
+          const totalCostos = egresosFijosTotal;
+          const ahorro15 = Math.round(totalCostos * 0.15);
+          const ahorro25 = Math.round(totalCostos * 0.25);
           aiResponseText = 
+`### ✂️ Plan de Optimización y Ahorro Familiar
+
+Tus egresos fijos mensuales registrados suman **${formatMoney(egresosFijosTotal)}**. 
+
+Diseñemos dos escenarios de ajuste en tus gastos para generar capacidad de ahorro inmediato:
+
+| Escenario de Ajuste | Ahorro Mensual | Ahorro Anual Proyectado | Acciones Recomendadas |
+| :--- | :--- | :--- | :--- |
+| **Ajuste Moderado (15%)** | **${formatMoney(ahorro15)}** | **${formatMoney(ahorro15 * 12)}** | Recortar suscripciones redundantes (Netflix, Spotify duplicados), optimizar compras de supermercado y limitar delivery. |
+| **Ajuste Agresivo (25%)** | **${formatMoney(ahorro25)}** | **${formatMoney(ahorro25 * 12)}** | Eliminar por completo salidas a comer fuera durante un mes, consolidar cuentas de servicios y renegociar seguros de vehículos o salud. |
+
+**Recomendaciones del Coach de Ahorro:**
+1.  **Presupuesto Base Cero:** Al comenzar el mes, asigna un destino a cada peso antes de gastarlo.
+2.  **Identifica los "Gastos Hormiga":** Pequeñas compras diarias (cafés, delivery, snacks) pueden llegar a representar hasta el 20% de tus ingresos sin que te des cuenta.
+3.  **Automatiza tu Ahorro:** Al recibir tu sueldo o ingresos fijos, transfiere inmediatamente el 10% a una cuenta de ahorro. *Primero págate a ti mismo.*`;
+        } 
+        else if (normalizedText.includes("ingreso") || normalizedText.includes("crecer") || normalizedText.includes("sueldo") || normalizedText.includes("rentab")) {
+          const ingresosTotales = ingresosFijosTotal;
+          aiResponseText = 
+`### 📈 Optimización de Ingresos y Capacidad de Inversión
+
+Tus ingresos fijos declarados son de **${formatMoney(ingresosTotales)}** mensuales.
+
+Para potenciar tu patrimonio individual, te sugiero las siguientes directrices de crecimiento financiero:
+1.  **Desarrolla fuentes de ingresos alternativos:** Diversifica mediante servicios de consultoría independiente, freelancing o comercialización de habilidades complementarias en tus horas libres.
+2.  **Plan de Depósito a Plazo / Ahorro Previsional (APV):** Si mantienes un superávit mensual, aprovecha las tasas de interés y beneficios tributarios chilenos para hacer crecer tu capital de forma segura e interés compuesto.
+3.  **Invierte en tu Capacitación:** La mejor forma de subir tus ingresos en el mediano plazo es aumentar tu valor de mercado mediante el aprendizaje de habilidades técnicas o especializadas.`;
+        } 
+        else {
+          const balanceRecurrente = ingresosFijosTotal - egresosFijosTotal;
+          aiResponseText = 
+`### 🏠 Diagnóstico de Finanzas Personales Integrado
+
+He analizado tu presupuesto familiar con base en tus ingresos y gastos registrados.
+
+**Tu Estado Financiero de Hoy:**
+*   **Tasa de Cobertura de Egresos:** Tus egresos fijos representan el **${ingresosFijosTotal > 0 ? ((egresosFijosTotal / ingresosFijosTotal) * 100).toFixed(0) : 0}%** de tus ingresos fijos. Un ratio saludable debe ser inferior al 70%.
+*   **Balance Recurrente:** **${formatMoney(balanceRecurrente)}/mes** de excedente neto.
+
+**Tu Plan de Acción en 3 Pasos:**
+1.  **Fondo de Emergencia:** Ahorra tus excedentes hasta completar al menos ${formatMoney(egresosFijosTotal * 3)} (3 meses de gastos fijos) para resguardarte de imprevistos.
+2.  **Consolidación de Cuentas:** Da de baja micro-suscripciones activas de software o streaming que no hayas ocupado en el último mes.
+3.  **Metodología de Ahorro:** Págate a ti mismo transfiriendo un porcentaje fijo de tus ingresos a otra cuenta apenas los recibas, antes de gastar.
+
+*¿Qué parte de este plan de ahorro o deudas personales te gustaría que desglosemos numéricamente ahora?*`;
+        }
+      } else {
+        // ORIGINAL BUSINESS CFO RESPONSES
+        if (normalizedText.includes("deuda") || normalizedText.includes("pasivo") || normalizedText.includes("pagar")) {
+          if (liabilitiesTotal === 0) {
+            aiResponseText = 
 `### 🛡️ Diagnóstico de Pasivos: Exento de Deuda
 Actualmente **no registras deudas financieras** en el sistema ($0). ¡Excelente! Esto te coloca en una situación inmejorable.
 
 **Siguiente Paso Estratégico:**
 Como tu nivel de deuda es del 0%, cualquier capital excedente debe destinarse a construir un **Fondo de Reserva Operativa** equivalente a 3 meses de tus costos de vida o negocio (Egresos Fijos). No asumas compromisos financieros a menos que apalanquen directamente la generación de nuevos activos productivos.`;
-        } else {
-          const outstandingBE = debtsState.find(d => d.id === "credito_be");
-          const hasBEPrepago = outstandingBE && !outstandingBE.completed && outstandingBE.prepago > 0;
+          } else {
+            const outstandingBE = debtsState.find(d => d.id === "credito_be");
+            const hasBEPrepago = outstandingBE && !outstandingBE.completed && outstandingBE.prepago > 0;
 
-          aiResponseText = 
+            aiResponseText = 
 `### 📊 Plan de Amortización y Reducción de Deudas (CFO Audit)
 
 Tu nivel de pasivos actual asciende a **${formatMoney(liabilitiesTotal)}**. Tu patrimonio neto es de **${formatMoney(patrimonioNeto)}**. Analizaremos de manera cruda los escenarios de liquidación:
@@ -1272,22 +1370,22 @@ Tu nivel de pasivos actual asciende a **${formatMoney(liabilitiesTotal)}**. Tu p
 1.  **Liquidación Express:** Paga de inmediato la **TGR Nathy F22 (${formatMoney(270234)})** y la **Deuda Pato (${formatMoney(625000)})** por ser compromisos de pago único. Esto reduce tu exposición y número de acreedores al instante.
 2.  ${hasBEPrepago ? `**Amortización Estratégica:** Tienes disponible un prepago del Crédito Consumo BE por **${formatMoney(outstandingBE.prepago)}**. Recomiendo fuertemente amortizar este monto si cuentas con liquidez. Te ahorrará miles en intereses y liberará flujo mensual.` : 'Evalúa el prepago de créditos fijos para mitigar el devengo de tasas de interés mensuales.'}
 3.  **Vencimiento Natural:** En octubre de 2026 culminará la cuota del iPhone, liberando de forma automática **${formatMoney(74741)} mensuales** que deben ser inyectados directamente al fondo de caja corporativo.`;
-        }
-      } 
-      // 2. SCENARIOS AND AUDIT FOR EXPENSES/COSTS
-      else if (normalizedText.includes("gasto") || normalizedText.includes("costo") || normalizedText.includes("egreso") || normalizedText.includes("ahorrar")) {
-        if (egresosFijosTotal === 0 && avgVarExpense === 0) {
-          aiResponseText = 
+          }
+        } 
+        // 2. SCENARIOS AND AUDIT FOR EXPENSES/COSTS
+        else if (normalizedText.includes("gasto") || normalizedText.includes("costo") || normalizedText.includes("egreso") || normalizedText.includes("ahorrar")) {
+          if (egresosFijosTotal === 0 && avgVarExpense === 0) {
+            aiResponseText = 
 `### 💸 Auditoría de Costos: Estructura Vacía ($0)
 No registras costos operativos fijos ni variables en tu base de datos actual. 
 
 Para que pueda ayudarte a optimizar tus costos, por favor **agrega tus egresos recurrentes** (arriendo, sueldos, suscripciones SaaS, transporte, etc.) usando los botones "Agregar" en la tabla de abajo, o indícame por aquí tus principales números y haré el cálculo de tus márgenes de inmediato.`;
-        } else {
-          const totalCostos = egresosFijosTotal + avgVarExpense;
-          const ahorro15 = Math.round(totalCostos * 0.15);
-          const ahorro25 = Math.round(totalCostos * 0.25);
+          } else {
+            const totalCostos = egresosFijosTotal + avgVarExpense;
+            const ahorro15 = Math.round(totalCostos * 0.15);
+            const ahorro25 = Math.round(totalCostos * 0.25);
 
-          aiResponseText = 
+            aiResponseText = 
 `### ✂️ Plan Cuantitativo de Reducción de Costos
 
 Tus egresos operativos mensuales totales ascienden a **${formatMoney(totalCostos)}** (Fijos: ${formatMoney(egresosFijosTotal)} | Variables Promedio: ${formatMoney(avgVarExpense)}). 
@@ -1302,12 +1400,12 @@ Diseñemos escenarios de optimización basados en el impacto real en tu caja:
 **Mi Criterio Técnico y Recomendación:**
 1.  **Auditoría de Suscripciones SaaS:** Suscripciones como Adobe, Notion, Freepik, Gamma, Capcut y Canva suman más de **$150.000 mensuales**. Centraliza tus herramientas y da de baja las que tengan menos de 3 usos a la semana.
 2.  **Punto de Equilibrio de Operación:** Con tu estructura de costos actual, necesitas facturar al menos **${formatMoney(totalCostos)} al mes** solo para no perder dinero. Si aplicamos el Escenario A, tu punto de equilibrio bajará inmediatamente a **${formatMoney(totalCostos - ahorro15)}**, reduciendo significativamente tu riesgo financiero.`;
-        }
-      } 
-      // 3. SCENARIOS AND CALCULATIONS FOR REVENUES / PRICING / GROWTH
-      else if (normalizedText.includes("ingreso") || normalizedText.includes("crecer") || normalizedText.includes("precio") || normalizedText.includes("rentab")) {
-        if (ingresosFijosTotal === 0 && avgVarIncome === 0) {
-          aiResponseText = 
+          }
+        } 
+        // 3. SCENARIOS AND CALCULATIONS FOR REVENUES / PRICING / GROWTH
+        else if (normalizedText.includes("ingreso") || normalizedText.includes("crecer") || normalizedText.includes("precio") || normalizedText.includes("rentab")) {
+          if (ingresosFijosTotal === 0 && avgVarIncome === 0) {
+            aiResponseText = 
 `### 📈 Estrategia de Crecimiento y Precios
 Actualmente registras $0 en ingresos. 
 
@@ -1315,12 +1413,12 @@ Para poder auditar tu rentabilidad y calcular tu margen de contribución, por fa
 1. ¿A qué precios vendes tu producto o servicio principal?
 2. ¿Cuál es tu costo directo de entrega o costo de adquisición del cliente (CAC)?
 *Una vez me des estos datos, calcularé tus precios óptimos para que alcances un 40% de margen real.*`;
-        } else {
-          const ingresosTotales = ingresosFijosTotal + avgVarIncome;
-          const incremento10 = Math.round(ingresosTotales * 0.10);
-          const incremento20 = Math.round(ingresosTotales * 0.20);
-          
-          aiResponseText = 
+          } else {
+            const ingresosTotales = ingresosFijosTotal + avgVarIncome;
+            const incremento10 = Math.round(ingresosTotales * 0.10);
+            const incremento20 = Math.round(ingresosTotales * 0.20);
+            
+            aiResponseText = 
 `### 🚀 Estrategia Cuantitativa de Precios y Escalamiento
 
 Tus ingresos operacionales mensuales promedian **${formatMoney(ingresosTotales)}** (Fijos: ${formatMoney(ingresosFijosTotal)} | Variables: ${formatMoney(avgVarIncome)}).
@@ -1335,11 +1433,11 @@ Analicemos escenarios de optimización de precios para ver cómo impacta directa
 **Estrategia CFO para Implementar desde Hoy:**
 1.  **Renegociación de Fees de RRSS:** Los fees de Lumine y King Wok suman **$2.800.000**. Aplicar un ajuste del 10% en tu próxima renovación te entregará **$280.000 extras de ganancia pura** mensual al bolsillo directo de la empresa.
 2.  **Margen de Contribución Mínimo:** Asegúrate de que ningún servicio o venta de producto te entregue menos del **35% de margen neto**. Si un cliente te demanda mucho tiempo operacional por menos de ese margen, está consumiendo tu capacidad de escalar y debe ser despedido o renegociado.`;
-        }
-      } 
-      // 4. STRATEGIC DIAGNOSTIC FOR EVERYTHING ELSE (GENERAL AUDIT)
-      else {
-        aiResponseText = 
+          }
+        } 
+        // 4. STRATEGIC DIAGNOSTIC FOR EVERYTHING ELSE (GENERAL AUDIT)
+        else {
+          aiResponseText = 
 `### 🤖 Análisis Estratégico Cuantitativo - CFO de Élite
 
 He procesado tu consulta y analizado tus números integrados.
@@ -1354,6 +1452,7 @@ He procesado tu consulta y analizado tus números integrados.
 3.  **Prioridad 3 (Precios):** Incrementa tus precios fijos a clientes recurrentes en un 10% de inmediato. Este ajuste se convertirá en un **100% de utilidad neta** que irá directo al fondo de reserva de tu empresa.
 
 *¿Qué parte de este plan te gustaría que desglosemos numéricamente ahora? Puedo calcular tu punto de equilibrio exacto o simular el impacto fiscal.*`;
+        }
       }
 
       setChatMessages(prev => [
@@ -1500,16 +1599,18 @@ He procesado tu consulta y analizado tus números integrados.
     const val = Number(formValue);
     if (isNaN(val) || val < 0) return;
 
+    const activeFormContext = isPersonalPlan ? 'personal' : formContext;
+
     if (modalMode === "add") {
-      if (modalType === "income" && addIncome) addIncome(formName, val, formContext);
-      else if (modalType === "expense" && addExpense) addExpense(formName, val, formContext);
-      else if (modalType === "var_income" && addVariableIncome) addVariableIncome(formName, val, formContext);
-      else if (modalType === "var_expense" && addVariableExpense) addVariableExpense(formName, val, formContext);
+      if (modalType === "income" && addIncome) addIncome(formName, val, activeFormContext);
+      else if (modalType === "expense" && addExpense) addExpense(formName, val, activeFormContext);
+      else if (modalType === "var_income" && addVariableIncome) addVariableIncome(formName, val, activeFormContext);
+      else if (modalType === "var_expense" && addVariableExpense) addVariableExpense(formName, val, activeFormContext);
     } else {
-      if (modalType === "income" && editIncome) editIncome(editingId, formName, val, formContext);
-      else if (modalType === "expense" && editExpense) editExpense(editingId, formName, val, formContext);
-      else if (modalType === "var_income" && editVariableIncome) editVariableIncome(editingId, formName, val, formContext);
-      else if (modalType === "var_expense" && editVariableExpense) editVariableExpense(editingId, formName, val, formContext);
+      if (modalType === "income" && editIncome) editIncome(editingId, formName, val, activeFormContext);
+      else if (modalType === "expense" && editExpense) editExpense(editingId, formName, val, activeFormContext);
+      else if (modalType === "var_income" && editVariableIncome) editVariableIncome(editingId, formName, val, activeFormContext);
+      else if (modalType === "var_expense" && editVariableExpense) editVariableExpense(editingId, formName, val, activeFormContext);
     }
 
     setModalOpen(false);
@@ -1521,12 +1622,13 @@ He procesado tu consulta y analizado tus números integrados.
       {/* ==========================================
           PREMIUM FILE UPLOADER & SYSTEM ADMIN BAR 
          ========================================== */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '24px',
-        alignItems: 'stretch'
-      }}>
+      {!isPersonalPlan && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '24px',
+          alignItems: 'stretch'
+        }}>
         {/* Upload Zone Panel */}
         <div className="card glass-panel" style={{
           background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--bg-secondary-rgb), 0.5) 100%)',
@@ -1706,6 +1808,7 @@ He procesado tu consulta y analizado tus números integrados.
           </div>
         </div>
       </div>
+      )}
       
       {/* 4 KPI Cards */}
       <div className="kpi-grid">
@@ -1885,27 +1988,29 @@ He procesado tu consulta y analizado tus números integrados.
               </select>
             </div>
 
-            <button
-              onClick={handleExportAllReceipts}
-              style={{
-                background: 'rgba(52, 199, 89, 0.12)',
-                border: '1px solid rgba(52, 199, 89, 0.3)',
-                color: 'var(--success)',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '11.5px',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
-                outline: 'none',
-                transition: 'all 0.2s'
-              }}
-              title="Descargar secuencialmente todas las imágenes JPG de boletas archivadas este mes para tu contador o el SII"
-            >
-              <UploadCloud size={13} style={{ transform: 'rotate(180deg)' }} /> Descargar Boletas (JPGs)
-            </button>
+            {!isPersonalPlan && (
+              <button
+                onClick={handleExportAllReceipts}
+                style={{
+                  background: 'rgba(52, 199, 89, 0.12)',
+                  border: '1px solid rgba(52, 199, 89, 0.3)',
+                  color: 'var(--success)',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                title="Descargar secuencialmente todas las imágenes JPG de boletas archivadas este mes para tu contador o el SII"
+              >
+                <UploadCloud size={13} style={{ transform: 'rotate(180deg)' }} /> Descargar Boletas (JPGs)
+              </button>
+            )}
 
             <button
               onClick={handleExportCsvReport}
@@ -1976,23 +2081,26 @@ He procesado tu consulta y analizado tus números integrados.
                       </td>
                       <td style={{ padding: '12px 8px', fontSize: '13px', fontWeight: 500 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {item.receiptUrl ? (
-                            <a href={item.receiptUrl} target="_blank" rel="noreferrer" style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              background: 'rgba(var(--accent-rgb), 0.1)',
-                              color: 'var(--accent)',
-                              padding: '5px',
-                              borderRadius: '6px',
-                              cursor: 'pointer'
-                            }} title="Ver Boleta de Respaldo SII">
-                              <FileText size={14} />
-                            </a>
-                          ) : (
-                            <span style={{ color: 'var(--text-tertiary)', display: 'inline-flex' }}>
-                              <FileText size={14} />
-                            </span>
+                          {!isPersonalPlan && (
+                            item.receiptUrl ? (
+                              <a href={item.receiptUrl} target="_blank" rel="noreferrer" style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: 'rgba(var(--accent-rgb), 0.1)',
+                                color: 'var(--accent)',
+                                padding: '5px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                marginRight: '8px'
+                              }} title="Ver Boleta de Respaldo SII">
+                                <FileText size={14} />
+                              </a>
+                            ) : (
+                              <span style={{ color: 'var(--text-tertiary)', display: 'inline-flex', marginRight: '8px' }}>
+                                <FileText size={14} />
+                              </span>
+                            )
                           )}
                           <span>{cleanName}</span>
                         </div>
@@ -2155,10 +2263,12 @@ He procesado tu consulta y analizado tus números integrados.
             </div>
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
-                Asesor Financiero IA (CFO de Élite)
-                <Sparkles size={14} color="var(--warning)" style={{ animation: 'pulse 1.5s infinite' }} />
+                {isPersonalPlan ? "Coach de Ahorro Personal IA" : "Asesor Financiero IA (CFO de Élite)"}
+                <BrainCircuit size={16} color="var(--warning)" style={{ animation: 'pulse 1.5s infinite' }} />
               </h3>
-              <p className="subtitle" style={{ fontSize: '11px', margin: '2px 0 0 0' }}>Consultor cuantitativo y estratega de crecimiento</p>
+              <p className="subtitle" style={{ fontSize: '11px', margin: '2px 0 0 0' }}>
+                {isPersonalPlan ? "Planificación de presupuesto y metas familiares" : "Consultor cuantitativo y estratega de crecimiento"}
+              </p>
             </div>
           </div>
 
@@ -2752,59 +2862,61 @@ He procesado tu consulta y analizado tus números integrados.
               </div>
 
               {/* Context Selector inside Fixed/Variable Add/Edit Modal */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Destino Financiero</label>
-                <div style={{ display: 'flex', gap: '12px', background: 'rgba(0,0,0,0.1)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <label style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                    fontSize: '12.5px',
-                    padding: '6px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    background: formContext === 'empresa' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
-                    color: formContext === 'empresa' ? '#38bdf8' : 'var(--text-secondary)',
-                    fontWeight: 600,
-                    transition: 'all 0.2s'
-                  }}>
-                    <input
-                      type="radio"
-                      name="form_context"
-                      checked={formContext === 'empresa'}
-                      onChange={() => setFormContext('empresa')}
-                      style={{ display: 'none' }}
-                    />
-                    🏢 Negocio
-                  </label>
-                  <label style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px',
-                    fontSize: '12.5px',
-                    padding: '6px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    background: formContext === 'personal' ? 'rgba(251, 113, 133, 0.15)' : 'transparent',
-                    color: formContext === 'personal' ? '#fb7185' : 'var(--text-secondary)',
-                    fontWeight: 600,
-                    transition: 'all 0.2s'
-                  }}>
-                    <input
-                      type="radio"
-                      name="form_context"
-                      checked={formContext === 'personal'}
-                      onChange={() => setFormContext('personal')}
-                      style={{ display: 'none' }}
-                    />
-                    🏠 Personal
-                  </label>
+              {!isPersonalPlan && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Destino Financiero</label>
+                  <div style={{ display: 'flex', gap: '12px', background: 'rgba(0,0,0,0.1)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <label style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      fontSize: '12.5px',
+                      padding: '6px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: formContext === 'empresa' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                      color: formContext === 'empresa' ? '#38bdf8' : 'var(--text-secondary)',
+                      fontWeight: 600,
+                      transition: 'all 0.2s'
+                    }}>
+                      <input
+                        type="radio"
+                        name="form_context"
+                        checked={formContext === 'empresa'}
+                        onChange={() => setFormContext('empresa')}
+                        style={{ display: 'none' }}
+                      />
+                      🏢 Negocio
+                    </label>
+                    <label style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
+                      fontSize: '12.5px',
+                      padding: '6px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: formContext === 'personal' ? 'rgba(251, 113, 133, 0.15)' : 'transparent',
+                      color: formContext === 'personal' ? '#fb7185' : 'var(--text-secondary)',
+                      fontWeight: 600,
+                      transition: 'all 0.2s'
+                    }}>
+                      <input
+                        type="radio"
+                        name="form_context"
+                        checked={formContext === 'personal'}
+                        onChange={() => setFormContext('personal')}
+                        style={{ display: 'none' }}
+                      />
+                      🏠 Personal
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                 <button

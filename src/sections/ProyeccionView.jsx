@@ -3,7 +3,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Sparkles, TrendingUp, HelpCircle, ShieldAlert, CheckCircle, Info, Zap } from 'lucide-react';
 import { formatCLP, HISTORICAL_FLOWS } from '../data/financialData';
 
-export default function ProyeccionView({ debtsState, assetsTotal, ingresosFijosState, egresosFijosState }) {
+export default function ProyeccionView({ debtsState, assetsTotal, ingresosFijosState, egresosFijosState, currentUser }) {
+  const isPersonalPlan = currentUser?.subscription_status === 'plan_personal';
   const [extraIncome, setExtraIncome] = useState(0);
 
   // Formatting helper
@@ -83,29 +84,33 @@ export default function ProyeccionView({ debtsState, assetsTotal, ingresosFijosS
   const getAlerts = () => {
     const alerts = [];
 
-    // Alerta Patrimonio Neto
-    if (patrimonioNeto < 0) {
-      alerts.push({
-        id: "alert_patrimonio",
-        type: "danger",
-        title: "Patrimonio Neto Negativo",
-        desc: `Las deudas superan a los activos en ${formatMoney(Math.abs(patrimonioNeto))}. Es urgente aumentar los ingresos mensuales o reestructurar pasivos.`
-      });
-    } else {
-      alerts.push({
-        id: "alert_patrimonio",
-        type: "success",
-        title: "Patrimonio Neto Favorable",
-        desc: `Tienes un patrimonio neto positivo de ${formatMoney(patrimonioNeto)}. Sigue reduciendo pasivos para consolidar el capital.`
-      });
+    // Alerta Patrimonio Neto (Solo para Plan Completo/Empresa)
+    if (!isPersonalPlan) {
+      if (patrimonioNeto < 0) {
+        alerts.push({
+          id: "alert_patrimonio",
+          type: "danger",
+          title: "Patrimonio Neto Negativo",
+          desc: `Las deudas superan a los activos en ${formatMoney(Math.abs(patrimonioNeto))}. Es urgente aumentar los ingresos mensuales o reestructurar pasivos.`
+        });
+      } else {
+        alerts.push({
+          id: "alert_patrimonio",
+          type: "success",
+          title: "Patrimonio Neto Favorable",
+          desc: `Tienes un patrimonio neto positivo de ${formatMoney(patrimonioNeto)}. Sigue reduciendo pasivos para consolidar el capital.`
+        });
+      }
     }
 
     // Alerta meses con ingreso $0 (histórico)
     alerts.push({
       id: "alert_cero_ingresos",
       type: "warning",
-      title: "Riesgo de Fluctuación (Ingresos $0)",
-      desc: "Marzo 2026 y Junio 2026 registraron $0 ingresos. Se recomienda crear un fondo de reserva operacional equivalente a 3 meses de egresos fijos ($11.7M)."
+      title: isPersonalPlan ? "Fondo de Emergencia Recomendado" : "Riesgo de Fluctuación (Ingresos $0)",
+      desc: isPersonalPlan ? 
+        "Se recomienda construir y mantener un fondo de emergencia equivalente a 3 meses de tus egresos fijos para amortiguar cualquier imprevisto financiero personal." : 
+        "Marzo 2026 y Junio 2026 registraron $0 ingresos. Se recomienda crear un fondo de reserva operacional equivalente a 3 meses de egresos fijos ($11.7M)."
     });
 
     // Alerta deudas prepago disponibles (dynamic)
@@ -201,11 +206,16 @@ export default function ProyeccionView({ debtsState, assetsTotal, ingresosFijosS
           <div className="card simulator-card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               <TrendingUp size={22} color="var(--accent)" />
-              <h3 style={{ fontSize: '18px', fontWeight: 600 }}>Simulador de Flujo y Equilibrio</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 600 }}>
+                {isPersonalPlan ? "Simulador de Presupuesto y Capacidad de Ahorro" : "Simulador de Flujo y Equilibrio"}
+              </h3>
             </div>
             
             <p className="subtitle">
-              Modifica los ingresos mensuales estimados para visualizar cómo impacta en el tiempo necesario para recuperar el déficit acumulado de la empresa (-$5.4M en Jun 2026).
+              {isPersonalPlan ? 
+                "Modifica tus ingresos mensuales estimados para visualizar cómo impacta en tu capacidad de ahorro futuro y acumulación de capital personal." : 
+                "Modifica los ingresos mensuales estimados para visualizar cómo impacta en el tiempo necesario para recuperar el déficit acumulado de la empresa (-$5.4M en Jun 2026)."
+              }
             </p>
 
             <div className="slider-group">
