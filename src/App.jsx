@@ -1262,7 +1262,7 @@ export default function App() {
         }
       } catch (err) {
         console.error("Error al modificar transacción en detalles_mensuales:", err);
-        alert("Ocurrió un error al guardar la transacción en la nube.");
+        alert(`Ocurrió un error al guardar la transacción en la nube: ${err.message || err.details || err}`);
         return;
       }
     }
