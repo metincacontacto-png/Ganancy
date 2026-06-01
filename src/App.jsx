@@ -107,7 +107,12 @@ export default function App() {
     const saved = localStorage.getItem('landing_page_data');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed.hero && parsed.hero.title === "Detén la mezcla de dinero que frena el crecimiento de tu negocio") {
+          parsed.hero.title = "Ganancy Organiza y controla tus finanzas.";
+          localStorage.setItem('landing_page_data', JSON.stringify(parsed));
+        }
+        return parsed;
       } catch (e) {
         return LANDING_PAGE_DEFAULTS;
       }

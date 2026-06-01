@@ -2,7 +2,7 @@
 export const LANDING_PAGE_DEFAULTS = {
   hero: {
     badge: "Nueva Tecnología de Aislamiento Fiscal SII",
-    title: "Detén la mezcla de dinero que frena el crecimiento de tu negocio",
+    title: "Ganancy Organiza y controla tus finanzas.",
     desc: "Separar de forma estricta tus finanzas personales de las de tu empresa es vital para evitar multas del SII. GANANCY (un producto de GANIMIDES) te entrega control absoluto: aísla tus cuentas contables a un click, procesa boletas con IA y planifica con un CFO virtual de élite.",
     ctaPrimary: "Probar Demo Gratis",
     ctaSecondary: "Ver Planes",
