@@ -247,7 +247,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
           </div>
 
           {/* EDITING FORM SECTION */}
-          <div className="card glass-panel" style={{ padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, background: 'var(--bg-card)' }}>
+          <div className="card glass-panel" style={{ padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--bg-card)', overflow: 'visible' }}>
             
             {/* 1. HERO SECTION FORM */}
             {activeTab === 'hero' && (
@@ -260,7 +260,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                     type="text"
                     value={data.hero.badge}
                     onChange={e => updateHeroField('badge', e.target.value)}
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                   />
                 </div>
 
@@ -270,7 +270,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                     rows="3"
                     value={data.hero.title}
                     onChange={e => updateHeroField('title', e.target.value)}
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
                   />
                 </div>
 
@@ -280,7 +280,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                     rows="4"
                     value={data.hero.desc}
                     onChange={e => updateHeroField('desc', e.target.value)}
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', lineHeight: '1.4', fontFamily: 'inherit' }}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', lineHeight: '1.4', fontFamily: 'inherit' }}
                   />
                 </div>
 
@@ -291,7 +291,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.hero.ctaPrimary}
                       onChange={e => updateHeroField('ctaPrimary', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -300,7 +300,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.hero.ctaSecondary}
                       onChange={e => updateHeroField('ctaSecondary', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                 </div>
@@ -312,7 +312,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.hero.imageUrl}
                       onChange={e => updateHeroField('imageUrl', e.target.value)}
-                      style={{ flex: 1, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'monospace' }}
+                      style={{ flex: 1, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'monospace' }}
                     />
                   </div>
                   <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Recomendado usar "/ganancy_concept.png" para el diseño minimalista por defecto.</span>
@@ -332,7 +332,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.featuresHeader.title}
                       onChange={e => updateHeaderField('featuresHeader', 'title', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -341,7 +341,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.featuresHeader.subtitle}
                       onChange={e => updateHeaderField('featuresHeader', 'subtitle', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                 </div>
@@ -369,7 +369,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                         <select
                           value={feat.iconName}
                           onChange={e => updateFeature(idx, 'iconName', e.target.value)}
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', outline: 'none', cursor: 'pointer' }}
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', outline: 'none', cursor: 'pointer' }}
                         >
                           {iconOptions.map(ico => (
                             <option key={ico} value={ico}>{ico}</option>
@@ -384,7 +384,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                         type="text"
                         value={feat.title}
                         onChange={e => updateFeature(idx, 'title', e.target.value)}
-                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
+                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
                       />
                     </div>
 
@@ -394,7 +394,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                         rows="2"
                         value={feat.desc}
                         onChange={e => updateFeature(idx, 'desc', e.target.value)}
-                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' }}
+                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' }}
                       />
                     </div>
                   </div>
@@ -414,7 +414,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.pricingHeader.title}
                       onChange={e => updateHeaderField('pricingHeader', 'title', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -423,7 +423,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.pricingHeader.subtitle}
                       onChange={e => updateHeaderField('pricingHeader', 'subtitle', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                 </div>
@@ -490,7 +490,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                           type="text"
                           value={data.plans[activePlanIdx].name}
                           onChange={e => updatePlan(activePlanIdx, 'name', e.target.value)}
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -500,7 +500,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                           value={data.plans[activePlanIdx].tag || ""}
                           onChange={e => updatePlan(activePlanIdx, 'tag', e.target.value)}
                           placeholder="Ninguno"
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
                         />
                       </div>
                     </div>
@@ -513,7 +513,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                           value={data.plans[activePlanIdx].price !== null ? data.plans[activePlanIdx].price : ""}
                           onChange={e => updatePlan(activePlanIdx, 'price', e.target.value === "" ? null : Number(e.target.value))}
                           placeholder="A Medida (Cotizar)"
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -522,7 +522,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                           type="text"
                           value={data.plans[activePlanIdx].period}
                           onChange={e => updatePlan(activePlanIdx, 'period', e.target.value)}
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none' }}
                         />
                       </div>
                     </div>
@@ -535,7 +535,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                           value={data.plans[activePlanIdx].color || ""}
                           onChange={e => updatePlan(activePlanIdx, 'color', e.target.value)}
                           placeholder="#38bdf8"
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none', fontFamily: 'monospace' }}
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', outline: 'none', fontFamily: 'monospace' }}
                         />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -543,7 +543,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                         <select
                           value={data.plans[activePlanIdx].iconName || "User"}
                           onChange={e => updatePlan(activePlanIdx, 'iconName', e.target.value)}
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', cursor: 'pointer' }}
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', cursor: 'pointer' }}
                         >
                           {iconOptions.map(ico => (
                             <option key={ico} value={ico}>{ico}</option>
@@ -558,7 +558,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                         rows="2"
                         value={data.plans[activePlanIdx].desc}
                         onChange={e => updatePlan(activePlanIdx, 'desc', e.target.value)}
-                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' }}
+                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' }}
                       />
                     </div>
 
@@ -572,7 +572,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                         value={(data.plans[activePlanIdx].features || []).join('\n')}
                         onChange={e => updatePlan(activePlanIdx, 'features', e.target.value)}
                         placeholder="Ej:&#10;Funcionalidad A&#10;Funcionalidad B"
-                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5' }}
+                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5' }}
                       />
                     </div>
                   </div>
@@ -613,7 +613,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.faqsHeader.title}
                       onChange={e => updateHeaderField('faqsHeader', 'title', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -622,7 +622,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.faqsHeader.subtitle}
                       onChange={e => updateHeaderField('faqsHeader', 'subtitle', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                 </div>
@@ -671,7 +671,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                           type="text"
                           value={faq.q}
                           onChange={e => updateFaq(idx, 'q', e.target.value)}
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', paddingRight: '36px' }}
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', paddingRight: '36px' }}
                         />
                       </div>
 
@@ -681,7 +681,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                           rows="3"
                           value={faq.a}
                           onChange={e => updateFaq(idx, 'a', e.target.value)}
-                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' }}
+                          style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' }}
                         />
                       </div>
                     </div>
@@ -707,7 +707,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                     rows="3"
                     value={data.footer.brandText}
                     onChange={e => updateFooterField('brandText', e.target.value)}
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', lineHeight: '1.4', fontFamily: 'inherit' }}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', lineHeight: '1.4', fontFamily: 'inherit' }}
                   />
                 </div>
 
@@ -717,7 +717,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                     rows="3"
                     value={data.footer.copyright}
                     onChange={e => updateFooterField('copyright', e.target.value)}
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', lineHeight: '1.4', fontFamily: 'inherit' }}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', lineHeight: '1.4', fontFamily: 'inherit' }}
                   />
                 </div>
               </div>
