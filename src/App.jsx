@@ -77,7 +77,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme');
-    return saved || 'dark';
+    return saved || 'light';
   });
 
   // 8. User Auth State
