@@ -97,6 +97,60 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
     }));
   };
 
+  const handleImageUpload = (file, targetSection, targetField, maxWidth = 1024, maxHeight = 768) => {
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width = img.width;
+        let height = img.height;
+        
+        // Calculate dimensions to maintain aspect ratio within maxWidth/maxHeight
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+        
+        setData(prev => {
+          if (targetSection === 'logoUrl') {
+            return {
+              ...prev,
+              logoUrl: compressedBase64
+            };
+          } else {
+            return {
+              ...prev,
+              [targetSection]: {
+                ...prev[targetSection],
+                [targetField]: compressedBase64
+              }
+            };
+          }
+        });
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSave = () => {
     onSave(data);
     alert("¡Los cambios en la Landing Page se han publicado con éxito!");
@@ -111,7 +165,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minHeight: 'calc(100vh - 120px)' }}>
+    <div className="landing-editor-container" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minHeight: 'calc(100vh - 120px)' }}>
       
       {/* HEADER CONTROL BAR */}
       <div style={{
@@ -254,13 +308,60 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <h4 style={{ fontSize: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', margin: 0, color: 'var(--accent)' }}>Editar Sección de Presentación (Hero)</h4>
                 
+                {/* LOGO UPLOADER SECTION */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '20px', marginBottom: '8px' }}>
+                  <h5 style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Logo e Identidad de la Marca</h5>
+                  
+                  {/* Logo Preview on Dark Navbar Background */}
+                  {(data.logoUrl || data.hero.logoUrl) && (
+                    <div style={{ alignSelf: 'flex-start', padding: '10px 20px', borderRadius: '8px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.08)', marginBottom: '4px' }}>
+                      <img src={data.logoUrl || data.hero.logoUrl} alt="Logo" style={{ height: '24px', width: 'auto', display: 'block' }} />
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={data.logoUrl || data.hero.logoUrl || "/ganancy_logo_light.png"}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setData(prev => ({ ...prev, logoUrl: val }));
+                      }}
+                      placeholder="/ganancy_logo_light.png"
+                      style={{ flex: 1, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-input)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                    />
+                    <label style={{
+                      background: 'var(--accent)',
+                      color: 'white',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'background 0.2s'
+                    }}>
+                      <Image size={16} /> Subir Logo
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={e => handleImageUpload(e.target.files[0], 'logoUrl', null, 512, 128)} 
+                        style={{ display: 'none' }} 
+                      />
+                    </label>
+                  </div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Recomendado usar un logo en blanco o con transparencia para contrastar con la barra azul del menú.</span>
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Eslogan Superior (Badge)</label>
                   <input
                     type="text"
                     value={data.hero.badge}
                     onChange={e => updateHeroField('badge', e.target.value)}
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-input)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                   />
                 </div>
 
@@ -270,7 +371,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                     rows="3"
                     value={data.hero.title}
                     onChange={e => updateHeroField('title', e.target.value)}
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-input)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
                   />
                 </div>
 
@@ -280,7 +381,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                     rows="4"
                     value={data.hero.desc}
                     onChange={e => updateHeroField('desc', e.target.value)}
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', lineHeight: '1.4', fontFamily: 'inherit' }}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-input)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', resize: 'vertical', lineHeight: '1.4', fontFamily: 'inherit' }}
                   />
                 </div>
 
@@ -291,7 +392,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.hero.ctaPrimary}
                       onChange={e => updateHeroField('ctaPrimary', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-input)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -300,22 +401,51 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.hero.ctaSecondary}
                       onChange={e => updateHeroField('ctaSecondary', e.target.value)}
-                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-input)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Ruta de la Imagen Destacada (Concepto)</label>
+                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Imagen Destacada (Concepto)</label>
+                  
+                  {/* Image Preview */}
+                  {data.hero.imageUrl && (
+                    <div style={{ marginBottom: '6px', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', height: '110px', background: '#090d16', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img src={data.hero.imageUrl} alt="Hero Concept Preview" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       type="text"
                       value={data.hero.imageUrl}
                       onChange={e => updateHeroField('imageUrl', e.target.value)}
-                      style={{ flex: 1, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'monospace' }}
+                      style={{ flex: 1, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-input)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'monospace' }}
                     />
+                    <label style={{
+                      background: 'var(--accent)',
+                      color: 'white',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'background 0.2s'
+                    }}>
+                      <Image size={16} /> Subir Foto
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={e => handleImageUpload(e.target.files[0], 'hero', 'imageUrl', 1024, 768)} 
+                        style={{ display: 'none' }} 
+                      />
+                    </label>
                   </div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Recomendado usar "/ganancy_concept.png" para el diseño minimalista por defecto.</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Recomendado subir un pantallazo o concepto de 1024x768px. Se comprimirá para optimizar la velocidad.</span>
                 </div>
               </div>
             )}

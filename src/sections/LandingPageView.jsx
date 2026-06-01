@@ -7,6 +7,7 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
 
   // Safely merge custom landing data with original defaults
   const data = {
+    logoUrl: landingPageData?.logoUrl || LANDING_PAGE_DEFAULTS.logoUrl || null,
     hero: { ...LANDING_PAGE_DEFAULTS.hero, ...(landingPageData?.hero || {}) },
     featuresHeader: { ...LANDING_PAGE_DEFAULTS.featuresHeader, ...(landingPageData?.featuresHeader || {}) },
     features: landingPageData?.features || LANDING_PAGE_DEFAULTS.features,
@@ -17,7 +18,7 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
     footer: { ...LANDING_PAGE_DEFAULTS.footer, ...(landingPageData?.footer || {}) },
   };
 
-  const { hero, featuresHeader, features, pricingHeader, plans, faqsHeader, faqs, footer } = data;
+  const { logoUrl, hero, featuresHeader, features, pricingHeader, plans, faqsHeader, faqs, footer } = data;
 
   const getIcon = (name, size = 20, color = "currentColor", extraProps = {}) => {
     const IconComponent = Icons[name] || Icons.HelpCircle;
@@ -84,7 +85,7 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <img 
-              src="/ganancy_logo_light.png" 
+              src={logoUrl || "/ganancy_logo_light.png"} 
               alt="GANANCY" 
               style={{ height: '32px', width: 'auto', display: 'block' }} 
             />
