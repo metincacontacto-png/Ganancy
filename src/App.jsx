@@ -120,6 +120,71 @@ export default function App() {
     return LANDING_PAGE_DEFAULTS;
   });
 
+  // 11. Supabase Config Detection and Global OAuth Listener
+  const isSupabaseConfigured = 
+    import.meta.env.VITE_SUPABASE_URL && 
+    import.meta.env.VITE_SUPABASE_ANON_KEY && 
+    !import.meta.env.VITE_SUPABASE_URL.includes('YOUR_SUPABASE_URL') &&
+    !import.meta.env.VITE_SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY');
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const handleAuthUser = async (supabaseUser) => {
+      if (!supabaseUser) return;
+      
+      let profile = null;
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', supabaseUser.id)
+          .single();
+        
+        if (!profileError && profileData) {
+          profile = profileData;
+        }
+      } catch (err) {
+        console.warn("No se pudo obtener el perfil de la base de datos:", err);
+      }
+
+      const email = supabaseUser.email;
+      const fallbackName = supabaseUser.user_metadata?.display_name || email?.split('@')[0] || 'Usuario';
+      
+      const user = {
+        id: supabaseUser.id,
+        email: email,
+        displayName: profile?.display_name || fallbackName,
+        avatarInitials: profile?.avatar_initials || fallbackName.substring(0, 2).toUpperCase(),
+        photoURL: profile?.avatar_url || null,
+        subscription_status: profile?.subscription_status || 'trial',
+        provider: 'supabase'
+      };
+
+      setCurrentUser(user);
+    };
+
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        handleAuthUser(session.user);
+      }
+    });
+
+    // Listen to session changes (OAuth login, signouts, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        handleAuthUser(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [isSupabaseConfigured]);
+
   // Reactive filters based on Context Switcher
   const filterByActiveContext = React.useCallback((list) => {
     if (currentContext === 'empresa') {
