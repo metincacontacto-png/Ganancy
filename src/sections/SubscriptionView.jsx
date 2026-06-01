@@ -458,7 +458,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
 
             <button 
               type="submit"
-              disabled={isSavingProfile || editName.trim() === currentUser.displayName}
+              disabled={isSavingProfile}
               style={{
                 background: 'linear-gradient(135deg, var(--accent, #0a84ff) 0%, #0056b3 100%)',
                 color: 'white',
@@ -467,8 +467,8 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                 borderRadius: '12px',
                 fontSize: '14.5px',
                 fontWeight: '600',
-                cursor: isSavingProfile || editName.trim() === currentUser.displayName ? 'not-allowed' : 'pointer',
-                opacity: isSavingProfile || editName.trim() === currentUser.displayName ? 0.6 : 1,
+                cursor: isSavingProfile ? 'not-allowed' : 'pointer',
+                opacity: isSavingProfile ? 0.6 : 1,
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
