@@ -85,7 +85,11 @@ export default function App() {
     const saved = localStorage.getItem('currentUser');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const u = JSON.parse(saved);
+        if (u && (u.email === 'contacto@ganancy.cl' || u.email === 'metincacontacto@gmail.com')) {
+          u.subscription_status = 'plan_completo';
+        }
+        return u;
       } catch (e) {
         return null;
       }
@@ -298,6 +302,15 @@ export default function App() {
 
   useEffect(() => {
     if (currentUser) {
+      const email = currentUser.email;
+      if (email === 'contacto@ganancy.cl' || email === 'metincacontacto@gmail.com') {
+        if (currentUser.subscription_status !== 'plan_completo') {
+          const updated = { ...currentUser, subscription_status: 'plan_completo' };
+          setCurrentUser(updated);
+          localStorage.setItem('currentUser', JSON.stringify(updated));
+          return;
+        }
+      }
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
     } else {
       localStorage.removeItem('currentUser');

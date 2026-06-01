@@ -16,6 +16,13 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
 
   const [selectedPlan, setSelectedPlan] = useState(null); // { id, name, price }
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+
+  const isSupabaseConfigured = 
+    import.meta.env.VITE_SUPABASE_URL && 
+    import.meta.env.VITE_SUPABASE_ANON_KEY && 
+    !import.meta.env.VITE_SUPABASE_URL.includes('YOUR_SUPABASE_URL') &&
+    !import.meta.env.VITE_SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY');
   
   // Credit Card Form States
   const [cardNumber, setCardNumber] = useState("");
@@ -191,6 +198,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
     setCardName("");
     setCardExpiry("");
     setCardCvv("");
+    setPromoCode("");
     setIsFlipped(false);
     setIsProcessing(false);
     setProcessingStep(0);
@@ -200,12 +208,66 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
-    if (!cardNumber || !cardName || !cardExpiry || !cardCvv) {
-      setErrorMessage("Por favor, completa todos los datos de la tarjeta.");
+    setErrorMessage("");
+
+    const isMasterKey = promoCode.trim().toUpperCase() === "GANANCY-MASTER-2026" || promoCode.trim().toUpperCase() === "METINCA-MASTER-2026";
+
+    if (isMasterKey) {
+      setIsProcessing(true);
+      setProcessingStep(1); // Connecting
+
+      // Simulate verification of Master Key
+      setTimeout(() => {
+        setProcessingStep(2); // Validating master key
+        setTimeout(() => {
+          setProcessingStep(3); // Upgrading account status
+          setTimeout(async () => {
+            try {
+              if (currentUser && currentUser.provider === 'supabase') {
+                const { error } = await supabase
+                  .from('profiles')
+                  .update({ 
+                    subscription_status: selectedPlan.id,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', currentUser.id);
+
+                if (error) throw error;
+              }
+              
+              setProcessingStep(4);
+              setPaymentSuccess(true);
+              setIsProcessing(false);
+
+              setTimeout(() => {
+                if (onUpdateSubscription) {
+                  onUpdateSubscription(selectedPlan.id);
+                }
+                setCheckoutOpen(false);
+              }, 2500);
+            } catch (err) {
+              console.error("Error al actualizar la suscripción con clave maestra:", err);
+              setErrorMessage("Clave maestra válida, pero hubo un error al sincronizar con la nube.");
+              setIsProcessing(false);
+            }
+          }, 1500);
+        }, 1200);
+      }, 1000);
       return;
     }
 
-    setErrorMessage("");
+    // Block mock card payments in production / Supabase-connected environments
+    if (isSupabaseConfigured || import.meta.env.PROD) {
+      setErrorMessage("Los pagos automatizados con tarjeta de crédito están temporalmente en mantenimiento. Para activar tu plan, ingresa una Clave Maestra válida o realiza una transferencia bancaria contactando a contacto@ganancy.cl.");
+      return;
+    }
+
+    // Local / Demo mock credit card flow
+    if (!cardNumber || !cardName || !cardExpiry || !cardCvv) {
+      setErrorMessage("Por favor, completa todos los datos de la tarjeta o ingresa una Clave Maestra válida.");
+      return;
+    }
+
     setIsProcessing(true);
     setProcessingStep(1); // Connecting
 
@@ -986,6 +1048,28 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
 
                 {/* Billing Input Fields */}
                 <form onSubmit={handlePaymentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Cupón o Clave Maestra */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Cupón o Clave Maestra de Activación</label>
+                    <input
+                      type="text"
+                      placeholder="Escribe tu Clave Maestra para activar gratis"
+                      value={promoCode}
+                      onChange={e => setPromoCode(e.target.value)}
+                      onFocus={() => setIsFlipped(false)}
+                      style={{
+                        background: 'var(--bg-primary, #0f172a)',
+                        border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
+                        color: 'var(--text-primary)',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        outline: 'none',
+                        letterSpacing: '0.05em'
+                      }}
+                    />
+                  </div>
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Nombre del Titular</label>
                     <input
@@ -993,7 +1077,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                       placeholder="Ej: Daniel Repetto"
                       value={cardName}
                       onChange={e => setCardName(e.target.value.toUpperCase())}
-                      required
+                      required={!promoCode.trim()}
                       onFocus={() => setIsFlipped(false)}
                       style={{
                         background: 'var(--bg-primary, #0f172a)',
@@ -1014,7 +1098,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                       placeholder="4000 1234 5678 9010"
                       value={cardNumber}
                       onChange={handleCardNumberChange}
-                      required
+                      required={!promoCode.trim()}
                       onFocus={() => setIsFlipped(false)}
                       style={{
                         background: 'var(--bg-primary, #0f172a)',
@@ -1038,7 +1122,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                         placeholder="12/28"
                         value={cardExpiry}
                         onChange={handleExpiryChange}
-                        required
+                        required={!promoCode.trim()}
                         onFocus={() => setIsFlipped(false)}
                         style={{
                           background: 'var(--bg-primary, #0f172a)',
@@ -1060,7 +1144,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                         placeholder="123"
                         value={cardCvv}
                         onChange={handleCvvChange}
-                        required
+                        required={!promoCode.trim()}
                         onFocus={() => setIsFlipped(true)}
                         onBlur={() => setIsFlipped(false)}
                         style={{
