@@ -243,7 +243,7 @@ export default function LoginView({ onLogin, onBack }) {
         )}
         <div className="login-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <img 
-            src="/ganancy_logo_dark.png" 
+            src="/ganancy_logo_light.png" 
             alt="GANANCY" 
             style={{ height: '36px', width: 'auto', display: 'block', marginBottom: '12px' }} 
           />
