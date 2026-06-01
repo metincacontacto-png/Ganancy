@@ -282,7 +282,9 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
                 borderRadius: '16px',
                 padding: '24px',
                 boxShadow: '0 8px 30px rgba(0,0,0,0.02)',
-                transition: 'all 0.3s'
+                transition: 'all 0.3s',
+                display: 'flex',
+                flexDirection: 'column'
               }}>
                 <div style={{
                   background: 'rgba(0, 113, 227, 0.08)',
@@ -298,9 +300,31 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
                   {getIcon(feat.iconName, 20, "#0071e3")}
                 </div>
                 <h3 style={{ fontSize: '17px', fontWeight: 600, margin: '0 0 10px 0', color: '#1d1d1f' }}>{feat.title}</h3>
-                <p style={{ color: '#515154', fontSize: '13px', lineHeight: '1.5', margin: 0 }}>
+                <p style={{ color: '#515154', fontSize: '13px', lineHeight: '1.5', margin: 0, flexGrow: 1 }}>
                   {feat.desc}
                 </p>
+                <div style={{ marginTop: '16px' }}>
+                  <button 
+                    onClick={onEnterLogin}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#0071e3',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'opacity 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.style.opacity = 0.75}
+                    onMouseLeave={(e) => e.target.style.opacity = 1}
+                  >
+                    Probar ahora &rarr;
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -127,6 +127,26 @@ export default function App() {
     !import.meta.env.VITE_SUPABASE_URL.includes('YOUR_SUPABASE_URL') &&
     !import.meta.env.VITE_SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY');
 
+  // Load landing config from Supabase on mount
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    const fetchLandingConfig = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('landing_config')
+          .select('data')
+          .eq('id', 'default')
+          .maybeSingle();
+        if (data && data.data) {
+          setLandingPageData(data.data);
+        }
+      } catch (err) {
+        console.warn("No se pudo obtener la configuración de la landing desde Supabase:", err);
+      }
+    };
+    fetchLandingConfig();
+  }, [isSupabaseConfigured]);
+
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
@@ -366,9 +386,10 @@ export default function App() {
   }, [monthlyDetailsState, currentUser]);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    const activeTheme = currentUser ? theme : 'light';
+    document.documentElement.setAttribute('data-theme', activeTheme);
     localStorage.setItem('theme', theme);
-  }, [theme]);
+  }, [theme, currentUser]);
 
   useEffect(() => {
     if (currentUser) {
@@ -1486,13 +1507,33 @@ export default function App() {
         return (
           <LandingEditorView 
             landingPageData={landingPageData} 
-            onSave={(newData) => {
+            onSave={async (newData) => {
               setLandingPageData(newData);
               localStorage.setItem('landing_page_data', JSON.stringify(newData));
+              if (isSupabaseConfigured) {
+                try {
+                  const { error } = await supabase
+                    .from('landing_config')
+                    .upsert({ id: 'default', data: newData });
+                  if (error) console.error("Error al persistir la landing en Supabase:", error);
+                } catch (e) {
+                  console.error("Excepción al persistir la landing:", e);
+                }
+              }
             }}
-            onReset={() => {
+            onReset={async () => {
               setLandingPageData(LANDING_PAGE_DEFAULTS);
               localStorage.removeItem('landing_page_data');
+              if (isSupabaseConfigured) {
+                try {
+                  const { error } = await supabase
+                    .from('landing_config')
+                    .upsert({ id: 'default', data: LANDING_PAGE_DEFAULTS });
+                  if (error) console.error("Error al resetear la landing en Supabase:", error);
+                } catch (e) {
+                  console.error("Excepción al resetear la landing:", e);
+                }
+              }
             }}
           />
         );
