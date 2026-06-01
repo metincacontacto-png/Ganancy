@@ -3,11 +3,17 @@ import { supabase } from '../lib/supabaseClient';
 import { 
   CreditCard, Check, ShieldCheck, AlertCircle, X, Loader, 
   Sparkles, Briefcase, Building, Lock, CheckCircle2, ChevronRight,
-  User, TrendingUp, LineChart, Cpu
+  User, TrendingUp, LineChart, Cpu, Camera
 } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
-export default function SubscriptionView({ currentUser, onUpdateSubscription, onNavigateBack }) {
+export default function SubscriptionView({ currentUser, onUpdateSubscription, onUpdateProfile, onNavigateBack }) {
+  const [activeSubTab, setActiveSubTab] = useState("perfil"); // "perfil" o "plan"
+  const [editName, setEditName] = useState(currentUser?.displayName || "");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileError, setProfileError] = useState("");
+
   const [selectedPlan, setSelectedPlan] = useState(null); // { id, name, price }
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   
@@ -83,6 +89,72 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
     }
   ];
 
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsSavingProfile(true);
+    setProfileError("");
+    setProfileSuccess(false);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 128;
+        canvas.height = 128;
+        ctx.drawImage(img, 0, 0, 128, 128);
+
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+        if (onUpdateProfile) {
+          onUpdateProfile({ photoURL: compressedBase64 })
+            .then(() => {
+              setIsSavingProfile(false);
+              setProfileSuccess(true);
+              setTimeout(() => setProfileSuccess(false), 2000);
+            })
+            .catch(err => {
+              console.error(err);
+              setIsSavingProfile(false);
+              setProfileError("Error al guardar la foto en la base de datos.");
+            });
+        } else {
+          setIsSavingProfile(false);
+        }
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleNameSave = async (e) => {
+    e.preventDefault();
+    if (!editName.trim()) {
+      setProfileError("El nombre no puede estar vacío.");
+      return;
+    }
+
+    setIsSavingProfile(true);
+    setProfileError("");
+    setProfileSuccess(false);
+
+    try {
+      if (onUpdateProfile) {
+        await onUpdateProfile({ displayName: editName.trim() });
+      }
+      setProfileSuccess(true);
+      setTimeout(() => setProfileSuccess(false), 2000);
+    } catch (err) {
+      console.error(err);
+      setProfileError("Error al guardar el nombre en la base de datos.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   // Card formatting helpers
   const handleCardNumberChange = (e) => {
@@ -189,216 +261,443 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
       fontFamily: 'system-ui, sans-serif',
       color: 'var(--text-primary)'
     }}>
-      {/* Intro Header */}
-      <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-        <span style={{
-          background: 'rgba(var(--accent-rgb), 0.1)',
-          color: 'var(--accent)',
-          padding: '6px 14px',
-          borderRadius: '20px',
-          fontSize: '12px',
-          fontWeight: '600',
-          letterSpacing: '0.05em',
-          textTransform: 'uppercase',
-          display: 'inline-block',
-          marginBottom: '16px'
-        }}>
-          Suite de Control Financiero Inteligente
-        </span>
-        <h2 style={{ fontSize: '36px', fontWeight: '800', margin: '0 0 12px 0', letterSpacing: '-0.02em', background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-          Activa tu Plan CFO de Elite
-        </h2>
-        <p style={{ fontSize: '16px', color: 'var(--text-secondary)', maxWidth: '640px', margin: '0 auto', lineHeight: '1.6' }}>
-          Ordena tus balances, erradica ineficiencias de flujo de caja y escala la rentabilidad de tu negocio con nuestro Asesor CFO y suite de control cuantitativo.
-        </p>
+      {/* Tab Switcher Segmented Control */}
+      <div style={{ 
+        display: 'inline-flex', 
+        background: 'rgba(255, 255, 255, 0.04)',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '16px',
+        padding: '3px',
+        gap: '4px',
+        margin: '0 auto 48px auto',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        position: 'relative',
+        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)'
+      }}>
+        <button 
+          onClick={() => setActiveSubTab("perfil")}
+          style={{
+            background: activeSubTab === "perfil" ? 'var(--accent, #0a84ff)' : 'transparent',
+            color: activeSubTab === "perfil" ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
+            border: 'none',
+            padding: '8px 20px',
+            borderRadius: '12px',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: activeSubTab === "perfil" ? '0 4px 10px rgba(10, 132, 255, 0.25)' : 'none'
+          }}
+        >
+          <User size={15} /> Mi Perfil
+        </button>
+        <button 
+          onClick={() => setActiveSubTab("plan")}
+          style={{
+            background: activeSubTab === "plan" ? 'var(--accent, #0a84ff)' : 'transparent',
+            color: activeSubTab === "plan" ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
+            border: 'none',
+            padding: '8px 20px',
+            borderRadius: '12px',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: activeSubTab === "plan" ? '0 4px 10px rgba(10, 132, 255, 0.25)' : 'none'
+          }}
+        >
+          <ShieldCheck size={15} /> Mi Plan de Suscripción
+        </button>
       </div>
 
-      {/* Pricing Table Grid */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-        gap: '32px',
-        alignItems: 'stretch',
-        marginBottom: '64px'
-      }}>
-        {plans.map((plan) => {
-          const PlanIcon = plan.icon;
-          return (
-            <div 
-              key={plan.id}
-              className={`card glass-panel ${plan.popular ? 'active-border' : ''}`}
-              style={{
+      {activeSubTab === "perfil" ? (
+        /* ========================================================
+            TAB 1: USER PROFILE MANAGEMENT (NEW FUNCTIONALITY)
+           ======================================================== */
+        <div className="card glass-panel animate-fade-in" style={{
+          maxWidth: '560px',
+          margin: '0 auto',
+          padding: '40px 32px',
+          borderRadius: '24px',
+          background: 'var(--bg-secondary, #1e293b)',
+          border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
+          boxShadow: 'var(--shadow-lg)'
+        }}>
+          {/* Header Info with Photo Upload */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
+            
+            {/* Interactive Photo Avatar */}
+            <div style={{ position: 'relative', width: '108px', height: '108px', marginBottom: '18px' }}>
+              <div style={{
+                width: '108px',
+                height: '108px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                background: 'linear-gradient(135deg, var(--accent, #0a84ff) 0%, #38bdf8 100%)',
                 display: 'flex',
-                flexDirection: 'column',
-                borderRadius: '24px',
-                padding: '32px',
-                background: 'var(--bg-secondary)',
-                border: plan.popular ? '2px solid var(--accent)' : '1px solid var(--border-color)',
-                boxShadow: plan.popular ? '0 20px 40px -15px rgba(var(--accent-rgb), 0.25)' : 'var(--shadow-md)',
-                transform: 'translateY(0px)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {/* Popular Badge */}
-              {plan.popular && (
-                <div style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '36px',
+                fontWeight: 'bold',
+                color: 'white',
+                border: '3px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                position: 'relative'
+              }}>
+                {currentUser.photoURL ? (
+                  <img src={currentUser.photoURL} alt={currentUser.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  currentUser.avatarInitials
+                )}
+              </div>
+              
+              {/* Photo Input Badge */}
+              <label 
+                htmlFor="profile-photo-upload" 
+                style={{
                   position: 'absolute',
-                  top: '18px',
-                  right: '18px',
-                  background: 'var(--accent)',
+                  bottom: '2px',
+                  right: '2px',
+                  background: 'var(--accent, #0a84ff)',
                   color: 'white',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  textTransform: 'uppercase',
-                  boxShadow: '0 4px 12px rgba(10, 132, 255, 0.3)'
-                }}>
-                  <Sparkles size={11} /> Más Recomendado
-                </div>
-              )}
-
-              {/* Plan Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '14px',
-                  backgroundColor: plan.popular ? 'rgba(var(--accent-rgb), 0.15)' : 'var(--border-color)',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: plan.color
-                }}>
-                  <PlanIcon size={24} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '20px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>{plan.name}</h3>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{plan.target}</span>
-                </div>
-              </div>
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
+                  transition: 'transform 0.2s',
+                  border: '2px solid var(--bg-secondary, #1e293b)'
+                }}
+                title="Subir Foto de Perfil"
+                className="photo-upload-badge"
+              >
+                <Camera size={14} />
+              </label>
+              <input 
+                type="file" 
+                id="profile-photo-upload" 
+                accept="image/*" 
+                onChange={handlePhotoChange} 
+                style={{ display: 'none' }} 
+                disabled={isSavingProfile}
+              />
+            </div>
 
-              {/* Price Tag */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '20px' }}>
-                {plan.originalPrice && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--text-tertiary)', textDecoration: 'line-through', fontWeight: '500' }}>
-                      {formatMoney(plan.originalPrice)}
-                    </span>
-                    <span style={{ 
-                      fontSize: '9px', 
-                      background: 'rgba(52, 199, 89, 0.15)', 
-                      color: 'var(--success)', 
-                      padding: '2px 6px', 
-                      borderRadius: '4px', 
+            <h3 style={{ fontSize: '22px', fontWeight: '700', margin: '0 0 6px 0', color: 'var(--text-primary)' }}>{currentUser.displayName}</h3>
+            <span style={{ fontSize: '13.5px', color: 'var(--text-secondary, #94a3b8)' }}>{currentUser.email}</span>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleNameSave} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary, #94a3b8)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Nombre de Pantalla
+              </label>
+              <input 
+                type="text" 
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                style={{
+                  background: 'var(--bg-primary, #0f172a)',
+                  border: '1px solid var(--border-color, rgba(255, 255, 255, 0.08))',
+                  color: 'var(--text-primary, #f8fafc)',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  fontSize: '14.5px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                placeholder="Nombre Completo"
+                disabled={isSavingProfile}
+              />
+            </div>
+
+            {/* Read-Only Meta Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-tertiary, #64748b)', textTransform: 'uppercase', fontWeight: 600 }}>Plan Actual</span>
+                <span style={{ fontSize: '13.5px', color: 'var(--accent, #0a84ff)', fontWeight: 700 }}>
+                  {currentUser.subscription_status === 'plan_personal' 
+                    ? 'Plan Personal' 
+                    : currentUser.subscription_status === 'plan_completo' 
+                    ? 'Plan Completo (Empresa)' 
+                    : currentUser.subscription_status === 'trial' 
+                    ? 'Periodo de Prueba' 
+                    : 'Demo Local'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-tertiary, #64748b)', textTransform: 'uppercase', fontWeight: 600 }}>Servidor Cloud</span>
+                <span style={{ fontSize: '13.5px', color: 'var(--text-secondary, #94a3b8)', fontWeight: 500 }}>
+                  {currentUser.provider === 'supabase' ? 'Supabase Secure' : 'Local Sandbox'}
+                </span>
+              </div>
+            </div>
+
+            {profileError && (
+              <div style={{ color: 'var(--error, #ff453a)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertCircle size={15} /> {profileError}
+              </div>
+            )}
+
+            {profileSuccess && (
+              <div style={{ color: 'var(--success, #34c759)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CheckCircle2 size={15} /> ¡Perfil guardado con éxito!
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              disabled={isSavingProfile || editName.trim() === currentUser.displayName}
+              style={{
+                background: 'linear-gradient(135deg, var(--accent, #0a84ff) 0%, #0056b3 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '14px 24px',
+                borderRadius: '12px',
+                fontSize: '14.5px',
+                fontWeight: '600',
+                cursor: isSavingProfile || editName.trim() === currentUser.displayName ? 'not-allowed' : 'pointer',
+                opacity: isSavingProfile || editName.trim() === currentUser.displayName ? 0.6 : 1,
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                marginTop: '12px',
+                boxShadow: '0 4px 12px rgba(10, 132, 255, 0.2)'
+              }}
+            >
+              {isSavingProfile ? (
+                <>
+                  <Loader size={16} className="spin-icon" /> Guardando cambios...
+                </>
+              ) : (
+                'Guardar Cambios'
+              )}
+            </button>
+          </form>
+        </div>
+      ) : (
+        /* ========================================================
+            TAB 2: ORIGINAL SUBSCRIPTION PLANS & CHECKOUT
+           ======================================================== */
+        <>
+          {/* Intro Header */}
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <span style={{
+              background: 'rgba(var(--accent-rgb), 0.1)',
+              color: 'var(--accent)',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: '600',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              display: 'inline-block',
+              marginBottom: '16px'
+            }}>
+              Suite de Control Financiero Inteligente
+            </span>
+            <h2 style={{ fontSize: '36px', fontWeight: '800', margin: '0 0 12px 0', letterSpacing: '-0.02em', background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Activa tu Plan CFO de Elite
+            </h2>
+            <p style={{ fontSize: '16px', color: 'var(--text-secondary)', maxWidth: '640px', margin: '0 auto', lineHeight: '1.6' }}>
+              Ordena tus balances, erradica ineficiencias de flujo de caja y escala la rentabilidad de tu negocio con nuestro Asesor CFO y suite de control cuantitativo.
+            </p>
+          </div>
+
+          {/* Pricing Table Grid */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+            gap: '32px',
+            alignItems: 'stretch',
+            marginBottom: '64px'
+          }}>
+            {plans.map((plan) => {
+              const PlanIcon = plan.icon;
+              return (
+                <div 
+                  key={plan.id}
+                  className={`card glass-panel ${plan.popular ? 'active-border' : ''}`}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderRadius: '24px',
+                    padding: '32px',
+                    background: 'var(--bg-secondary)',
+                    border: plan.popular ? '2px solid var(--accent)' : '1px solid var(--border-color)',
+                    boxShadow: plan.popular ? '0 20px 40px -15px rgba(var(--accent-rgb), 0.25)' : 'var(--shadow-md)',
+                    transform: 'translateY(0px)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {/* Popular Badge */}
+                  {plan.popular && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '18px',
+                      right: '18px',
+                      background: 'var(--accent)',
+                      color: 'white',
+                      fontSize: '10px',
                       fontWeight: '700',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.02em'
+                      padding: '4px 10px',
+                      borderRadius: '20px',
+                      letterSpacing: '0.05em'
                     }}>
-                      Lanzamiento
-                    </span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                  <span style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                    {formatMoney(plan.price)}
-                  </span>
-                  {plan.price !== null && (
-                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>/ mensual</span>
+                      Recomendado
+                    </div>
                   )}
-                </div>
-              </div>
 
-              <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: '0 0 24px 0', flexShrink: 0 }}>
-                {plan.desc}
-              </p>
-
-              <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 0 24px 0' }} />
-
-              {/* Features List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, marginBottom: '32px' }}>
-                {plan.features.map((feat, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  {/* Plan Info */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
                     <div style={{
-                      width: '16px',
-                      height: '16px',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(52, 199, 89, 0.1)',
-                      color: 'var(--success)',
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '14px',
+                      backgroundColor: plan.popular ? 'rgba(var(--accent-rgb), 0.15)' : 'var(--border-color)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      flexShrink: 0,
-                      marginTop: '2px'
+                      color: plan.color
                     }}>
-                      <Check size={11} strokeWidth={3} />
+                      <PlanIcon size={24} />
                     </div>
-                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: '1.4' }}>{feat}</span>
+                    <div>
+                      <h3 style={{ fontSize: '20px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>{plan.name}</h3>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{plan.target}</span>
+                    </div>
                   </div>
-                ))}
-              </div>
 
-              {/* Subscribe CTA Button */}
-              <button 
-                onClick={() => openCheckout(plan)}
-                style={{
-                  width: '100%',
-                  background: plan.popular 
-                    ? 'linear-gradient(135deg, var(--accent) 0%, #0056b3 100%)' 
-                    : 'var(--bg-primary)',
-                  color: plan.popular ? 'white' : 'var(--text-primary)',
-                  border: plan.popular ? 'none' : '1px solid var(--border-color)',
-                  padding: '14px 20px',
-                  borderRadius: '14px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  transition: 'all 0.2s ease',
-                  boxShadow: plan.popular ? '0 10px 20px -8px rgba(10, 132, 255, 0.3)' : 'none'
-                }}
-                className="checkout-btn"
-              >
-                <span>{plan.price === null ? "Contactar Ventas" : "Suscribirme al Plan"}</span>
-                <ChevronRight size={16} />
-              </button>
+                  {/* Price Tag */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '20px' }}>
+                    {plan.originalPrice && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-tertiary)', textDecoration: 'line-through', fontWeight: '500' }}>
+                          {formatMoney(plan.originalPrice)}
+                        </span>
+                        <span style={{ 
+                          fontSize: '9px', 
+                          background: 'rgba(52, 199, 89, 0.15)', 
+                          color: 'var(--success)', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px', 
+                          fontWeight: '700',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.02em'
+                        }}>
+                          Lanzamiento
+                        </span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                      <span style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                        {formatMoney(plan.price)}
+                      </span>
+                      {plan.price !== null && (
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>/ mensual</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: '0 0 24px 0', flexShrink: 0 }}>
+                    {plan.desc}
+                  </p>
+
+                  <div style={{ borderBottom: '1px solid var(--border-color)', margin: '0 0 24px 0' }}></div>
+
+                  {/* Features List */}
+                  <ul style={{ 
+                    listStyle: 'none', 
+                    padding: 0, 
+                    margin: '0 0 32px 0', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '14px',
+                    flex: 1
+                  }}>
+                    {plan.features.map((feature, idx) => (
+                      <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        <Check size={16} color={plan.color} style={{ marginTop: '2px', flexShrink: 0 }} />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Checkout Trigger Button */}
+                  <button 
+                    onClick={() => openCheckout(plan)}
+                    disabled={currentUser?.subscription_status === plan.id}
+                    style={{
+                      background: currentUser?.subscription_status === plan.id 
+                        ? 'transparent' 
+                        : plan.popular 
+                        ? 'linear-gradient(135deg, var(--accent) 0%, #0056b3 100%)' 
+                        : 'var(--bg-primary)',
+                      border: currentUser?.subscription_status === plan.id 
+                        ? '2px solid var(--border-color)' 
+                        : plan.popular 
+                        ? 'none' 
+                        : '1px solid var(--border-color)',
+                      color: currentUser?.subscription_status === plan.id ? 'var(--text-tertiary)' : '#ffffff',
+                      padding: '14px 24px',
+                      borderRadius: '14px',
+                      fontSize: '14.5px',
+                      fontWeight: '600',
+                      cursor: currentUser?.subscription_status === plan.id ? 'default' : 'pointer',
+                      width: '100%',
+                      transition: 'all 0.2s',
+                      boxShadow: plan.popular && currentUser?.subscription_status !== plan.id ? '0 8px 20px rgba(var(--accent-rgb), 0.25)' : 'none',
+                      marginTop: 'auto'
+                    }}
+                  >
+                    {currentUser?.subscription_status === plan.id 
+                      ? 'Plan Activo' 
+                      : plan.price === null 
+                      ? 'Contactar Ventas' 
+                      : 'Suscribirme'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Security details info */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            padding: '20px 24px',
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            maxWidth: '680px',
+            margin: '0 auto',
+            textAlign: 'center'
+          }}>
+            <ShieldCheck size={20} color="var(--success)" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+              Tus datos bancarios y financieros están encriptados de extremo a extremo en la nube bajo los estándares de seguridad de Stripe y Webpay.
             </div>
-          );
-        })}
-      </div>
-
-      {/* Bottom Security Banner */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        gap: '24px', 
-        background: 'var(--bg-secondary)', 
-        border: '1px solid var(--border-color)',
-        padding: '20px', 
-        borderRadius: '16px',
-        maxWidth: '720px',
-        margin: '0 auto',
-        flexWrap: 'wrap',
-        textAlign: 'center',
-        boxShadow: 'var(--shadow-sm)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success)' }}>
-          <ShieldCheck size={20} />
-          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>Transacción 100% Segura</span>
-        </div>
-        <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-          Tus datos bancarios y financieros están encriptados de extremo a extremo en la nube bajo los estándares de seguridad de Stripe y Webpay.
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
       {/* BACK NAVIGATION (ONLY FOR ACTIVE TRIAL USERS GESTIONING ACCOUNT) */}
       {onNavigateBack && (

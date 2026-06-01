@@ -118,6 +118,7 @@ export default function LoginView({ onLogin, onBack }) {
             email: data.user.email,
             displayName: profileName,
             avatarInitials: profileName.substring(0, 2).toUpperCase(),
+            photoURL: null,
             subscription_status: 'trial',
             provider: 'supabase'
           };
@@ -154,6 +155,7 @@ export default function LoginView({ onLogin, onBack }) {
           email: data.user.email,
           displayName: profile?.display_name || fallbackName,
           avatarInitials: profile?.avatar_initials || fallbackName.substring(0, 2).toUpperCase(),
+          photoURL: profile?.avatar_url || null,
           subscription_status: profile?.subscription_status || 'trial',
           provider: 'supabase'
         };

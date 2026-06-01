@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, LayoutDashboard, Database, Calendar, CreditCard, TrendingUp, RotateCcw, Loader, ShieldCheck, Sparkles, Settings } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, Database, Calendar, CreditCard, TrendingUp, RotateCcw, Loader, ShieldCheck, Sparkles, Settings, User } from 'lucide-react';
 import { PASIVOS_DATA, ACTIVOS_DATA, INGRESOS_FIJOS, EGRESOS_FIJOS, HISTORICAL_FLOWS, MONTH_DETAILS } from './data/financialData';
 import DashboardView from './sections/DashboardView';
 import ActivosPasivosView from './sections/ActivosPasivosView';
@@ -333,6 +333,38 @@ export default function App() {
       localStorage.setItem('currentUser', JSON.stringify(updated));
       return updated;
     });
+  };
+
+  const handleUpdateProfile = async (updatedFields) => {
+    setCurrentUser(prev => {
+      if (!prev) return null;
+      const updated = { ...prev, ...updatedFields };
+      localStorage.setItem('currentUser', JSON.stringify(updated));
+      return updated;
+    });
+
+    if (currentUser && currentUser.provider === 'supabase') {
+      try {
+        const updatePayload = {};
+        if (updatedFields.displayName !== undefined) {
+          updatePayload.display_name = updatedFields.displayName;
+          updatePayload.avatar_initials = updatedFields.displayName.substring(0, 2).toUpperCase();
+        }
+        if (updatedFields.photoURL !== undefined) {
+          updatePayload.avatar_url = updatedFields.photoURL;
+        }
+        updatePayload.updated_at = new Date().toISOString();
+
+        const { error } = await supabase
+          .from('profiles')
+          .update(updatePayload)
+          .eq('id', currentUser.id);
+
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error al actualizar perfil en Supabase:", err);
+      }
+    }
   };
 
   // Helper: Reset to original values (Only local)
@@ -1363,6 +1395,7 @@ export default function App() {
           <SubscriptionView 
             currentUser={currentUser} 
             onUpdateSubscription={handleUpdateSubscriptionStatus} 
+            onUpdateProfile={handleUpdateProfile}
             onNavigateBack={() => setActiveTab("dashboard")}
           />
         );
@@ -1436,7 +1469,13 @@ export default function App() {
 
           <div className="header-controls">
             <div className="user-profile-pill">
-              <div className="user-avatar">{currentUser.avatarInitials}</div>
+              <div className="user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {currentUser.photoURL ? (
+                  <img src={currentUser.photoURL} alt={currentUser.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  currentUser.avatarInitials
+                )}
+              </div>
               <div className="user-details">
                 <span className="user-name">{currentUser.displayName}</span>
                 <span className="user-email">{currentUser.email}</span>
@@ -1460,6 +1499,7 @@ export default function App() {
           <SubscriptionView 
             currentUser={currentUser} 
             onUpdateSubscription={handleUpdateSubscriptionStatus} 
+            onUpdateProfile={handleUpdateProfile}
           />
         </main>
 
@@ -1558,7 +1598,13 @@ export default function App() {
         <div className="header-controls">
           {currentUser && (
             <div className="user-profile-pill">
-              <div className="user-avatar">{currentUser.avatarInitials}</div>
+              <div className="user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {currentUser.photoURL ? (
+                  <img src={currentUser.photoURL} alt={currentUser.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  currentUser.avatarInitials
+                )}
+              </div>
               <div className="user-details">
                 <span className="user-name">{currentUser.displayName}</span>
                 <span className="user-email">{currentUser.email}</span>
@@ -1671,7 +1717,7 @@ export default function App() {
               className={activeTab === "suscripcion" ? "active" : ""} 
               onClick={() => setActiveTab("suscripcion")}
             >
-              <ShieldCheck size={16} /> Mi Suscripción
+              <User size={16} /> Mi Cuenta
             </button>
           </li>
           {currentUser && (currentUser.email === 'contacto@ganancy.cl' || currentUser.email === 'metincacontacto@gmail.com') && (
