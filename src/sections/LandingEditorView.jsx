@@ -216,13 +216,18 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
       } else if (url.includes('youtu.be/')) {
         videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
       } else if (url.includes('youtube.com/embed/')) {
-        return url;
+        videoId = url.split('youtube.com/embed/')[1]?.split('?')[0] || '';
       }
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`;
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1`;
     }
     if (url.includes('vimeo.com')) {
-      const vimeoId = url.split('vimeo.com/')[1]?.split('?')[0] || '';
-      return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1&loop=1`;
+      let vimeoId = '';
+      if (url.includes('player.vimeo.com/video/')) {
+        vimeoId = url.split('player.vimeo.com/video/')[1]?.split('?')[0] || '';
+      } else {
+        vimeoId = url.split('vimeo.com/')[1]?.split('?')[0] || '';
+      }
+      return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1&loop=1&autopause=0&background=1`;
     }
     return url;
   };
@@ -482,7 +487,13 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                             src={getEmbedUrl(data.hero.imageUrl)}
                             title="Hero Video Preview"
                             frameBorder="0"
-                            style={{ height: '100%', width: '100%', aspectRatio: '16/9' }}
+                            style={{ 
+                              height: '100%', 
+                              width: '100%', 
+                              aspectRatio: '16/9',
+                              pointerEvents: 'none',
+                              transform: 'scale(1.03)'
+                            }}
                           />
                         ) : (
                           <video
