@@ -87,6 +87,30 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
     }));
   };
 
+  const addFeature = () => {
+    setData(prev => ({
+      ...prev,
+      features: [
+        ...prev.features,
+        {
+          id: Date.now(),
+          title: "Nueva Ventaja",
+          desc: "Escribe la descripción de la nueva ventaja aquí.",
+          iconName: "Sparkles"
+        }
+      ]
+    }));
+  };
+
+  const deleteFeature = (index) => {
+    if (confirm("¿Estás seguro de que deseas eliminar esta ventaja?")) {
+      setData(prev => ({
+        ...prev,
+        features: prev.features.filter((_, idx) => idx !== index)
+      }));
+    }
+  };
+
   const updateFooterField = (field, value) => {
     setData(prev => ({
       ...prev,
@@ -537,10 +561,31 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
 
                 <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '8px 0' }} />
 
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Configuración de las 4 Ventajas Core:</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>Configuración de Ventajas:</span>
+                  <button
+                    onClick={addFeature}
+                    style={{
+                      background: 'var(--accent)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'opacity 0.2s'
+                    }}
+                  >
+                    <Plus size={12} /> Agregar Ventaja
+                  </button>
+                </div>
                 
                 {data.features.map((feat, idx) => (
-                  <div key={feat.id} style={{
+                  <div key={feat.id || idx} style={{
                     background: 'rgba(0,0,0,0.15)',
                     padding: '16px',
                     borderRadius: '12px',
@@ -550,7 +595,30 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                     gap: '12px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--accent)' }}>Ventaja #{idx + 1}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--accent)' }}>Ventaja #{idx + 1}</span>
+                        <button
+                          onClick={() => deleteFeature(idx)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <Trash2 size={12} /> Eliminar
+                        </button>
+                      </div>
                       
                       {/* Icon selector dropdown */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -588,6 +656,12 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                     </div>
                   </div>
                 ))}
+
+                {data.features.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '24px', border: '1px dashed var(--border-color)', borderRadius: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    No hay ventajas agregadas. Haz clic en "Agregar Ventaja" para crear una.
+                  </div>
+                )}
               </div>
             )}
 
