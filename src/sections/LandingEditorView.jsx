@@ -164,6 +164,46 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
     }
   };
 
+  const isVideoUrl = (url) => {
+    if (!url) return false;
+    const lowerUrl = url.toLowerCase().trim();
+    return (
+      lowerUrl.endsWith('.mp4') || 
+      lowerUrl.endsWith('.webm') || 
+      lowerUrl.endsWith('.ogg') ||
+      lowerUrl.includes('youtube.com') ||
+      lowerUrl.includes('youtu.be') ||
+      lowerUrl.includes('vimeo.com')
+    );
+  };
+
+  const getEmbedUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      let videoId = '';
+      if (url.includes('youtube.com/watch')) {
+        try {
+          const urlParams = new URLSearchParams(new URL(url).search);
+          videoId = urlParams.get('v') || '';
+        } catch (e) {
+          const splitWatch = url.split('v=');
+          if (splitWatch[1]) videoId = splitWatch[1].split('&')[0];
+        }
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+      } else if (url.includes('youtube.com/embed/')) {
+        return url;
+      }
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`;
+    }
+    if (url.includes('vimeo.com')) {
+      const vimeoId = url.split('vimeo.com/')[1]?.split('?')[0] || '';
+      return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1&loop=1`;
+    }
+    return url;
+  };
+
+
   return (
     <div className="landing-editor-container" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minHeight: 'calc(100vh - 120px)' }}>
       
@@ -409,10 +449,28 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Imagen Destacada (Concepto)</label>
                   
-                  {/* Image Preview */}
+                  {/* Image/Video Preview */}
                   {data.hero.imageUrl && (
                     <div style={{ marginBottom: '6px', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', height: '110px', background: '#090d16', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src={data.hero.imageUrl} alt="Hero Concept Preview" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                      {isVideoUrl(data.hero.imageUrl) ? (
+                        data.hero.imageUrl.includes('youtube.com') || data.hero.imageUrl.includes('youtu.be') || data.hero.imageUrl.includes('vimeo.com') ? (
+                          <iframe
+                            src={getEmbedUrl(data.hero.imageUrl)}
+                            title="Hero Video Preview"
+                            frameBorder="0"
+                            style={{ height: '100%', width: '100%', aspectRatio: '16/9' }}
+                          />
+                        ) : (
+                          <video
+                            src={data.hero.imageUrl}
+                            controls
+                            muted
+                            style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
+                          />
+                        )
+                      ) : (
+                        <img src={data.hero.imageUrl} alt="Hero Concept Preview" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
+                      )}
                     </div>
                   )}
 

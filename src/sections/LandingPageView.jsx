@@ -34,6 +34,45 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
     }).format(val);
   };
 
+  const isVideoUrl = (url) => {
+    if (!url) return false;
+    const lowerUrl = url.toLowerCase().trim();
+    return (
+      lowerUrl.endsWith('.mp4') || 
+      lowerUrl.endsWith('.webm') || 
+      lowerUrl.endsWith('.ogg') ||
+      lowerUrl.includes('youtube.com') ||
+      lowerUrl.includes('youtu.be') ||
+      lowerUrl.includes('vimeo.com')
+    );
+  };
+
+  const getEmbedUrl = (url) => {
+    if (!url) return '';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      let videoId = '';
+      if (url.includes('youtube.com/watch')) {
+        try {
+          const urlParams = new URLSearchParams(new URL(url).search);
+          videoId = urlParams.get('v') || '';
+        } catch (e) {
+          const splitWatch = url.split('v=');
+          if (splitWatch[1]) videoId = splitWatch[1].split('&')[0];
+        }
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+      } else if (url.includes('youtube.com/embed/')) {
+        return url;
+      }
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`;
+    }
+    if (url.includes('vimeo.com')) {
+      const vimeoId = url.split('vimeo.com/')[1]?.split('?')[0] || '';
+      return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1&loop=1`;
+    }
+    return url;
+  };
+
   return (
     <div style={{
       background: '#ffffff',
@@ -240,17 +279,52 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
           }}
           onClick={onEnterLogin}
           >
-            <img 
-              src={hero.imageUrl} 
-              alt="GANANCY Dashboard Financiero" 
-              style={{
-                width: '100%',
-                height: 'auto',
-                borderRadius: '16px',
-                display: 'block',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.06)'
-              }}
-            />
+            {isVideoUrl(hero.imageUrl) ? (
+              hero.imageUrl.includes('youtube.com') || hero.imageUrl.includes('youtu.be') || hero.imageUrl.includes('vimeo.com') ? (
+                <iframe
+                  src={getEmbedUrl(hero.imageUrl)}
+                  title="Video de presentación de GANANCY"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{
+                    width: '100%',
+                    aspectRatio: '16/9',
+                    borderRadius: '16px',
+                    display: 'block',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.06)'
+                  }}
+                />
+              ) : (
+                <video
+                  src={hero.imageUrl}
+                  controls
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: '16px',
+                    display: 'block',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.06)'
+                  }}
+                />
+              )
+            ) : (
+              <img 
+                src={hero.imageUrl} 
+                alt="GANANCY Dashboard Financiero" 
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: '16px',
+                  display: 'block',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.06)'
+                }}
+              />
+            )}
           </div>
         )}
       </section>
