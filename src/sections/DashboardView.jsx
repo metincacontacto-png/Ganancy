@@ -679,22 +679,34 @@ export default function DashboardView({
   const handleExportCsvReport = () => {
     const monthData = monthlyDetailsState[selectedMonthForReceipt] || { ingresos: [], egresos: [] };
     const egresos = monthData.egresos || [];
+    const ingresos = monthData.ingresos || [];
     
-    if (egresos.length === 0) {
+    if (egresos.length === 0 && ingresos.length === 0) {
       alert("No hay registros en este mes para exportar.");
       return;
     }
     
     let csvContent = "\uFEFF"; // UTF-8 BOM for Excel Chilean Spanish accent compatibility
-    csvContent += "Fecha;Concepto;Tipo;Tasa IVA;Monto Neto;IVA (19%);Monto Total;Tributario / Destino;Tiene Adjunto SII\n";
+    csvContent += "Fecha;Concepto;Tipo Registro;Clasificación;Monto Neto;IVA;Monto Total;Tributario / Destino;Tiene Adjunto SII\n";
     
+    // Exportar Ingresos
+    ingresos.forEach(item => {
+      const isPersonal = item.name.includes('[Personal]');
+      const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
+      const neto = item.value;
+      const iva = 0;
+      
+      csvContent += `${item.dueDate || '---'};${cleanName};Ingreso;${item.isVariable ? 'Variable' : 'Fijo'};${neto};${iva};${item.value};${isPersonal ? 'Personal' : 'Negocio'};NO\n`;
+    });
+
+    // Exportar Egresos
     egresos.forEach(item => {
       const isPersonal = item.name.includes('[Personal]');
       const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
       const iva = Math.round(item.value * 19 / 119);
       const neto = item.value - iva;
       
-      csvContent += `${item.dueDate || '---'};${cleanName};${item.isVariable ? 'Variable' : 'Fijo'};19%;${neto};${iva};${item.value};${isPersonal ? 'Personal' : 'Negocio'};${item.receiptUrl ? 'SI' : 'NO'}\n`;
+      csvContent += `${item.dueDate || '---'};${cleanName};Egreso;${item.isVariable ? 'Variable' : 'Fijo'};${neto};${iva};${item.value};${isPersonal ? 'Personal' : 'Negocio'};${item.receiptUrl ? 'SI' : 'NO'}\n`;
     });
     
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
