@@ -447,7 +447,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Imagen Destacada (Concepto)</label>
+                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Imagen o Video Destacado (Concepto)</label>
                   
                   {/* Image/Video Preview */}
                   {data.hero.imageUrl && (
@@ -479,6 +479,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       type="text"
                       value={data.hero.imageUrl}
                       onChange={e => updateHeroField('imageUrl', e.target.value)}
+                      placeholder="Pega un enlace de video (YouTube, Vimeo, MP4) o sube una foto"
                       style={{ flex: 1, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-input)', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', outline: 'none', fontFamily: 'monospace' }}
                     />
                     <label style={{
@@ -503,7 +504,7 @@ export default function LandingEditorView({ landingPageData, onSave, onReset }) 
                       />
                     </label>
                   </div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Recomendado subir un pantallazo o concepto de 1024x768px. Se comprimirá para optimizar la velocidad.</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Recomendado subir una imagen (se comprimirá automáticamente) o pegar un enlace de video (YouTube, Vimeo o un archivo directo .mp4/.webm/.ogg).</span>
                 </div>
               </div>
             )}
