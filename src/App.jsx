@@ -103,16 +103,59 @@ export default function App() {
   // 10. Public Landing / Context states
   const [showLogin, setShowLogin] = useState(false);
   const [currentContext, setCurrentContext] = useState('consolidado'); // 'consolidado', 'empresa', 'personal'
+  const migrateLandingData = (data) => {
+    if (!data) return LANDING_PAGE_DEFAULTS;
+    let modified = false;
+    
+    // Check if plan_personal exists to migrate
+    if (data.plans && data.plans.some(p => p.id === 'plan_personal')) {
+      data.plans = data.plans.filter(p => p.id !== 'plan_personal');
+      
+      // Update plan_completo features and name
+      const completoIdx = data.plans.findIndex(p => p.id === 'plan_completo');
+      if (completoIdx !== -1) {
+        data.plans[completoIdx].name = "Plan Único (Personal + Negocio)";
+        data.plans[completoIdx].tag = "Más Recomendado";
+        
+        const newFeatures = [
+          "Control de ingresos y egresos personales",
+          "Gestión de deudas y cuotas individuales",
+          "Bloqueo absoluto de vistas de Negocio"
+        ];
+        
+        let currentFeats = data.plans[completoIdx].features || [];
+        // Remove restrictions since they are no longer applicable
+        currentFeats = currentFeats.filter(f => !f.includes('🚫'));
+        
+        data.plans[completoIdx].features = [
+          ...newFeatures,
+          ...currentFeats.filter(f => !newFeatures.includes(f))
+        ];
+      }
+      modified = true;
+    }
+
+    if (data.hero && data.hero.title === "Detén la mezcla de dinero que frena el crecimiento de tu negocio") {
+      data.hero.title = "Ganancy Organiza y controla tus finanzas.";
+      modified = true;
+    }
+
+    if (modified) {
+      try {
+        localStorage.setItem('landing_page_data', JSON.stringify(data));
+      } catch (e) {
+        console.error("Error al guardar localmente los datos migrados:", e);
+      }
+    }
+    return data;
+  };
+
   const [landingPageData, setLandingPageData] = useState(() => {
     const saved = localStorage.getItem('landing_page_data');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.hero && parsed.hero.title === "Detén la mezcla de dinero que frena el crecimiento de tu negocio") {
-          parsed.hero.title = "Ganancy Organiza y controla tus finanzas.";
-          localStorage.setItem('landing_page_data', JSON.stringify(parsed));
-        }
-        return parsed;
+        return migrateLandingData(parsed);
       } catch (e) {
         return LANDING_PAGE_DEFAULTS;
       }
@@ -138,7 +181,7 @@ export default function App() {
           .eq('id', 'default')
           .maybeSingle();
         if (data && data.data) {
-          setLandingPageData(data.data);
+          setLandingPageData(migrateLandingData(data.data));
         }
       } catch (err) {
         console.warn("No se pudo obtener la configuración de la landing desde Supabase:", err);

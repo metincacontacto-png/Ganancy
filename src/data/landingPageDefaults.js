@@ -44,28 +44,8 @@ export const LANDING_PAGE_DEFAULTS = {
   },
   plans: [
     {
-      id: "plan_personal",
-      name: "Plan Personal",
-      price: 3990,
-      originalPrice: 7990,
-      period: "mes",
-      iconName: "User",
-      color: "#38bdf8",
-      desc: "Ideal para ordenar tu presupuesto familiar y deudas individuales de forma sencilla y 100% privada.",
-      features: [
-        "Control de ingresos y egresos personales",
-        "Gestión de deudas y cuotas individuales",
-        "Bloqueo absoluto de vistas de Negocio",
-        "🚫 Sin escáner IA de boletas ni almacenamiento",
-        "🚫 Sin inventario de Activos Productivos",
-        "1 cuenta de usuario / Soporte por email"
-      ],
-      popular: false,
-      tag: "Finanzas Personales"
-    },
-    {
       id: "plan_completo",
-      name: "Plan Completo (Empresa + Personal)",
+      name: "Plan Único (Personal + Negocio)",
       price: 9990,
       originalPrice: 24990,
       period: "mes",
@@ -73,6 +53,9 @@ export const LANDING_PAGE_DEFAULTS = {
       color: "#fb7185",
       desc: "La solución total para separar de verdad tu vida de tu negocio. Controla tu caja, IA y auditoría tributaria en vivo.",
       features: [
+        "Control de ingresos y egresos personales",
+        "Gestión de deudas y cuotas individuales",
+        "Bloqueo absoluto de vistas de Negocio",
         "Separación Contable 1-Click (Vistas Negocio/Personal)",
         "Vista Consolidada Unificada en Tiempo Real",
         "📷 Escáner Inteligente OCR de boletas y facturas",
