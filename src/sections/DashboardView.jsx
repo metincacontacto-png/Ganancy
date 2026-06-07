@@ -107,6 +107,7 @@ export default function DashboardView({
   const avgVarIncome = ingresosVariablesState.reduce((sum, item) => sum + item.value, 0);
   const avgVarExpense = egresosVariablesState.reduce((sum, item) => sum + item.value, 0);
   const balanceVariable = avgVarIncome - avgVarExpense;
+  const balanceTotal = balanceFijo + balanceVariable;
 
   // Format Helper
   const formatMoney = (val) => formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL');
@@ -1822,133 +1823,234 @@ He procesado tu consulta y analizado tus números integrados.
       </div>
       )}
       
-      {/* 4 KPI Cards */}
-      <div className="kpi-grid">
+      {/* SECCIÓN DE BALANCES PRINCIPALES (ALTA PRIORIDAD) */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '20px',
+        marginBottom: '32px'
+      }}>
+        {/* Card Saldo Neto Total (Haber o Déficit) */}
+        <div 
+          className="card"
+          style={{
+            padding: '24px',
+            borderRadius: '16px',
+            borderLeft: `6px solid ${balanceTotal >= 0 ? 'var(--success)' : 'var(--danger)'}`,
+            background: balanceTotal >= 0 ? 'rgba(52, 199, 89, 0.02)' : 'rgba(255, 59, 48, 0.02)',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.02)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '20px',
+            gridColumn: 'span 2',
+            minHeight: '120px'
+          }}
+        >
+          <div className="kpi-icon" style={{ 
+            backgroundColor: balanceTotal >= 0 ? 'rgba(52, 199, 89, 0.1)' : 'rgba(255, 59, 48, 0.1)', 
+            color: balanceTotal >= 0 ? 'var(--success)' : 'var(--danger)',
+            width: '56px',
+            height: '56px',
+            borderRadius: '14px'
+          }}>
+            {balanceTotal >= 0 ? <TrendingUp size={28} /> : <TrendingDown size={28} />}
+          </div>
+          <div>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+              Saldo Neto Proyectado del Mes (Haber / Déficit)
+            </span>
+            <strong style={{ fontSize: '32px', display: 'block', margin: '2px 0', lineHeight: 1.1 }} className={balanceTotal >= 0 ? "num-positive" : "num-negative"}>
+              {balanceTotal >= 0 ? '+' : ''}{formatMoney(balanceTotal)}
+            </strong>
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              {balanceTotal >= 0 
+                ? '🟢 Operas con Superávit (Haber). Tienes excedente para ahorro o inversión.' 
+                : '🔴 Operas en Déficit. Tus egresos totales superan los ingresos proyectados.'}
+            </span>
+          </div>
+        </div>
+
+        {/* Card Patrimonio Neto */}
         <div 
           className="card kpi-card" 
           onClick={() => onNavigate && onNavigate("activos_pasivos")}
-          style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-        >
-          <div className="kpi-icon" style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)' }}>
-            <DollarSign size={22} />
-          </div>
-          <div className="kpi-info">
-            <h3>Activos Totales</h3>
-            <p>{formatMoney(assetsTotal)}</p>
-          </div>
-        </div>
-
-        <div 
-          className="card kpi-card"
-          onClick={() => onNavigate && onNavigate("deudas")}
-          style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-        >
-          <div className="kpi-icon" style={{ backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
-            <TrendingDown size={22} />
-          </div>
-          <div className="kpi-info">
-            <h3>Deuda Total</h3>
-            <p className={liabilitiesTotal > 0 ? "num-negative" : "num-neutral"}>{formatMoney(liabilitiesTotal)}</p>
-          </div>
-        </div>
-
-        <div 
-          className="card kpi-card"
-          onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
-          style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-        >
-          <div className="kpi-icon" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
-            <TrendingUp size={22} />
-          </div>
-          <div className="kpi-info">
-            <h3>Ingresos Fijos Mensuales</h3>
-            <p>{formatMoney(ingresosFijosTotal)}</p>
-          </div>
-        </div>
-
-        <div 
-          className="card kpi-card"
-          onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
-          style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-        >
-          <div className="kpi-icon" style={{ backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
-            <TrendingDown size={22} />
-          </div>
-          <div className="kpi-info">
-            <h3>Egresos Fijos Mensuales</h3>
-            <p className="num-negative">{formatMoney(egresosFijosTotal)}</p>
-          </div>
-        </div>
-
-        <div 
-          className="card kpi-card"
-          onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
-          style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+          style={{ 
+            cursor: 'pointer', 
+            transition: 'transform 0.2s',
+            padding: '24px',
+            borderRadius: '16px',
+            borderLeft: `4px solid ${patrimonioNeto >= 0 ? 'var(--success)' : 'var(--danger)'}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '20px',
+            minHeight: '120px'
+          }}
         >
           <div className="kpi-icon" style={{ 
-            backgroundColor: balanceFijo >= 0 ? 'var(--success-light)' : 'var(--danger-light)', 
-            color: balanceFijo >= 0 ? 'var(--success)' : 'var(--danger)' 
+            backgroundColor: patrimonioNeto >= 0 ? 'rgba(52, 199, 89, 0.08)' : 'rgba(255, 59, 48, 0.08)', 
+            color: patrimonioNeto >= 0 ? 'var(--success)' : 'var(--danger)',
+            width: '56px',
+            height: '56px',
+            borderRadius: '14px'
           }}>
-            {balanceFijo >= 0 ? <ArrowUpRight size={22} /> : <ArrowDownRight size={22} />}
+            <Activity size={26} />
           </div>
           <div className="kpi-info">
-            <h3>Balance Mensual Fijo</h3>
-            <p className={balanceFijo >= 0 ? "num-positive" : "num-negative"}>
-              {formatMoney(balanceFijo)}
-            </p>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block' }}>
+              Patrimonio Neto
+            </span>
+            <strong style={{ fontSize: '28px', display: 'block', margin: '2px 0', lineHeight: 1.1 }} className={patrimonioNeto >= 0 ? "num-positive" : "num-negative"}>
+              {formatMoney(patrimonioNeto)}
+            </strong>
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Balance acumulado (Activos - Deudas)
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Hero/KPI Cards for Variable Incomes & Variable Expenses */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-        <div 
-          className="card" 
-          onClick={() => onNavigate && onNavigate("dashboard", "variable-incomes-table")}
-          style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px', borderLeft: '4px solid var(--success)', cursor: 'pointer', transition: 'transform 0.2s' }}
-        >
-          <div className="kpi-icon" style={{ backgroundColor: 'rgba(52, 199, 89, 0.08)', color: 'var(--success)' }}>
-            <ArrowUpRight size={22} />
+      {/* SECCIÓN DE FLUJOS FIJOS / RECURRENTES */}
+      <div style={{ marginBottom: '24px' }}>
+        <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+          Estructura de Flujo Mensual Fijo (Recurrente)
+        </h4>
+        <div className="kpi-grid" style={{ marginBottom: '16px' }}>
+          <div 
+            className="card kpi-card"
+            onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
+            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+          >
+            <div className="kpi-icon" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
+              <TrendingUp size={22} />
+            </div>
+            <div className="kpi-info">
+              <h3>Ingresos Fijos Mensuales</h3>
+              <p>{formatMoney(ingresosFijosTotal)}</p>
+            </div>
           </div>
-          <div>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', fontWeight: 500 }}>Ingresos Variables Promedio</span>
-            <strong style={{ fontSize: '20px' }} className="num-positive">{formatMoney(avgVarIncome)}</strong>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>Estimados por mes operacional</span>
+
+          <div 
+            className="card kpi-card"
+            onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
+            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+          >
+            <div className="kpi-icon" style={{ backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
+              <TrendingDown size={22} />
+            </div>
+            <div className="kpi-info">
+              <h3>Egresos Fijos Mensuales</h3>
+              <p className="num-negative">{formatMoney(egresosFijosTotal)}</p>
+            </div>
+          </div>
+
+          <div 
+            className="card kpi-card"
+            onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
+            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+          >
+            <div className="kpi-icon" style={{ 
+              backgroundColor: balanceFijo >= 0 ? 'var(--success-light)' : 'var(--danger-light)', 
+              color: balanceFijo >= 0 ? 'var(--success)' : 'var(--danger)' 
+            }}>
+              {balanceFijo >= 0 ? <ArrowUpRight size={22} /> : <ArrowDownRight size={22} />}
+            </div>
+            <div className="kpi-info">
+              <h3>Balance Mensual Fijo</h3>
+              <p className={balanceFijo >= 0 ? "num-positive" : "num-negative"}>
+                {formatMoney(balanceFijo)}
+              </p>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div 
-          className="card" 
-          onClick={() => onNavigate && onNavigate("dashboard", "variable-expenses-table")}
-          style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px', borderLeft: '4px solid var(--danger)', cursor: 'pointer', transition: 'transform 0.2s' }}
-        >
-          <div className="kpi-icon" style={{ backgroundColor: 'rgba(255, 59, 48, 0.08)', color: 'var(--danger)' }}>
-            <ArrowDownRight size={22} />
+      {/* SECCIÓN DE FLUJOS VARIABLES / ESTIMADOS */}
+      <div style={{ marginBottom: '24px' }}>
+        <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+          Estructura de Flujo Mensual Variable (Estimado)
+        </h4>
+        <div className="kpi-grid" style={{ marginBottom: '16px' }}>
+          <div 
+            className="card kpi-card" 
+            onClick={() => onNavigate && onNavigate("dashboard", "variable-incomes-table")}
+            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+          >
+            <div className="kpi-icon" style={{ backgroundColor: 'rgba(52, 199, 89, 0.08)', color: 'var(--success)' }}>
+              <ArrowUpRight size={22} />
+            </div>
+            <div className="kpi-info">
+              <h3>Ingresos Variables Promedio</h3>
+              <p className="num-positive">{formatMoney(avgVarIncome)}</p>
+            </div>
           </div>
-          <div>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', fontWeight: 500 }}>Egresos Variables Promedio</span>
-            <strong style={{ fontSize: '20px' }} className="num-negative">{formatMoney(avgVarExpense)}</strong>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>Promedio de imprevistos/saas variables</span>
+
+          <div 
+            className="card kpi-card" 
+            onClick={() => onNavigate && onNavigate("dashboard", "variable-expenses-table")}
+            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+          >
+            <div className="kpi-icon" style={{ backgroundColor: 'rgba(255, 59, 48, 0.08)', color: 'var(--danger)' }}>
+              <ArrowDownRight size={22} />
+            </div>
+            <div className="kpi-info">
+              <h3>Egresos Variables Promedio</h3>
+              <p className="num-negative">{formatMoney(avgVarExpense)}</p>
+            </div>
+          </div>
+
+          <div 
+            className="card kpi-card" 
+            onClick={() => onNavigate && onNavigate("dashboard", "variable-incomes-table")}
+            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+          >
+            <div className="kpi-icon" style={{ 
+              backgroundColor: balanceVariable >= 0 ? 'var(--success-light)' : 'var(--danger-light)', 
+              color: balanceVariable >= 0 ? 'var(--success)' : 'var(--danger)' 
+            }}>
+              <Activity size={22} />
+            </div>
+            <div className="kpi-info">
+              <h3>Balance Variable Estimado</h3>
+              <p className={balanceVariable >= 0 ? "num-positive" : "num-negative"}>
+                {balanceVariable >= 0 ? '+' : ''}{formatMoney(balanceVariable)}
+              </p>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div 
-          className="card" 
-          onClick={() => onNavigate && onNavigate("dashboard", "variable-incomes-table")}
-          style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px', borderLeft: `4px solid ${balanceVariable >= 0 ? 'var(--success)' : 'var(--danger)'}`, cursor: 'pointer', transition: 'transform 0.2s' }}
-        >
-          <div className="kpi-icon" style={{ 
-            backgroundColor: balanceVariable >= 0 ? 'var(--success-light)' : 'var(--danger-light)', 
-            color: balanceVariable >= 0 ? 'var(--success)' : 'var(--danger)' 
-          }}>
-            <Activity size={22} />
+      {/* SECCIÓN DE BALANZA DE CAPITAL (ACTIVOS Y DEUDAS) */}
+      <div style={{ marginBottom: '32px' }}>
+        <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+          Balanza de Capital (Patrimonio Físico y Deudas)
+        </h4>
+        <div className="kpi-grid" style={{ marginBottom: '16px' }}>
+          <div 
+            className="card kpi-card" 
+            onClick={() => onNavigate && onNavigate("activos_pasivos")}
+            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+          >
+            <div className="kpi-icon" style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)' }}>
+              <DollarSign size={22} />
+            </div>
+            <div className="kpi-info">
+              <h3>Activos Totales</h3>
+              <p>{formatMoney(assetsTotal)}</p>
+            </div>
           </div>
-          <div>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', fontWeight: 500 }}>Balance Variable Estimado</span>
-            <strong style={{ fontSize: '20px' }} className={balanceVariable >= 0 ? "num-positive" : "num-negative"}>
-              {balanceVariable >= 0 ? '+' : ''}{formatMoney(balanceVariable)}
-            </strong>
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>Margen de holgura variable</span>
+
+          <div 
+            className="card kpi-card"
+            onClick={() => onNavigate && onNavigate("deudas")}
+            style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+          >
+            <div className="kpi-icon" style={{ backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
+              <TrendingDown size={22} />
+            </div>
+            <div className="kpi-info">
+              <h3>Deuda Total</h3>
+              <p className={liabilitiesTotal > 0 ? "num-negative" : "num-neutral"}>{formatMoney(liabilitiesTotal)}</p>
+            </div>
           </div>
         </div>
       </div>
