@@ -7,8 +7,13 @@ import {
 } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
-export default function SubscriptionView({ currentUser, onUpdateSubscription, onUpdateProfile, onNavigateBack }) {
-  const [activeSubTab, setActiveSubTab] = useState("perfil"); // "perfil" o "plan"
+export default function SubscriptionView({ currentUser, onUpdateSubscription, onUpdateProfile, onNavigateBack, initialSubTab = "perfil" }) {
+  const [activeSubTab, setActiveSubTab] = useState(initialSubTab); // "perfil" o "plan"
+  
+  React.useEffect(() => {
+    setActiveSubTab(initialSubTab);
+  }, [initialSubTab]);
+
   const [editName, setEditName] = useState(currentUser?.displayName || "");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
@@ -40,39 +45,24 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
   const formatMoney = (val) => val === null ? "Cotizar" : (formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL'));
   const plans = [
     {
-      id: "plan_personal",
-      name: "Plan Personal",
-      price: 3990,
-      originalPrice: 7990,
-      icon: User,
-      color: "#38bdf8",
-      target: "Finanzas Personales",
-      desc: "Ideal para ordenar tu presupuesto familiar y deudas individuales de forma sencilla y 100% privada.",
+      id: "plan_completo",
+      name: "Plan Único (Personal + Negocio)",
+      price: 9990,
+      originalPrice: 24990,
+      icon: Briefcase,
+      color: "#0a84ff",
+      target: "Todo en Uno",
+      desc: "La solución total para separar de verdad tu vida de tu negocio. Controla tu caja, IA y auditoría tributaria en vivo.",
       features: [
         "Control de ingresos y egresos personales",
         "Gestión de deudas y cuotas individuales",
         "Bloqueo absoluto de vistas de Negocio",
-        "🚫 Sin escáner IA de boletas ni almacenamiento",
-        "🚫 Sin inventario de Activos Productivos",
-        "1 cuenta de usuario / Soporte por email"
-      ]
-    },
-    {
-      id: "plan_completo",
-      name: "Plan Completo (Empresa + Personal)",
-      price: 9990,
-      originalPrice: 24990,
-      icon: Briefcase,
-      color: "#fb7185",
-      target: "Emprendedores, Freelancers y PYMEs",
-      desc: "La solución total para separar de verdad tu vida de tu negocio. Controla tu caja, IA y auditoría tributaria en vivo.",
-      features: [
         "Separación Contable 1-Click (Vistas Negocio/Personal)",
         "Vista Consolidada Unificada en Tiempo Real",
         "📷 Escáner Inteligente OCR de boletas y facturas",
-        "📦 Visor Tributario y almacenamiento para el SII",
-        "🛠️ Gestor de Activos y Categorías con drag-and-drop",
-        "🤖 Asesor Contable y CFO Inteligente IA de Élite completo",
+        "Visor Tributario y almacenamiento para el SII",
+        "Gestor de Activos y Categorías con drag-and-drop",
+        "Asesor Contable y CFO Inteligente IA de Élite completo",
         "Simulador de punto de equilibrio y márgenes"
       ],
       popular: true
@@ -87,7 +77,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
       target: "PYMEs consolidadas y corporativos",
       desc: "Solución a medida para empresas que buscan automatización total, múltiples roles y reportabilidad premium.",
       features: [
-        "Todo lo del Plan Completo",
+        "Todo lo del Plan Único",
         "🔌 Conectores API automáticos con bancos y SII",
         "👥 Cuentas multi-usuario (Administrador, Contador)",
         "👔 Consultoría CFO directa de nuestro equipo financiero",
@@ -490,9 +480,9 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                 <span style={{ fontSize: '10.5px', color: 'var(--text-tertiary, #64748b)', textTransform: 'uppercase', fontWeight: 600 }}>Plan Actual</span>
                 <span style={{ fontSize: '13.5px', color: 'var(--accent, #0a84ff)', fontWeight: 700 }}>
                   {currentUser.subscription_status === 'plan_personal' 
-                    ? 'Plan Personal' 
+                    ? 'Plan Personal (Legacy)' 
                     : currentUser.subscription_status === 'plan_completo' 
-                    ? 'Plan Completo (Empresa)' 
+                    ? 'Plan Único (Personal + Negocio)' 
                     : currentUser.subscription_status === 'trial' 
                     ? 'Periodo de Prueba' 
                     : 'Demo Local'}

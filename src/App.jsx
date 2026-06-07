@@ -75,6 +75,7 @@ export default function App() {
 
   // 7. Navigation Tab & Theme
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [subscriptionSubTab, setSubscriptionSubTab] = useState("perfil");
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme');
     return saved || 'light';
@@ -1410,6 +1411,9 @@ export default function App() {
 
   // Navigation & Scroll Anchor Handler
   const handleNavigate = (tab, anchorId) => {
+    if (tab === "suscripcion") {
+      setSubscriptionSubTab("plan");
+    }
     setActiveTab(tab);
     if (anchorId) {
       setTimeout(() => {
@@ -1476,7 +1480,10 @@ export default function App() {
                 Actualiza tu cuenta para habilitar el Inventario de Activos Productivos y Pasivos Comerciales con reclasificación drag-and-drop.
               </p>
               <button 
-                onClick={() => setActiveTab("suscripcion")}
+                onClick={() => {
+                  setSubscriptionSubTab("plan");
+                  setActiveTab("suscripcion");
+                }}
                 style={{
                   background: 'linear-gradient(135deg, var(--accent) 0%, #0056b3 100%)',
                   color: 'white',
@@ -1544,6 +1551,7 @@ export default function App() {
             onUpdateSubscription={handleUpdateSubscriptionStatus} 
             onUpdateProfile={handleUpdateProfile}
             onNavigateBack={() => setActiveTab("dashboard")}
+            initialSubTab={subscriptionSubTab}
           />
         );
       case "editor_landing":
@@ -1815,7 +1823,10 @@ export default function App() {
             </span>
           </div>
           <button 
-            onClick={() => setActiveTab("suscripcion")}
+            onClick={() => {
+              setSubscriptionSubTab("plan");
+              setActiveTab("suscripcion");
+            }}
             style={{
               background: 'var(--accent)',
               border: 'none',
@@ -1882,7 +1893,10 @@ export default function App() {
           <li>
             <button 
               className={activeTab === "suscripcion" ? "active" : ""} 
-              onClick={() => setActiveTab("suscripcion")}
+              onClick={() => {
+                setSubscriptionSubTab("perfil");
+                setActiveTab("suscripcion");
+              }}
             >
               <User size={16} /> Mi Cuenta
             </button>
