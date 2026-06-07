@@ -1629,240 +1629,447 @@ He procesado tu consulta y analizado tus números integrados.
     setModalOpen(false);
   };
 
+  const step1Completed = ingresosFijosTotal > 0 || egresosFijosTotal > 0 || avgVarIncome > 0 || avgVarExpense > 0;
+  const step2Completed = assetsTotal > 0;
+  const step3Completed = liabilitiesTotal > 0;
+  const onboardingProgress = Math.round(((step1Completed ? 1 : 0) + (step2Completed ? 1 : 0) + (step3Completed ? 1 : 0)) / 3 * 100);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
-      {/* ==========================================
-          PREMIUM FILE UPLOADER & SYSTEM ADMIN BAR 
-         ========================================== */}
-      {!isPersonalPlan && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '24px',
-          alignItems: 'stretch'
-        }}>
-        {/* Upload Zone Panel */}
+      {/* ========================================================
+          ONBOARDING QUICK START & PREMIUM FILE UPLOADER GRID
+         ======================================================== */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isPersonalPlan ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))',
+        gap: '14px',
+        alignItems: 'stretch',
+        maxWidth: isPersonalPlan ? '640px' : '100%',
+        margin: isPersonalPlan ? '0 auto' : '0',
+        width: '100%'
+      }}>
+        {/* Guía de Inicio Rápido Card */}
         <div className="card glass-panel" style={{
           background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--bg-secondary-rgb), 0.5) 100%)',
           border: '1px solid rgba(var(--accent-rgb), 0.15)',
-          padding: '24px',
+          padding: '16px 20px',
           borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
           gap: '12px',
           position: 'relative'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ background: 'var(--accent-light)', color: 'var(--accent)', padding: '10px', borderRadius: '12px' }}>
-              <UploadCloud size={24} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ background: 'var(--accent-light)', color: 'var(--accent)', padding: '8px', borderRadius: '10px', display: 'flex', alignItems: 'center' }}>
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '14px', fontWeight: 600, margin: 0 }}>Guía de Inicio Rápido</h4>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Sigue estos pasos para activar tu panel</p>
+              </div>
             </div>
-            <div>
-              <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>Importar Estados Financieros</h4>
-              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Sube tu planilla Excel (.xlsx, .xls) o cartola en PDF</p>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-light)', padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
+              {onboardingProgress}% Listo
             </div>
           </div>
 
-          <div style={{
-            border: '2px dashed var(--border-color)',
-            borderRadius: '12px',
-            padding: '16px',
-            textAlign: 'center',
-            background: 'rgba(0,0,0,0.02)',
-            transition: 'border-color 0.2s',
-            cursor: 'pointer',
-            position: 'relative'
-          }}>
-            <input
-              type="file"
-              accept=".xlsx,.xls,.pdf"
-              onChange={handleFileUpload}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                opacity: 0,
-                cursor: 'pointer'
-              }}
-              disabled={isUploading}
-            />
-            {isUploading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <RefreshCw size={20} className="spin-icon" style={{ color: 'var(--accent)' }} />
-                <span style={{ fontSize: '12px', fontWeight: 600 }}>Subiendo e importando... {uploadProgress}%</span>
-                <div style={{ width: '100%', height: '4px', background: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ width: `${uploadProgress}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.15s' }}></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Step 1 */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 12px',
+              background: 'rgba(0, 0, 0, 0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '10px',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: step1Completed ? 'rgba(52, 199, 89, 0.15)' : 'var(--accent-light)',
+                  color: step1Completed ? 'var(--success)' : 'var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}>
+                  {step1Completed ? '✓' : '1'}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 500, display: 'block', color: 'var(--text-primary)', textDecoration: step1Completed ? 'line-through' : 'none', opacity: step1Completed ? 0.6 : 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    1. Llenar Ingresos y Egresos
+                  </span>
                 </div>
               </div>
-            ) : uploadSuccess ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                <CheckCircle size={24} style={{ color: 'var(--success)' }} />
-                <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--success)' }}>¡Carga Exitosa!</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>Haz clic para examinar archivos</span>
-                <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Formatos soportados: Excel o PDF</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ========================================================
-            TICKET, RECEIPT & INVOICE SCANNER CARD (WOW FEATURE)
-           ======================================================== */}
-        <div className="card glass-panel" style={{
-          background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--bg-secondary-rgb), 0.5) 100%)',
-          border: '1px solid rgba(var(--accent-rgb), 0.15)',
-          padding: '24px',
-          borderRadius: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          gap: '12px',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          {/* Custom Laser Scan Styles */}
-          <style>{`
-            @keyframes radar-sweep {
-              0% { top: 0%; opacity: 0; }
-              10% { opacity: 1; }
-              90% { opacity: 1; }
-              100% { top: 100%; opacity: 0; }
-            }
-            @keyframes pulse-glow {
-              0% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.15); }
-              50% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.35); border-color: rgba(245, 158, 11, 0.35); }
-              100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.15); }
-            }
-          `}</style>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ background: 'rgba(245, 158, 11, 0.12)', color: 'var(--warning)', padding: '10px', borderRadius: '12px' }}>
-              <Sparkles size={24} />
+              {!step1Completed ? (
+                <button 
+                  onClick={() => onNavigate && onNavigate("flujo")}
+                  className="btn-primary"
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Llenar
+                </button>
+              ) : (
+                <span style={{ fontSize: '11px', color: 'var(--success)', fontWeight: 600 }}>Listo</span>
+              )}
             </div>
-            <div>
-              <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>Escáner IA de Boletas y Facturas</h4>
-              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Sube tu boleta o recibo de gasto para su archivo en el SII</p>
-            </div>
-          </div>
 
-          <div style={{
-            border: '2px dashed var(--border-color)',
-            borderRadius: '12px',
-            padding: '16px',
-            textAlign: 'center',
-            background: 'rgba(0,0,0,0.02)',
-            transition: 'all 0.2s',
-            cursor: 'pointer',
-            position: 'relative'
-          }}>
-            <input
-              type="file"
-              accept="image/*,.pdf"
-              onChange={handleReceiptUpload}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                opacity: 0,
-                cursor: 'pointer'
-              }}
-              disabled={isScanning}
-            />
-            
-            {isScanning ? (
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                gap: '8px',
-                height: '80px',
-                position: 'relative',
-                overflow: 'hidden',
-                borderRadius: '8px',
-                animation: 'pulse-glow 1.5s infinite'
-              }}>
-                {/* Glowing laser bar line */}
+            {/* Step 2 */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 12px',
+              background: 'rgba(0, 0, 0, 0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '10px',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                 <div style={{
-                  position: 'absolute',
-                  left: 0,
-                  width: '100%',
-                  height: '3px',
-                  background: 'linear-gradient(90deg, transparent 10%, #f59e0b 50%, transparent 90%)',
-                  boxShadow: '0 0 10px #f59e0b, 0 0 20px #f59e0b',
-                  animation: 'radar-sweep 2s infinite linear',
-                  zIndex: 2
-                }}></div>
-                <RefreshCw size={20} className="spin-icon" style={{ color: 'var(--warning)', zIndex: 1 }} />
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc', zIndex: 1 }}>Analizando Boleta...</span>
-                <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: 600, zIndex: 1 }}>{scanProgress}% Completado</span>
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: step2Completed ? 'rgba(52, 199, 89, 0.15)' : 'var(--accent-light)',
+                  color: step2Completed ? 'var(--success)' : 'var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}>
+                  {step2Completed ? '✓' : '2'}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 500, display: 'block', color: 'var(--text-primary)', textDecoration: step2Completed ? 'line-through' : 'none', opacity: step2Completed ? 0.6 : 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    2. Agregar Activos Físicos
+                  </span>
+                </div>
               </div>
-            ) : scanSuccess ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                <CheckCircle size={24} style={{ color: 'var(--success)' }} />
-                <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--success)' }}>¡Boleta Extraída con Éxito!</span>
-                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Haz clic para escanear otro recibo tributario</span>
+              {!step2Completed ? (
+                <button 
+                  onClick={() => onNavigate && onNavigate("activos_pasivos")}
+                  className="btn-primary"
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Agregar
+                </button>
+              ) : (
+                <span style={{ fontSize: '11px', color: 'var(--success)', fontWeight: 600 }}>Listo</span>
+              )}
+            </div>
+
+            {/* Step 3 */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 12px',
+              background: 'rgba(0, 0, 0, 0.02)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '10px',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: step3Completed ? 'rgba(52, 199, 89, 0.15)' : 'var(--accent-light)',
+                  color: step3Completed ? 'var(--success)' : 'var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}>
+                  {step3Completed ? '✓' : '3'}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 500, display: 'block', color: 'var(--text-primary)', textDecoration: step3Completed ? 'line-through' : 'none', opacity: step3Completed ? 0.6 : 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    3. Registrar Deudas o Créditos
+                  </span>
+                </div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--warning)' }}>Subir Comprobante / Boleta</span>
-                <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Formatos: Imagen (PNG, JPG) o PDF</span>
-              </div>
-            )}
+              {!step3Completed ? (
+                <button 
+                  onClick={() => onNavigate && onNavigate("deudas")}
+                  className="btn-primary"
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Añadir
+                </button>
+              ) : (
+                <span style={{ fontSize: '11px', color: 'var(--success)', fontWeight: 600 }}>Listo</span>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Importadores si no es Plan Personal */}
+        {!isPersonalPlan && (
+          <>
+            {/* Upload Zone Panel */}
+            <div className="card glass-panel" style={{
+              background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--bg-secondary-rgb), 0.5) 100%)',
+              border: '1px solid rgba(var(--accent-rgb), 0.15)',
+              padding: '16px 20px',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: '12px',
+              position: 'relative'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: 'var(--accent-light)', color: 'var(--accent)', padding: '10px', borderRadius: '12px' }}>
+                  <UploadCloud size={24} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>Importar Estados Financieros</h4>
+                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Sube tu planilla Excel (.xlsx, .xls) o cartola en PDF</p>
+                </div>
+              </div>
+
+              <div style={{
+                border: '2px dashed var(--border-color)',
+                borderRadius: '12px',
+                padding: '16px',
+                textAlign: 'center',
+                background: 'rgba(0,0,0,0.02)',
+                transition: 'border-color 0.2s',
+                cursor: 'pointer',
+                position: 'relative'
+              }}>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.pdf"
+                  onChange={handleFileUpload}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                  disabled={isUploading}
+                />
+                {isUploading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    <RefreshCw size={20} className="spin-icon" style={{ color: 'var(--accent)' }} />
+                    <span style={{ fontSize: '12px', fontWeight: 600 }}>Subiendo e importando... {uploadProgress}%</span>
+                    <div style={{ width: '100%', height: '4px', background: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ width: `${uploadProgress}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.15s' }}></div>
+                    </div>
+                  </div>
+                ) : uploadSuccess ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle size={24} style={{ color: 'var(--success)' }} />
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--success)' }}>¡Carga Exitosa!</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>Haz clic para examinar archivos</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Formatos soportados: Excel o PDF</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Ticket, Receipt & Invoice Scanner Card */}
+            <div className="card glass-panel" style={{
+              background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--bg-secondary-rgb), 0.5) 100%)',
+              border: '1px solid rgba(var(--accent-rgb), 0.15)',
+              padding: '16px 20px',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: '12px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Custom Laser Scan Styles */}
+              <style>{`
+                @keyframes radar-sweep {
+                  0% { top: 0%; opacity: 0; }
+                  10% { opacity: 1; }
+                  90% { opacity: 1; }
+                  100% { top: 100%; opacity: 0; }
+                }
+                @keyframes pulse-glow {
+                  0% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.15); }
+                  50% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.35); border-color: rgba(245, 158, 11, 0.35); }
+                  100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.15); }
+                }
+              `}</style>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: 'rgba(245, 158, 11, 0.12)', color: 'var(--warning)', padding: '10px', borderRadius: '12px' }}>
+                  <Sparkles size={24} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>Escáner IA de Boletas y Facturas</h4>
+                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Sube tu boleta o recibo de gasto para su archivo en el SII</p>
+                </div>
+              </div>
+
+              <div style={{
+                border: '2px dashed var(--border-color)',
+                borderRadius: '12px',
+                padding: '16px',
+                textAlign: 'center',
+                background: 'rgba(0,0,0,0.02)',
+                transition: 'all 0.2s',
+                cursor: 'pointer',
+                position: 'relative'
+              }}>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleReceiptUpload}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                  disabled={isScanning}
+                />
+                
+                {isScanning ? (
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: '8px',
+                    height: '80px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderRadius: '8px',
+                    animation: 'pulse-glow 1.5s infinite'
+                  }}>
+                    {/* Glowing laser bar line */}
+                    <div style={{
+                      position: 'absolute',
+                      left: 0,
+                      width: '100%',
+                      height: '3px',
+                      background: 'linear-gradient(90deg, transparent 10%, #f59e0b 50%, transparent 90%)',
+                      boxShadow: '0 0 10px #f59e0b, 0 0 20px #f59e0b',
+                      animation: 'radar-sweep 2s infinite linear',
+                      zIndex: 2
+                    }}></div>
+                    <RefreshCw size={20} className="spin-icon" style={{ color: 'var(--warning)', zIndex: 1 }} />
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#f8fafc', zIndex: 1 }}>Analizando Boleta...</span>
+                    <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: 600, zIndex: 1 }}>{scanProgress}% Completado</span>
+                  </div>
+                ) : scanSuccess ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle size={24} style={{ color: 'var(--success)' }} />
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--success)' }}>¡Boleta Extraída con Éxito!</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Haz clic para escanear otro recibo tributario</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--warning)' }}>Subir Comprobante / Boleta</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>Formatos: Imagen (PNG, JPG) o PDF</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
-      )}
       
       {/* SECCIÓN DE BALANCES PRINCIPALES (ALTA PRIORIDAD) */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '20px',
-        marginBottom: '32px'
+        gap: '14px',
+        marginBottom: '16px'
       }}>
         {/* Card Saldo Neto Total (Haber o Déficit) */}
         <div 
           className="card"
           style={{
-            padding: '24px',
+            padding: '16px 20px',
             borderRadius: '16px',
             borderLeft: `6px solid ${balanceTotal >= 0 ? 'var(--success)' : 'var(--danger)'}`,
             background: balanceTotal >= 0 ? 'rgba(52, 199, 89, 0.02)' : 'rgba(255, 59, 48, 0.02)',
             boxShadow: '0 8px 30px rgba(0, 0, 0, 0.02)',
             display: 'flex',
             alignItems: 'center',
-            gap: '20px',
+            gap: '16px',
             gridColumn: 'span 2',
-            minHeight: '120px'
+            minHeight: '96px'
           }}
         >
           <div className="kpi-icon" style={{ 
             backgroundColor: balanceTotal >= 0 ? 'rgba(52, 199, 89, 0.1)' : 'rgba(255, 59, 48, 0.1)', 
             color: balanceTotal >= 0 ? 'var(--success)' : 'var(--danger)',
-            width: '56px',
-            height: '56px',
-            borderRadius: '14px'
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px'
           }}>
-            {balanceTotal >= 0 ? <TrendingUp size={28} /> : <TrendingDown size={28} />}
+            {balanceTotal >= 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
           </div>
           <div>
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
               Saldo Neto Proyectado del Mes (Haber / Déficit)
             </span>
-            <strong style={{ fontSize: '32px', display: 'block', margin: '2px 0', lineHeight: 1.1 }} className={balanceTotal >= 0 ? "num-positive" : "num-negative"}>
+            <strong style={{ fontSize: '28px', display: 'block', margin: '2px 0', lineHeight: 1.1 }} className={balanceTotal >= 0 ? "num-positive" : "num-negative"}>
               {balanceTotal >= 0 ? '+' : ''}{formatMoney(balanceTotal)}
             </strong>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
               {balanceTotal >= 0 
                 ? '🟢 Operas con Superávit (Haber). Tienes excedente para ahorro o inversión.' 
                 : '🔴 Operas en Déficit. Tus egresos totales superan los ingresos proyectados.'}
@@ -1877,32 +2084,32 @@ He procesado tu consulta y analizado tus números integrados.
           style={{ 
             cursor: 'pointer', 
             transition: 'transform 0.2s',
-            padding: '24px',
+            padding: '16px 20px',
             borderRadius: '16px',
             borderLeft: `4px solid ${patrimonioNeto >= 0 ? 'var(--success)' : 'var(--danger)'}`,
             display: 'flex',
             alignItems: 'center',
-            gap: '20px',
-            minHeight: '120px'
+            gap: '16px',
+            minHeight: '96px'
           }}
         >
           <div className="kpi-icon" style={{ 
             backgroundColor: patrimonioNeto >= 0 ? 'rgba(52, 199, 89, 0.08)' : 'rgba(255, 59, 48, 0.08)', 
             color: patrimonioNeto >= 0 ? 'var(--success)' : 'var(--danger)',
-            width: '56px',
-            height: '56px',
-            borderRadius: '14px'
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px'
           }}>
-            <Activity size={26} />
+            <Activity size={24} />
           </div>
           <div className="kpi-info">
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block' }}>
               Patrimonio Neto
             </span>
-            <strong style={{ fontSize: '28px', display: 'block', margin: '2px 0', lineHeight: 1.1 }} className={patrimonioNeto >= 0 ? "num-positive" : "num-negative"}>
+            <strong style={{ fontSize: '24px', display: 'block', margin: '2px 0', lineHeight: 1.1 }} className={patrimonioNeto >= 0 ? "num-positive" : "num-negative"}>
               {formatMoney(patrimonioNeto)}
             </strong>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
               Balance acumulado (Activos - Deudas)
             </span>
           </div>
@@ -1910,11 +2117,11 @@ He procesado tu consulta y analizado tus números integrados.
       </div>
 
       {/* SECCIÓN DE FLUJOS FIJOS / RECURRENTES */}
-      <div style={{ marginBottom: '24px' }}>
-        <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+      <div style={{ marginBottom: '12px' }}>
+        <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
           Estructura de Flujo Mensual Fijo (Recurrente)
         </h4>
-        <div className="kpi-grid" style={{ marginBottom: '16px' }}>
+        <div className="kpi-grid" style={{ marginBottom: '12px' }}>
           <div 
             className="card kpi-card"
             onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
@@ -1965,11 +2172,11 @@ He procesado tu consulta y analizado tus números integrados.
       </div>
 
       {/* SECCIÓN DE FLUJOS VARIABLES / ESTIMADOS */}
-      <div style={{ marginBottom: '24px' }}>
-        <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+      <div style={{ marginBottom: '12px' }}>
+        <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
           Estructura de Flujo Mensual Variable (Estimado)
         </h4>
-        <div className="kpi-grid" style={{ marginBottom: '16px' }}>
+        <div className="kpi-grid" style={{ marginBottom: '12px' }}>
           <div 
             className="card kpi-card" 
             onClick={() => onNavigate && onNavigate("dashboard", "variable-incomes-table")}
@@ -2020,11 +2227,11 @@ He procesado tu consulta y analizado tus números integrados.
       </div>
 
       {/* SECCIÓN DE BALANZA DE CAPITAL (ACTIVOS Y DEUDAS) */}
-      <div style={{ marginBottom: '32px' }}>
-        <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
+      <div style={{ marginBottom: '16px' }}>
+        <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
           Balanza de Capital (Patrimonio Físico y Deudas)
         </h4>
-        <div className="kpi-grid" style={{ marginBottom: '16px' }}>
+        <div className="kpi-grid" style={{ marginBottom: '12px' }}>
           <div 
             className="card kpi-card" 
             onClick={() => onNavigate && onNavigate("activos_pasivos")}
