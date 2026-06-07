@@ -686,6 +686,27 @@ export default function ActivosPasivosView({
                 />
               </div>
 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Valor estimado ($)</label>
+                <input
+                  type="number"
+                  placeholder="Ej: 1500000"
+                  value={assetFormValue}
+                  onChange={e => setAssetFormValue(e.target.value)}
+                  required
+                  min="0"
+                  style={{
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
               {currentContext === 'consolidado' && assetModalMode === 'add' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Destino del Activo</label>
