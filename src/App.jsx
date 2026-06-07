@@ -1819,7 +1819,7 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Sparkles size={18} color="var(--accent)" />
             <span style={{ fontSize: '13.5px', color: '#cbd5e1', fontWeight: 500 }}>
-              Estás usando tu **Periodo de Prueba de 14 días**. ¡Prueba todas las funcionalidades y el Asesor CFO con IA!
+              Estás usando tu **Periodo de Prueba de 7 días**. ¡Prueba todas las funcionalidades y el Asesor CFO con IA!
             </span>
           </div>
           <button 
