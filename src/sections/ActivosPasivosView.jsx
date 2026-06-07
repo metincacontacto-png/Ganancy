@@ -888,8 +888,8 @@ export default function ActivosPasivosView({
               {/* Cuotas Inputs (Only visible for Fija) */}
               {debtFormTipo === "fija" && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuota Mensual ($)</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
+                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>Cuota Mensual ($)</label>
                     <input
                       type="number"
                       value={debtFormMontoMensual}
@@ -902,13 +902,14 @@ export default function ActivosPasivosView({
                         padding: '10px 10px',
                         borderRadius: '8px',
                         fontSize: '14px',
-                        outline: 'none'
+                        outline: 'none',
+                        width: '100%'
                       }}
                     />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Cuotas</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
+                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>Total Cuotas</label>
                     <input
                       type="number"
                       value={debtFormCuotasTotales}
@@ -922,13 +923,14 @@ export default function ActivosPasivosView({
                         padding: '10px 10px',
                         borderRadius: '8px',
                         fontSize: '14px',
-                        outline: 'none'
+                        outline: 'none',
+                        width: '100%'
                       }}
                     />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuotas Pagadas</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
+                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>Cuotas Pagadas</label>
                     <input
                       type="number"
                       value={debtFormCuotaActual}
@@ -943,7 +945,8 @@ export default function ActivosPasivosView({
                         padding: '10px 10px',
                         borderRadius: '8px',
                         fontSize: '14px',
-                        outline: 'none'
+                        outline: 'none',
+                        width: '100%'
                       }}
                     />
                   </div>
