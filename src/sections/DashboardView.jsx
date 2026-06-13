@@ -2481,67 +2481,103 @@ He procesado tu consulta y analizado tus números integrados.
                         </span>
                       </td>
                       <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                        <button
-                          onClick={() => {
-                            const newContext = isPersonal ? 'empresa' : 'personal';
-                            const targetName = isPersonal ? 'Negocio' : 'Personal';
-                            if (!confirm(`¿Estás seguro de que deseas transferir el gasto "${cleanName}" a ${targetName}?`)) {
-                              return;
-                            }
-                            if (updateMonthlyTransaction) {
-                              updateMonthlyTransaction(selectedMonthForReceipt, "egresos", "edit", {
-                                index: item.originalIndex,
-                                item: {
-                                  name: cleanName,
-                                  value: item.value,
-                                  isVariable: item.isVariable,
-                                  paid: item.paid,
-                                  dueDate: item.dueDate,
-                                  receiptUrl: item.receiptUrl,
-                                  context: newContext
-                                }
-                              });
-                            }
-                          }}
-                          style={{
-                            background: isPersonal ? 'rgba(251, 113, 133, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-                            color: isPersonal ? '#fb7185' : '#38bdf8',
-                            border: isPersonal ? '1px solid rgba(251, 113, 133, 0.3)' : '1px solid rgba(56, 189, 248, 0.3)',
+                        {item.isDebtLink ? (
+                          <span style={{
+                            background: 'rgba(255,255,255,0.05)',
+                            color: 'var(--text-tertiary)',
+                            border: '1px solid var(--border-color)',
                             fontSize: '11px',
-                            fontWeight: 700,
+                            fontWeight: 500,
                             padding: '4px 10px',
                             borderRadius: '20px',
-                            cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
-                            transition: 'all 0.2s',
-                            outline: 'none'
-                          }}
-                          title={`Click para transferir a ${isPersonal ? 'Negocio' : 'Personal'}`}
-                          className="context-toggle-btn"
-                        >
-                          {isPersonal ? '🏠 Personal' : '🏢 Negocio'}
-                          <RefreshCw size={9} style={{ opacity: 0.8 }} />
-                        </button>
+                            opacity: 0.7
+                          }}>
+                            {isPersonal ? '🏠 Personal' : '🏢 Negocio'}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const newContext = isPersonal ? 'empresa' : 'personal';
+                              const targetName = isPersonal ? 'Negocio' : 'Personal';
+                              if (!confirm(`¿Estás seguro de que deseas transferir el gasto "${cleanName}" a ${targetName}?`)) {
+                                return;
+                              }
+                              if (updateMonthlyTransaction) {
+                                updateMonthlyTransaction(selectedMonthForReceipt, "egresos", "edit", {
+                                  index: item.originalIndex,
+                                  item: {
+                                    name: cleanName,
+                                    value: item.value,
+                                    isVariable: item.isVariable,
+                                    paid: item.paid,
+                                    dueDate: item.dueDate,
+                                    receiptUrl: item.receiptUrl,
+                                    context: newContext
+                                  }
+                                });
+                              }
+                            }}
+                            style={{
+                              background: isPersonal ? 'rgba(251, 113, 133, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                              color: isPersonal ? '#fb7185' : '#38bdf8',
+                              border: isPersonal ? '1px solid rgba(251, 113, 133, 0.3)' : '1px solid rgba(56, 189, 248, 0.3)',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: '20px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 0.2s',
+                              outline: 'none'
+                            }}
+                            title={`Click para transferir a ${isPersonal ? 'Negocio' : 'Personal'}`}
+                            className="context-toggle-btn"
+                          >
+                            {isPersonal ? '🏠 Personal' : '🏢 Negocio'}
+                            <RefreshCw size={9} style={{ opacity: 0.8 }} />
+                          </button>
+                        )}
                       </td>
                       <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 600, fontSize: '13px', color: 'var(--danger)' }}>
                         -{formatMoney(item.value)}
                       </td>
                       <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                        <button 
-                          onClick={() => {
-                            if (confirm(`¿Estás seguro de que deseas eliminar este egreso de ${cleanName}?`)) {
-                              if (updateMonthlyTransaction) {
-                                updateMonthlyTransaction(selectedMonthForReceipt, "egresos", "delete", { index: item.originalIndex });
+                        {item.isDebtLink ? (
+                          <span 
+                            style={{ 
+                              background: 'transparent', 
+                              border: 'none', 
+                              color: 'var(--text-tertiary)', 
+                              cursor: 'not-allowed', 
+                              padding: '4px', 
+                              display: 'inline-flex', 
+                              alignItems: 'center',
+                              opacity: 0.5 
+                            }} 
+                            title="Gestionado en Deudas"
+                          >
+                            <Trash size={14} />
+                          </span>
+                        ) : (
+                          <button 
+                            onClick={() => {
+                              if (confirm(`¿Estás seguro de que deseas eliminar este egreso de ${cleanName}?`)) {
+                                if (updateMonthlyTransaction) {
+                                  updateMonthlyTransaction(selectedMonthForReceipt, "egresos", "delete", { index: item.originalIndex });
+                                }
                               }
-                            }
-                          }}
-                          style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center' }}
-                          title="Eliminar Transacción"
-                        >
-                          <Trash size={14} />
-                        </button>
+                            }}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center' }}
+                            title="Eliminar Transacción"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

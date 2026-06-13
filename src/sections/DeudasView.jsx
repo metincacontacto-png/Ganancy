@@ -124,7 +124,7 @@ export default function DeudasView({
     setDebtFormMontoMensual(debt.montoMensual);
     setDebtFormPrepago(debt.prepago);
     setDebtFormFechaVencimiento(debt.fechaVencimiento || "");
-    setDebtFormDetails(debt.details || "");
+    setDebtFormDetails((debt.details || "").replace(/\n?\[StartMonth:\s*[^\]]+\]/g, ""));
     setDebtModalOpen(true);
   };
 
@@ -406,7 +406,7 @@ export default function DeudasView({
                   {activeTrackerDebt.name}
                 </strong>
                 <span className="subtitle" style={{ display: 'block', marginTop: '2px' }}>
-                  {activeTrackerDebt.details}
+                  {(activeTrackerDebt.details || "").replace(/\n?\[StartMonth:\s*[^\]]+\]/g, "")}
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '16px', fontSize: '13px' }}>

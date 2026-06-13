@@ -272,17 +272,151 @@ export default function App() {
   const filteredIngresosVariables = React.useMemo(() => filterByActiveContext(ingresosVariablesState), [ingresosVariablesState, filterByActiveContext]);
   const filteredEgresosVariables = React.useMemo(() => filterByActiveContext(egresosVariablesState), [egresosVariablesState, filterByActiveContext]);
 
+  const parseMonthYear = React.useCallback((str) => {
+    if (!str) return new Date();
+    const parts = str.split(' ');
+    const abbr = parts[0];
+    const yr = parseInt(parts[1], 10);
+    const monthMap = {
+      "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+      "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11,
+      "Mayo": 4
+    };
+    return new Date(yr, monthMap[abbr] !== undefined ? monthMap[abbr] : 0, 1);
+  }, []);
+
+  const getMonthDistance = React.useCallback((startMonth, endMonth) => {
+    const start = parseMonthYear(startMonth);
+    const end = parseMonthYear(endMonth);
+    return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  }, [parseMonthYear]);
+
+  const getStartMonth = React.useCallback((debt) => {
+    if (debt.startMonth) return debt.startMonth;
+    const match = debt.details && debt.details.match(/\[StartMonth:\s*([^\]\s]+)\s*(\d+)\]/);
+    if (match) {
+      return `${match[1]} ${match[2]}`;
+    }
+    const baseMonth = "May 2026";
+    const date = parseMonthYear(baseMonth);
+    const cuotaAct = debt.cuotaActual || 0;
+    date.setMonth(date.getMonth() - cuotaAct);
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    return `${months[date.getMonth()]} ${date.getFullYear()}`;
+  }, [parseMonthYear]);
+
   const filteredMonthlyDetails = React.useMemo(() => {
     const res = {};
+    
+    // 1. Copiar los detalles existentes
     Object.keys(monthlyDetailsState).forEach(month => {
       const monthObj = monthlyDetailsState[month] || { ingresos: [], egresos: [] };
       res[month] = {
-        ingresos: filterByActiveContext(monthObj.ingresos || []),
-        egresos: filterByActiveContext(monthObj.egresos || [])
+        ingresos: [...(monthObj.ingresos || [])],
+        egresos: [...(monthObj.egresos || [])]
       };
     });
-    return res;
-  }, [monthlyDetailsState, filterByActiveContext]);
+    
+    // Obtener los meses ordenados cronológicamente
+    const sortedMonths = Object.keys(res).sort((a, b) => parseMonthYear(a) - parseMonthYear(b));
+    if (sortedMonths.length === 0) return res;
+
+    // Estructuras para acumular montos impagos de deudas en cuotas
+    const accumulatedUnpaid = {}; // debtId -> count of unpaid installments
+    
+    // 2. Procesar mes a mes cronológicamente para inyectar deudas de cuotas y arrastrar saldos
+    sortedMonths.forEach(month => {
+      debtsState.forEach(debt => {
+        const suffix = debt.context === 'personal' ? ' [Personal]' : ' [Empresa]';
+        const taggedName = debt.name.includes('[Personal]') || debt.name.includes('[Empresa]') 
+          ? debt.name 
+          : debt.name + suffix;
+
+        // Caso A: Deudas con Cuotas (fija)
+        if (debt.tipo === "fija" || (debt.cuotasTotales && debt.cuotasTotales > 1)) {
+          const startMonth = getStartMonth(debt);
+          const index_M = getMonthDistance(startMonth, month);
+          
+          if (index_M >= 0 && index_M < debt.cuotasTotales) {
+            const isCurrentPaid = debt.cuotas && debt.cuotas[index_M];
+            const prevUnpaidCount = accumulatedUnpaid[debt.id] || 0;
+            
+            if (isCurrentPaid) {
+              // Si la cuota de este mes está pagada, se agrega con su valor normal
+              res[month].egresos.push({
+                id: `debt_virtual_${debt.id}_${index_M}`,
+                name: taggedName,
+                value: debt.montoMensual || 0,
+                paid: true,
+                isVariable: false,
+                dueDate: "",
+                isDebtLink: true,
+                cuotaIndex: index_M,
+                debtId: debt.id
+              });
+            } else {
+              // Si no está pagada, el monto se suma al acumulado
+              const totalUnpaidCountForThisMonth = prevUnpaidCount + 1;
+              const totalValueDue = (debt.montoMensual || 0) * totalUnpaidCountForThisMonth;
+              
+              const labelNote = prevUnpaidCount > 0 
+                ? ` (Incluye ${prevUnpaidCount} cuota${prevUnpaidCount > 1 ? 's' : ''} anterior${prevUnpaidCount > 1 ? 'es' : ''} impaga${prevUnpaidCount > 1 ? 's' : ''})` 
+                : "";
+
+              res[month].egresos.push({
+                id: `debt_virtual_${debt.id}_${index_M}`,
+                name: taggedName + labelNote,
+                value: totalValueDue,
+                paid: false,
+                isVariable: false,
+                dueDate: "",
+                isDebtLink: true,
+                cuotaIndex: index_M,
+                debtId: debt.id,
+                unpaidCount: totalUnpaidCountForThisMonth
+              });
+              
+              // Arrastrar el saldo impago para el siguiente mes
+              accumulatedUnpaid[debt.id] = totalUnpaidCountForThisMonth;
+            }
+          }
+        }
+        
+        // Caso B: Pago Único (one-off)
+        if (debt.tipo === "pago_unico" && debt.fechaVencimiento) {
+          const date = new Date(debt.fechaVencimiento + "T00:00:00");
+          if (!isNaN(date.getTime())) {
+            const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+            const debtMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
+            
+            if (debtMonth === month) {
+              res[month].egresos.push({
+                id: `debt_virtual_${debt.id}`,
+                name: taggedName,
+                value: debt.total || 0,
+                paid: debt.completed,
+                isVariable: true,
+                dueDate: debt.fechaVencimiento,
+                isDebtLink: true,
+                debtId: debt.id
+              });
+            }
+          }
+        }
+      });
+    });
+
+    // 3. Aplicar filtro de contexto activo
+    const filteredRes = {};
+    Object.keys(res).forEach(month => {
+      filteredRes[month] = {
+        ingresos: filterByActiveContext(res[month].ingresos),
+        egresos: filterByActiveContext(res[month].egresos)
+      };
+    });
+    
+    return filteredRes;
+  }, [monthlyDetailsState, debtsState, filterByActiveContext, parseMonthYear, getMonthDistance, getStartMonth]);
 
   const filteredHistoricalFlows = React.useMemo(() => {
     return historicalFlowsState.map(flow => {
@@ -826,6 +960,12 @@ export default function App() {
     const total = totalOriginal * (1 + interes / 100);
     const tipo = debtData.tipo || (debtData.cuotasTotales === 1 ? "pago_unico" : "fija");
 
+    // Automatically append [StartMonth: ...] metadata to details
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const now = new Date();
+    const currentMonthLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
+    const detailsWithMeta = (debtData.details || "").trim() + `\n[StartMonth: ${currentMonthLabel}]`;
+
     if (currentUser && currentUser.provider === 'supabase') {
       try {
         const { data, error } = await supabase
@@ -841,7 +981,7 @@ export default function App() {
             monto_mensual: debtData.montoMensual,
             prepago: debtData.prepago,
             completed: debtData.cuotaActual === debtData.cuotasTotales,
-            details: debtData.details || "",
+            details: detailsWithMeta,
             tipo,
             fecha_vencimiento: debtData.fechaVencimiento || null,
             cuotas
@@ -870,7 +1010,7 @@ export default function App() {
         montoMensual: debtData.montoMensual,
         prepago: debtData.prepago,
         completed: debtData.cuotaActual === debtData.cuotasTotales,
-        details: debtData.details || "",
+        details: detailsWithMeta,
         tipo,
         fechaVencimiento: debtData.fechaVencimiento || "",
         cuotas
@@ -895,6 +1035,18 @@ export default function App() {
       }
     }
 
+    // Preserve existing [StartMonth: ...] metadata or append new one
+    const existingMeta = currentDebtObj && currentDebtObj.details && currentDebtObj.details.match(/\[StartMonth:\s*[^\]]+\s*\d+\]/);
+    let finalDetails = (debtData.details || "").trim();
+    if (existingMeta) {
+      finalDetails += "\n" + existingMeta[0];
+    } else {
+      const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+      const now = new Date();
+      const currentMonthLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
+      finalDetails += `\n[StartMonth: ${currentMonthLabel}]`;
+    }
+
     if (currentUser && currentUser.provider === 'supabase') {
       try {
         const { error } = await supabase
@@ -909,7 +1061,7 @@ export default function App() {
             monto_mensual: debtData.montoMensual,
             prepago: debtData.prepago,
             completed: debtData.cuotaActual === debtData.cuotasTotales,
-            details: debtData.details || "",
+            details: finalDetails,
             tipo,
             fecha_vencimiento: debtData.fechaVencimiento || null,
             cuotas: newCuotas
@@ -938,7 +1090,7 @@ export default function App() {
             montoMensual: debtData.montoMensual,
             prepago: debtData.prepago,
             completed: debtData.cuotaActual === debtData.cuotasTotales,
-            details: debtData.details || "",
+            details: finalDetails,
             tipo,
             fechaVencimiento: debtData.fechaVencimiento || "",
             cuotas: newCuotas
@@ -972,7 +1124,16 @@ export default function App() {
     if (!current) return;
 
     const newCuotas = [...current.cuotas];
-    newCuotas[cuotaIndex] = !newCuotas[cuotaIndex];
+    const newVal = !newCuotas[cuotaIndex];
+    newCuotas[cuotaIndex] = newVal;
+
+    if (newVal) {
+      // Mark all preceding unpaid cuotas as paid
+      for (let i = 0; i < cuotaIndex; i++) {
+        newCuotas[i] = true;
+      }
+    }
+
     const paidCount = newCuotas.filter(Boolean).length;
     const completed = paidCount === current.cuotasTotales;
 
@@ -1337,7 +1498,18 @@ export default function App() {
   const updateMonthlyTransaction = async (month, type, action, data) => {
     const monthObject = monthlyDetailsState[month] || { ingresos: [], egresos: [] };
     const list = [...(monthObject[type] || [])];
-    const item = list[data.index];
+    
+    let rawIndex = data.index;
+    if (action !== "add" && data.index !== undefined) {
+      const filteredList = filterByActiveContext(list);
+      const targetItem = filteredList[data.index];
+      if (targetItem) {
+        rawIndex = list.findIndex(it => it === targetItem || (it.id && it.id === targetItem.id));
+      }
+    }
+    if (rawIndex === -1) rawIndex = data.index;
+    
+    const item = list[rawIndex];
 
     let newId = "tx_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
 
@@ -1425,7 +1597,7 @@ export default function App() {
         });
       } else if (action === "edit") {
         const taggedName = tagWithActiveContext(data.item.name, data.item.context);
-        updatedList = updatedList.map((it, idx) => idx === data.index ? {
+        updatedList = updatedList.map((it, idx) => idx === rawIndex ? {
           ...it,
           name: taggedName,
           value: data.item.value,
@@ -1437,9 +1609,9 @@ export default function App() {
           reminderTime: data.item.reminderTime || "3_days_before"
         } : it);
       } else if (action === "delete") {
-        updatedList = updatedList.filter((_, idx) => idx !== data.index);
+        updatedList = updatedList.filter((_, idx) => idx !== rawIndex);
       } else if (action === "toggle") {
-        updatedList = updatedList.map((it, idx) => idx === data.index ? { ...it, paid: !it.paid } : it);
+        updatedList = updatedList.map((it, idx) => idx === rawIndex ? { ...it, paid: !it.paid } : it);
       }
 
       const updatedMonthDetails = {

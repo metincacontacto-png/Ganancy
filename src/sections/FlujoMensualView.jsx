@@ -7,7 +7,8 @@ export default function FlujoMensualView({
   monthlyDetailsState, 
   updateMonthlyTransaction,
   currentContext,
-  addHistoricalMonth
+  addHistoricalMonth,
+  toggleCuota
 }) {
   const getCleanName = (name) => {
     if (!name) return "";
@@ -239,6 +240,15 @@ export default function FlujoMensualView({
   };
 
   const handleTogglePaid = (type, index) => {
+    const list = currentDetails[type] || [];
+    const item = list[index];
+    if (item && item.isDebtLink) {
+      if (toggleCuota) {
+        const cuotaIdx = item.cuotaIndex !== undefined ? item.cuotaIndex : 0;
+        toggleCuota(item.debtId, cuotaIdx);
+      }
+      return;
+    }
     updateMonthlyTransaction(selectedMonthDetail, type, "toggle", { index });
   };
 
@@ -585,12 +595,16 @@ export default function FlujoMensualView({
                                    <Paperclip size={12} />
                                  </button>
                                )}
-                              <button onClick={() => handleOpenEdit("ingresos", idx, item)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} title="Editar">
-                                <Edit2 size={11} />
-                              </button>
-                              <button onClick={() => handleTransDelete("ingresos", idx, item.name)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} title="Eliminar">
-                                <Trash2 size={11} />
-                              </button>
+                               {!item.isDebtLink && (
+                                 <>
+                                   <button onClick={() => handleOpenEdit("ingresos", idx, item)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} title="Editar">
+                                     <Edit2 size={11} />
+                                   </button>
+                                   <button onClick={() => handleTransDelete("ingresos", idx, item.name)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} title="Eliminar">
+                                     <Trash2 size={11} />
+                                   </button>
+                                 </>
+                               )}
                             </div>
                           </div>
                         </div>
@@ -684,7 +698,7 @@ export default function FlujoMensualView({
                             <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                               
                               {/* Notification/Reminder Trigger (as requested in Page 6) */}
-                              {!item.paid && !item.reminderEnabled && (
+                              {!item.isDebtLink && !item.paid && !item.reminderEnabled && (
                                 <div style={{ position: 'relative' }}>
                                   <button 
                                     onClick={() => {
@@ -740,12 +754,16 @@ export default function FlujoMensualView({
                                  </button>
                                )}
 
-                              <button onClick={() => handleOpenEdit("egresos", idx, item)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} title="Editar">
-                                <Edit2 size={11} />
-                              </button>
-                              <button onClick={() => handleTransDelete("egresos", idx, item.name)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} title="Eliminar">
-                                <Trash2 size={11} />
-                              </button>
+                               {!item.isDebtLink && (
+                                 <>
+                                   <button onClick={() => handleOpenEdit("egresos", idx, item)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} title="Editar">
+                                     <Edit2 size={11} />
+                                   </button>
+                                   <button onClick={() => handleTransDelete("egresos", idx, item.name)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} title="Eliminar">
+                                     <Trash2 size={11} />
+                                   </button>
+                                 </>
+                               )}
                             </div>
                           </div>
                         </div>

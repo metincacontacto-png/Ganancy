@@ -204,7 +204,7 @@ export default function ActivosPasivosView({
     setDebtFormMontoMensual(debt.montoMensual);
     setDebtFormPrepago(debt.prepago);
     setDebtFormFechaVencimiento(debt.fechaVencimiento || "");
-    setDebtFormDetails(debt.details || "");
+    setDebtFormDetails((debt.details || "").replace(/\n?\[StartMonth:\s*[^\]]+\]/g, ""));
     setDebtModalOpen(true);
   };
 
@@ -532,7 +532,7 @@ export default function ActivosPasivosView({
                         </span>
                       </div>
                       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                        {debt.details}
+                        {(debt.details || "").replace(/\n?\[StartMonth:\s*[^\]]+\]/g, "")}
                       </p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
