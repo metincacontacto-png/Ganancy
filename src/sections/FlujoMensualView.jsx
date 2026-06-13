@@ -126,6 +126,7 @@ export default function FlujoMensualView({
   const [transModalType, setTransModalType] = useState("ingresos"); // "ingresos" or "egresos"
   const [transModalMode, setTransModalMode] = useState("add"); // "add" or "edit"
   const [editingIndex, setEditingIndex] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [formName, setFormName] = useState("");
   const [formValue, setFormValue] = useState("");
   const [formIsVariable, setFormIsVariable] = useState(true);
@@ -159,13 +160,14 @@ export default function FlujoMensualView({
   const filteredMonths = historicalFlowsState.filter(item => item.q === selectedTrimestre);
 
   // Details sheet CRUD triggers
-  const handleOpenAdd = (type) => {
+  const handleOpenAdd = (type, isVariable = true) => {
     setTransModalType(type);
     setTransModalMode("add");
     setEditingIndex(null);
+    setEditingId(null);
     setFormName("");
     setFormValue("");
-    setFormIsVariable(true);
+    setFormIsVariable(isVariable);
     setFormPaid(false);
     setFormDueDate("");
     setFormReminderEnabled(false);
@@ -179,6 +181,7 @@ export default function FlujoMensualView({
     setTransModalType(type);
     setTransModalMode("edit");
     setEditingIndex(index);
+    setEditingId(item.id || null);
     
     const hasPersonalTag = item.name.includes('[Personal]');
     const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
@@ -215,6 +218,7 @@ export default function FlujoMensualView({
       });
     } else {
       updateMonthlyTransaction(selectedMonthDetail, transModalType, "edit", {
+        id: editingId,
         index: editingIndex,
         item: {
           name: formName,
@@ -233,13 +237,13 @@ export default function FlujoMensualView({
     setTransModalOpen(false);
   };
 
-  const handleTransDelete = (type, index, name) => {
+  const handleTransDelete = (type, index, name, id) => {
     if (window.confirm(`¿Estás seguro de que deseas eliminar "${name}"?`)) {
-      updateMonthlyTransaction(selectedMonthDetail, type, "delete", { index });
+      updateMonthlyTransaction(selectedMonthDetail, type, "delete", { id, index });
     }
   };
 
-  const handleTogglePaid = (type, index) => {
+  const handleTogglePaid = (type, index, id) => {
     const list = currentDetails[type] || [];
     const item = list[index];
     if (item && item.isDebtLink) {
@@ -249,7 +253,7 @@ export default function FlujoMensualView({
       }
       return;
     }
-    updateMonthlyTransaction(selectedMonthDetail, type, "toggle", { index });
+    updateMonthlyTransaction(selectedMonthDetail, type, "toggle", { id, index });
   };
 
   // Reminder Scheduling Simulation
@@ -275,6 +279,233 @@ export default function FlujoMensualView({
   const ingresosRecibidos = currentDetails ? currentDetails.ingresos.filter(item => item.paid).reduce((sum, item) => sum + item.value, 0) : 0;
   const egresosPagados = currentDetails ? currentDetails.egresos.filter(item => item.paid).reduce((sum, item) => sum + item.value, 0) : 0;
   const balanceCajaActual = ingresosRecibidos - egresosPagados;
+
+  const incomesWithIdx = currentDetails ? (currentDetails.ingresos || []).map((item, idx) => ({ ...item, originalIndex: idx })) : [];
+  const expensesWithIdx = currentDetails ? (currentDetails.egresos || []).map((item, idx) => ({ ...item, originalIndex: idx })) : [];
+
+  const ingresosFijos = incomesWithIdx.filter(item => !item.isVariable);
+  const ingresosVariables = incomesWithIdx.filter(item => item.isVariable);
+
+  const egresosFijos = expensesWithIdx.filter(item => !item.isVariable);
+  const egresosVariables = expensesWithIdx.filter(item => item.isVariable);
+
+  const totalIngresosFijos = ingresosFijos.reduce((sum, item) => sum + item.value, 0);
+  const totalEgresosFijos = egresosFijos.reduce((sum, item) => sum + item.value, 0);
+  const totalIngresosVariables = ingresosVariables.reduce((sum, item) => sum + item.value, 0);
+  const totalEgresosVariables = egresosVariables.reduce((sum, item) => sum + item.value, 0);
+
+  const renderTransactionTable = (items, type, montoLabel, emptyMessage) => {
+    return (
+      <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1.5px solid var(--border-color)' }}>
+              <th style={{ width: '28px', padding: '8px 4px' }}></th>
+              <th style={{ textAlign: 'left', padding: '8px', fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Concepto</th>
+              <th style={{ textAlign: 'right', padding: '8px', width: '110px', fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>{montoLabel}</th>
+              <th style={{ width: '90px', textAlign: 'center', padding: '8px', fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map(item => {
+              const isExpense = type === "egresos";
+              return (
+                <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)', height: '48px' }}>
+                  {/* Checkbox column */}
+                  <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                    <span
+                      onClick={() => handleTogglePaid(type, item.originalIndex, item.id)}
+                      style={{
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '4px',
+                        border: item.paid ? '1px solid var(--success)' : '1px solid var(--text-secondary)',
+                        background: item.paid ? 'var(--success)' : 'transparent',
+                        color: item.paid ? 'white' : 'transparent',
+                        transition: 'all 0.15s'
+                      }}
+                      title={item.paid ? "Marcar como Pendiente" : "Marcar como Pagado"}
+                    >
+                      <Check size={12} strokeWidth={3} />
+                    </span>
+                  </td>
+                  
+                  {/* Concepto column */}
+                  <td style={{ padding: '8px', verticalAlign: 'middle' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ 
+                          fontWeight: 500, 
+                          color: 'var(--text-primary)', 
+                          textDecoration: item.paid ? 'line-through' : 'none',
+                          opacity: item.paid ? 0.6 : 1,
+                          fontSize: '13px'
+                        }}>
+                          {getCleanName(item.name)}
+                        </span>
+                        {renderContextBadge(item.name)}
+                        
+                        {/* If it's real/receipt we show a badge */}
+                        {item.receiptUrl && (
+                          <span style={{
+                            background: 'rgba(52, 199, 89, 0.1)',
+                            color: 'var(--success)',
+                            fontSize: '9px',
+                            fontWeight: 600,
+                            padding: '1px 4px',
+                            borderRadius: '3px',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }} title="Gasto Real / Boleta cargada en el mes">
+                            Real / Boleta
+                          </span>
+                        )}
+                        
+                        {/* If it's a debt link, we show a badge */}
+                        {item.isDebtLink && (
+                          <span style={{
+                            background: 'rgba(10, 132, 255, 0.1)',
+                            color: 'var(--accent)',
+                            fontSize: '9px',
+                            fontWeight: 600,
+                            padding: '1px 4px',
+                            borderRadius: '3px',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}>
+                            Deuda
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Due date and other details */}
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar size={10} />
+                        {isExpense ? 'Vence' : 'Cobro'}: {item.dueDate || 'Sin fecha'}
+                      </span>
+                    </div>
+                  </td>
+                  
+                  {/* Monto column */}
+                  <td style={{ 
+                    padding: '8px', 
+                    textAlign: 'right', 
+                    fontWeight: 600, 
+                    verticalAlign: 'middle',
+                    fontSize: '13px',
+                    textDecoration: item.paid ? 'line-through' : 'none',
+                    opacity: item.paid ? 0.6 : 1
+                  }} className={isExpense ? "num-negative" : "num-positive"}>
+                    {formatMoney(item.value)}
+                  </td>
+                  
+                  {/* Actions column */}
+                  <td style={{ padding: '8px', verticalAlign: 'middle' }}>
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}>
+                      {item.receiptUrl && (
+                        <button 
+                          onClick={() => handleViewReceipt(item.receiptUrl, item.name)} 
+                          style={{ background: 'transparent', border: 'none', color: 'var(--success)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} 
+                          title="Ver Boleta de Respaldo Tributario (SII)"
+                        >
+                          <Paperclip size={12} />
+                        </button>
+                      )}
+                      
+                      {!item.isDebtLink && !item.paid && !item.reminderEnabled && (
+                        <div style={{ position: 'relative' }}>
+                          <button 
+                            onClick={() => {
+                              setActiveReminderIdx(activeReminderIdx === item.originalIndex && activeReminderType === type ? null : item.originalIndex);
+                              setActiveReminderType(type);
+                            }}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--warning)', cursor: 'pointer', padding: '2px', display: 'flex' }} 
+                            title="Programar recordatorio rápido"
+                          >
+                            <Bell size={11} />
+                          </button>
+                          
+                          {activeReminderIdx === item.originalIndex && activeReminderType === type && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '22px',
+                              right: '0',
+                              background: 'var(--bg-secondary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '8px',
+                              boxShadow: 'var(--shadow-lg)',
+                              zIndex: 10,
+                              width: '180px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              padding: '4px'
+                            }}>
+                              <button 
+                                onClick={() => triggerReminderToast(item.name, "WhatsApp", item.dueDate, "(3 días antes)")}
+                                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', textAlign: 'left', padding: '8px 10px', fontSize: '11px', cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                              >
+                                WhatsApp 3 días antes
+                              </button>
+                              <button 
+                                onClick={() => triggerReminderToast(item.name, "Correo", item.dueDate, "(Inicio de mes)")}
+                                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', textAlign: 'left', padding: '8px 10px', fontSize: '11px', cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                              >
+                                Correo inicio de mes
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {item.reminderEnabled && (
+                        <span 
+                          style={{ display: 'flex', alignItems: 'center', color: 'var(--accent)', cursor: 'pointer' }}
+                          title={`Alerta de correo configurada para: ${item.reminderEmail}`}
+                        >
+                          <Send size={10} />
+                        </span>
+                      )}
+                      
+                      {!item.isDebtLink && (
+                        <>
+                          <button 
+                            onClick={() => handleOpenEdit(type, item.originalIndex, item)} 
+                            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} 
+                            title="Editar"
+                          >
+                            <Edit2 size={11} />
+                          </button>
+                          <button 
+                            onClick={() => handleTransDelete(type, item.originalIndex, item.name, item.id)} 
+                            style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} 
+                            title="Eliminar"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            
+            {items.length === 0 && (
+              <tr>
+                <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '24px 0', fontSize: '12px' }}>
+                  {emptyMessage}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -439,7 +670,7 @@ export default function FlujoMensualView({
       {/* Modal / Sheet de Detalle de Mes (DIRECT CRUD & Reminders) */}
       {selectedMonthDetail && currentDetails && currentMonthFlow && (
         <div className="modal-overlay" onClick={() => setSelectedMonthDetail(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '850px' }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1150px', width: '95%' }}>
             <button className="close-btn" onClick={() => setSelectedMonthDetail(null)}>
               <X size={16} />
             </button>
@@ -500,279 +731,140 @@ export default function FlujoMensualView({
               </div>
             </div>
 
-            {/* Grid Columns for Incomes / Expenses */}
-            <div className="month-detail-grid">
-              
-              {/* Income Column */}
-              <div>
-                <div className="detail-column-title" style={{ justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <ArrowUpRight size={18} color="var(--success)" />
-                    <span>Ingresos Percibidos</span>
+            {/* Grid Columns for Incomes / Expenses - 4 Panels */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+              gap: '24px', 
+              marginTop: '20px' 
+            }}>
+              {/* Left: Ingresos Fijos */}
+              <div 
+                className="card" 
+                style={{ 
+                  padding: '20px 0', 
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <div style={{ padding: '0 20px 12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                      Ingresos Fijos
+                    </h4>
+                    <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos recurrentes mensuales</p>
                   </div>
                   <button 
-                    onClick={() => handleOpenAdd("ingresos")}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--success)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '11px', fontWeight: 600 }}
+                    onClick={() => handleOpenAdd("ingresos", false)} 
+                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '4px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     <Plus size={12} /> Agregar
                   </button>
                 </div>
-                
-                <div className="detail-item-list" style={{ maxHeight: '380px', overflowY: 'auto' }}>
-                  {currentDetails.ingresos.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)', fontSize: '12px' }}>Sin ingresos registrados.</div>
-                  ) : (
-                    currentDetails.ingresos.map((item, idx) => (
-                      <div key={idx} className="detail-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '14px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                            {/* Paid Badge Status */}
-                            <div style={{ marginTop: '2px' }}>
-                              <span 
-                                onClick={() => handleTogglePaid("ingresos", idx)}
-                                style={{
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  fontSize: '11px',
-                                  fontWeight: 600,
-                                  padding: '2px 8px',
-                                  borderRadius: '12px',
-                                  background: item.paid ? 'rgba(52, 199, 89, 0.1)' : 'rgba(255, 159, 10, 0.1)',
-                                  color: item.paid ? 'var(--success)' : 'var(--warning)',
-                                  border: item.paid ? '1px solid rgba(52, 199, 89, 0.2)' : '1px solid rgba(255, 159, 10, 0.2)',
-                                  transition: 'all 0.15s ease'
-                                }}
-                                title="Haz clic para cambiar el estado de pago"
-                              >
-                                {item.paid ? <Check size={11} /> : null}
-                                {item.paid ? "Pagado" : "Pendiente"}
-                              </span>
-                            </div>
-                            
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <span style={{ fontWeight: 500, color: 'var(--text-primary)', textDecoration: item.paid ? 'line-through' : 'none' }}>{getCleanName(item.name)}</span>
-                                {renderContextBadge(item.name)}
-                                <span style={{ 
-                                  fontSize: '9px', 
-                                  padding: '1px 4px', 
-                                  borderRadius: '3px',
-                                  background: item.isVariable ? 'rgba(255, 159, 10, 0.08)' : 'rgba(10, 132, 255, 0.08)',
-                                  color: item.isVariable ? 'var(--warning)' : 'var(--accent)'
-                                }}>
-                                  {item.isVariable ? 'Var' : 'Fijo'}
-                                </span>
-
-                                {item.reminderEnabled && (
-                                  <span 
-                                    style={{ display: 'flex', alignItems: 'center', color: 'var(--accent)', cursor: 'pointer' }}
-                                    title={`Alerta de correo configurada para: ${item.reminderEmail} (${item.reminderTime === 'same_day' ? 'el mismo día' : item.reminderTime === '1_day_before' ? '1 día antes' : item.reminderTime === '3_days_before' ? '3 días antes' : item.reminderTime === '5_days_before' ? '5 días antes' : 'mañana'})`}
-                                  >
-                                    <Send size={10} style={{ marginLeft: '4px' }} />
-                                  </span>
-                                )}
-                              </div>
-                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                                <Calendar size={11} />
-                                Cobro: {item.dueDate || 'Sin fecha'}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                            <strong style={{ fontSize: '14px', textDecoration: item.paid ? 'line-through' : 'none' }}>{formatMoney(item.value)}</strong>
-                            
-                            {/* Row Actions */}
-                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                               {item.receiptUrl && (
-                                 <button 
-                                   onClick={() => handleViewReceipt(item.receiptUrl, item.name)} 
-                                   style={{ background: 'transparent', border: 'none', color: 'var(--success)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} 
-                                   title="Ver Documento de Respaldo Tributario (SII)"
-                                 >
-                                   <Paperclip size={12} />
-                                 </button>
-                               )}
-                               {!item.isDebtLink && (
-                                 <>
-                                   <button onClick={() => handleOpenEdit("ingresos", idx, item)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} title="Editar">
-                                     <Edit2 size={11} />
-                                   </button>
-                                   <button onClick={() => handleTransDelete("ingresos", idx, item.name)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} title="Eliminar">
-                                     <Trash2 size={11} />
-                                   </button>
-                                 </>
-                               )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                {renderTransactionTable(ingresosFijos, "ingresos", "Monto Mensual", "No hay ingresos fijos registrados.")}
+                <div style={{ padding: '12px 20px 0 20px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Ingresos Fijos</span>
+                  <span style={{ fontSize: '15px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosFijos)}</span>
                 </div>
               </div>
 
-              {/* Expense Column */}
-              <div>
-                <div className="detail-column-title" style={{ justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <ArrowDownRight size={18} color="var(--danger)" />
-                    <span>Gastos & Egresos</span>
+              {/* Right: Egresos Fijos */}
+              <div 
+                className="card" 
+                style={{ 
+                  padding: '20px 0', 
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <div style={{ padding: '0 20px 12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                      Egresos Fijos
+                    </h4>
+                    <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de costos recurrentes</p>
                   </div>
                   <button 
-                    onClick={() => handleOpenAdd("egresos")}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '11px', fontWeight: 600 }}
+                    onClick={() => handleOpenAdd("egresos", false)} 
+                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '4px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     <Plus size={12} /> Agregar
                   </button>
                 </div>
-                
-                <div className="detail-item-list" style={{ maxHeight: '380px', overflowY: 'auto' }}>
-                  {currentDetails.egresos.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)', fontSize: '12px' }}>Sin gastos registrados.</div>
-                  ) : (
-                    currentDetails.egresos.map((item, idx) => (
-                      <div key={idx} className="detail-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px', padding: '14px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                            {/* Paid Badge Status */}
-                            <div style={{ marginTop: '2px' }}>
-                              <span 
-                                onClick={() => handleTogglePaid("egresos", idx)}
-                                style={{
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  fontSize: '11px',
-                                  fontWeight: 600,
-                                  padding: '2px 8px',
-                                  borderRadius: '12px',
-                                  background: item.paid ? 'rgba(52, 199, 89, 0.1)' : 'rgba(255, 159, 10, 0.1)',
-                                  color: item.paid ? 'var(--success)' : 'var(--warning)',
-                                  border: item.paid ? '1px solid rgba(52, 199, 89, 0.2)' : '1px solid rgba(255, 159, 10, 0.2)',
-                                  transition: 'all 0.15s ease'
-                                }}
-                                title="Haz clic para cambiar el estado de pago"
-                              >
-                                {item.paid ? <Check size={11} /> : null}
-                                {item.paid ? "Pagado" : "Pendiente"}
-                              </span>
-                            </div>
-                            
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <span style={{ fontWeight: 500, color: 'var(--text-primary)', textDecoration: item.paid ? 'line-through' : 'none' }}>{getCleanName(item.name)}</span>
-                                {renderContextBadge(item.name)}
-                                <span style={{ 
-                                  fontSize: '9px', 
-                                  padding: '1px 4px', 
-                                  borderRadius: '3px',
-                                  background: item.isVariable ? 'rgba(255, 159, 10, 0.08)' : 'rgba(10, 132, 255, 0.08)',
-                                  color: item.isVariable ? 'var(--warning)' : 'var(--accent)'
-                                }}>
-                                  {item.isVariable ? 'Var' : 'Fijo'}
-                                </span>
-
-                                {item.reminderEnabled && (
-                                  <span 
-                                    style={{ display: 'flex', alignItems: 'center', color: 'var(--accent)', cursor: 'pointer' }}
-                                    title={`Alerta de correo configurada para: ${item.reminderEmail} (${item.reminderTime === 'same_day' ? 'el mismo día' : item.reminderTime === '1_day_before' ? '1 día antes' : item.reminderTime === '3_days_before' ? '3 días antes' : item.reminderTime === '5_days_before' ? '5 días antes' : 'mañana'})`}
-                                  >
-                                    <Send size={10} style={{ marginLeft: '4px' }} />
-                                  </span>
-                                )}
-                              </div>
-                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                                <Calendar size={11} />
-                                Vence: {item.dueDate || 'Sin fecha'}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                            <strong style={{ fontSize: '14px', textDecoration: item.paid ? 'line-through' : 'none' }}>{formatMoney(item.value)}</strong>
-                            
-                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                              
-                              {/* Notification/Reminder Trigger (as requested in Page 6) */}
-                              {!item.isDebtLink && !item.paid && !item.reminderEnabled && (
-                                <div style={{ position: 'relative' }}>
-                                  <button 
-                                    onClick={() => {
-                                      setActiveReminderIdx(activeReminderIdx === idx && activeReminderType === "egresos" ? null : idx);
-                                      setActiveReminderType("egresos");
-                                    }}
-                                    style={{ background: 'transparent', border: 'none', color: 'var(--warning)', cursor: 'pointer', padding: '2px', display: 'flex' }} 
-                                    title="Programar recordatorio rápido"
-                                  >
-                                    <Bell size={11} />
-                                  </button>
-                                  
-                                  {/* Custom Popover for Reminder options */}
-                                  {activeReminderIdx === idx && activeReminderType === "egresos" && (
-                                    <div style={{
-                                      position: 'absolute',
-                                      bottom: '22px',
-                                      right: '0',
-                                      background: 'var(--bg-secondary)',
-                                      border: '1px solid var(--border-color)',
-                                      borderRadius: '8px',
-                                      boxShadow: 'var(--shadow-lg)',
-                                      zIndex: 10,
-                                      width: '180px',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      padding: '4px'
-                                    }}>
-                                      <button 
-                                        onClick={() => triggerReminderToast(item.name, "WhatsApp", item.dueDate, "(3 días antes)")}
-                                        style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', textAlign: 'left', padding: '8px 10px', fontSize: '11px', cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                      >
-                                        WhatsApp 3 días antes
-                                      </button>
-                                      <button 
-                                        onClick={() => triggerReminderToast(item.name, "Correo", item.dueDate, "(Inicio de mes)")}
-                                        style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', textAlign: 'left', padding: '8px 10px', fontSize: '11px', cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                      >
-                                        Correo inicio de mes
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                               {item.receiptUrl && (
-                                 <button 
-                                   onClick={() => handleViewReceipt(item.receiptUrl, item.name)} 
-                                   style={{ background: 'transparent', border: 'none', color: 'var(--success)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} 
-                                   title="Ver Boleta de Respaldo Tributario (SII)"
-                                 >
-                                   <Paperclip size={12} />
-                                 </button>
-                               )}
-
-                               {!item.isDebtLink && (
-                                 <>
-                                   <button onClick={() => handleOpenEdit("egresos", idx, item)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} title="Editar">
-                                     <Edit2 size={11} />
-                                   </button>
-                                   <button onClick={() => handleTransDelete("egresos", idx, item.name)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} title="Eliminar">
-                                     <Trash2 size={11} />
-                                   </button>
-                                 </>
-                               )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                {renderTransactionTable(egresosFijos, "egresos", "Monto Mensual", "No hay egresos fijos registrados.")}
+                <div style={{ padding: '12px 20px 0 20px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Egresos Fijos</span>
+                  <span style={{ fontSize: '15px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosFijos)}</span>
                 </div>
               </div>
 
+              {/* Bottom Left: Ingresos Variables */}
+              <div 
+                className="card" 
+                style={{ 
+                  padding: '20px 0', 
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <div style={{ padding: '0 20px 12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                      Ingresos Variables
+                    </h4>
+                    <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos variables de ingresos</p>
+                  </div>
+                  <button 
+                    onClick={() => handleOpenAdd("ingresos", true)} 
+                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '4px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    <Plus size={12} /> Agregar
+                  </button>
+                </div>
+                {renderTransactionTable(ingresosVariables, "ingresos", "Monto Estimado", "No hay ingresos variables registrados.")}
+                <div style={{ padding: '12px 20px 0 20px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Ingresos Var.</span>
+                  <span style={{ fontSize: '15px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosVariables)}</span>
+                </div>
+              </div>
+
+              {/* Bottom Right: Egresos Variables */}
+              <div 
+                className="card" 
+                style={{ 
+                  padding: '20px 0', 
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <div style={{ padding: '0 20px 12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                      Egresos Variables
+                    </h4>
+                    <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de egresos variables</p>
+                  </div>
+                  <button 
+                    onClick={() => handleOpenAdd("egresos", true)} 
+                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '4px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    <Plus size={12} /> Agregar
+                  </button>
+                </div>
+                {renderTransactionTable(egresosVariables, "egresos", "Monto Estimado", "No hay egresos variables registrados.")}
+                <div style={{ padding: '12px 20px 0 20px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Egresos Var.</span>
+                  <span style={{ fontSize: '15px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosVariables)}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

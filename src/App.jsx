@@ -759,8 +759,8 @@ export default function App() {
           HISTORICAL_FLOWS.forEach(m => {
             if (m.month === "Abr 2026") {
               details[m.month] = {
-                ingresos: MONTH_DETAILS["Abr 2026"].ingresos.map(item => ({ ...item, isVariable: false, dueDate: "2026-04-10" })),
-                egresos: MONTH_DETAILS["Abr 2026"].egresos.map(item => ({ ...item, isVariable: false, dueDate: "2026-04-05" }))
+                ingresos: MONTH_DETAILS["Abr 2026"].ingresos.map((item, idx) => ({ ...item, id: `tx_demo_inc_${idx}`, isVariable: false, dueDate: "2026-04-10" })),
+                egresos: MONTH_DETAILS["Abr 2026"].egresos.map((item, idx) => ({ ...item, id: `tx_demo_exp_${idx}`, isVariable: false, dueDate: "2026-04-05" }))
               };
             } else {
               details[m.month] = { ingresos: [], egresos: [] };
@@ -1499,15 +1499,20 @@ export default function App() {
     const monthObject = monthlyDetailsState[month] || { ingresos: [], egresos: [] };
     const list = [...(monthObject[type] || [])];
     
-    let rawIndex = data.index;
-    if (action !== "add" && data.index !== undefined) {
+    let rawIndex = -1;
+    if (action !== "add" && data.id) {
+      rawIndex = list.findIndex(it => String(it.id) === String(data.id));
+    }
+    if (rawIndex === -1 && action !== "add" && data.index !== undefined) {
       const filteredList = filterByActiveContext(list);
       const targetItem = filteredList[data.index];
       if (targetItem) {
         rawIndex = list.findIndex(it => it === targetItem || (it.id && it.id === targetItem.id));
       }
     }
-    if (rawIndex === -1) rawIndex = data.index;
+    if (rawIndex === -1 && action !== "add") {
+      rawIndex = data.index;
+    }
     
     const item = list[rawIndex];
 
