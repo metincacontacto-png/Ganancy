@@ -6,7 +6,8 @@ export default function FlujoMensualView({
   historicalFlowsState, 
   monthlyDetailsState, 
   updateMonthlyTransaction,
-  currentContext
+  currentContext,
+  addHistoricalMonth
 }) {
   const getCleanName = (name) => {
     if (!name) return "";
@@ -55,10 +56,71 @@ export default function FlujoMensualView({
     return null;
   };
 
-  const [selectedTrimestre, setSelectedTrimestre] = useState("Q2 2026");
+  const uniqueQuarters = React.useMemo(() => {
+    const quarters = historicalFlowsState.map(item => item.q);
+    const unique = [];
+    quarters.forEach(q => {
+      if (q && !unique.includes(q)) {
+        unique.push(q);
+      }
+    });
+    
+    // Ordenar trimestres cronológicamente (ej: "Q4 2025" vs "Q1 2026")
+    return unique.sort((a, b) => {
+      const partsA = a.split(' ');
+      const partsB = b.split(' ');
+      const yearA = parseInt(partsA[1], 10);
+      const yearB = parseInt(partsB[1], 10);
+      if (yearA !== yearB) return yearA - yearB;
+      const qA = parseInt(partsA[0].replace('Q', ''), 10);
+      const qB = parseInt(partsB[0].replace('Q', ''), 10);
+      return qA - qB;
+    });
+  }, [historicalFlowsState]);
+
+  const [selectedTrimestre, setSelectedTrimestre] = useState(() => {
+    if (historicalFlowsState && historicalFlowsState.length > 0) {
+      return historicalFlowsState[historicalFlowsState.length - 1].q;
+    }
+    return "Q2 2026";
+  });
   const [selectedMonthDetail, setSelectedMonthDetail] = useState(null);
 
   // Sub-modal states for adding/editing transaction inside details sheet
+  const [addMonthModalOpen, setAddMonthModalOpen] = useState(false);
+  const [newMonthSelect, setNewMonthSelect] = useState("Ene");
+  const [newYearSelect, setNewYearSelect] = useState(new Date().getFullYear());
+
+  const handleAddMonthSubmit = async (e) => {
+    e.preventDefault();
+    const monthName = `${newMonthSelect} ${newYearSelect}`;
+    
+    if (historicalFlowsState.some(f => f.month === monthName)) {
+      alert("El periodo seleccionado ya existe en el registro.");
+      return;
+    }
+    
+    const success = await addHistoricalMonth(monthName);
+    if (success) {
+      // Calcular a qué trimestre pertenece el nuevo mes
+      const parts = monthName.split(' ');
+      const monthAbbr = parts[0];
+      const year = parts[1];
+      
+      let targetQ = "Q1 " + year;
+      if (["Abr", "May", "Jun"].includes(monthAbbr)) {
+        targetQ = "Q2 " + year;
+      } else if (["Jul", "Ago", "Sep"].includes(monthAbbr)) {
+        targetQ = "Q3 " + year;
+      } else if (["Oct", "Nov", "Dic"].includes(monthAbbr)) {
+        targetQ = "Q4 " + year;
+      }
+      
+      setSelectedTrimestre(targetQ);
+      setAddMonthModalOpen(false);
+    }
+  };
+
   const [transModalOpen, setTransModalOpen] = useState(false);
   const [transModalType, setTransModalType] = useState("ingresos"); // "ingresos" or "egresos"
   const [transModalMode, setTransModalMode] = useState("add"); // "add" or "edit"
@@ -247,27 +309,61 @@ export default function FlujoMensualView({
           <p className="subtitle">Historial de transacciones consolidado por periodos trimestrales</p>
         </div>
         
-        <div style={{ display: 'flex', background: 'var(--border-color)', padding: '4px', borderRadius: '10px', gap: '2px' }}>
-          {["Q4 2025", "Q1 2026", "Q2 2026"].map(q => (
-            <button
-              key={q}
-              onClick={() => setSelectedTrimestre(q)}
-              style={{
-                border: 'none',
-                background: selectedTrimestre === q ? 'var(--bg-secondary)' : 'transparent',
-                color: selectedTrimestre === q ? 'var(--text-primary)' : 'var(--text-secondary)',
-                padding: '6px 16px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                boxShadow: selectedTrimestre === q ? 'var(--shadow-sm)' : 'none',
-                transition: 'all 0.2s'
-              }}
-            >
-              {q === "Q4 2025" ? "Trimestre 4 2025" : q === "Q1 2026" ? "Trimestre 1 2026" : "Trimestre 2 2026"}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', background: 'var(--border-color)', padding: '4px', borderRadius: '10px', gap: '2px', flexWrap: 'wrap' }}>
+            {uniqueQuarters.map(q => {
+              const formatQuarterLabel = (quarterStr) => {
+                if (!quarterStr) return "";
+                const parts = quarterStr.split(' ');
+                if (parts.length === 2) {
+                  const qNum = parts[0].replace('Q', '');
+                  return `Trimestre ${qNum} ${parts[1]}`;
+                }
+                return quarterStr;
+              };
+              return (
+                <button
+                  key={q}
+                  onClick={() => setSelectedTrimestre(q)}
+                  style={{
+                    border: 'none',
+                    background: selectedTrimestre === q ? 'var(--bg-secondary)' : 'transparent',
+                    color: selectedTrimestre === q ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    padding: '6px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    boxShadow: selectedTrimestre === q ? 'var(--shadow-sm)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {formatQuarterLabel(q)}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => setAddMonthModalOpen(true)}
+            style={{
+              background: 'rgba(var(--accent-rgb), 0.1)',
+              border: '1px solid rgba(var(--accent-rgb), 0.3)',
+              color: 'var(--accent)',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              outline: 'none'
+            }}
+            title="Añadir nuevo periodo contable"
+          >
+            <Plus size={14} /> Añadir Mes
+          </button>
         </div>
       </div>
 
@@ -1016,6 +1112,73 @@ export default function FlujoMensualView({
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {addMonthModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1200 }} onClick={() => setAddMonthModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '350px', padding: '24px' }}>
+            <button className="close-btn" onClick={() => setAddMonthModalOpen(false)}>
+              <X size={16} />
+            </button>
+
+            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Agregar Periodo Contable</h3>
+
+            <form onSubmit={handleAddMonthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Mes</label>
+                <select
+                  value={newMonthSelect}
+                  onChange={e => setNewMonthSelect(e.target.value)}
+                  style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="Ene">Enero</option>
+                  <option value="Feb">Febrero</option>
+                  <option value="Mar">Marzo</option>
+                  <option value="Abr">Abril</option>
+                  <option value="May">Mayo</option>
+                  <option value="Jun">Junio</option>
+                  <option value="Jul">Julio</option>
+                  <option value="Ago">Agosto</option>
+                  <option value="Sep">Septiembre</option>
+                  <option value="Oct">Octubre</option>
+                  <option value="Nov">Noviembre</option>
+                  <option value="Dic">Diciembre</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Año</label>
+                <select
+                  value={newYearSelect}
+                  onChange={e => setNewYearSelect(Number(e.target.value))}
+                  style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
+                >
+                  {[2025, 2026, 2027, 2028, 2029, 2030].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginTop: '6px',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Agregar Mes
+              </button>
+            </form>
           </div>
         </div>
       )}

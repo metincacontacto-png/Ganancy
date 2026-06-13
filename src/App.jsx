@@ -1258,6 +1258,79 @@ export default function App() {
     setEgresosVariablesState(prev => prev.filter(item => String(item.id) !== String(id)));
   };
 
+  const addHistoricalMonth = async (monthName) => {
+    if (!monthName) return false;
+    
+    // Parsear el trimestre desde el mes (ej: "Jul 2026" -> "Q3 2026")
+    const parts = monthName.split(' ');
+    const monthAbbr = parts[0];
+    const year = parts[1];
+    
+    let q = "Q1 " + year;
+    if (["Abr", "May", "Jun"].includes(monthAbbr)) {
+      q = "Q2 " + year;
+    } else if (["Jul", "Ago", "Sep"].includes(monthAbbr)) {
+      q = "Q3 " + year;
+    } else if (["Oct", "Nov", "Dic"].includes(monthAbbr)) {
+      q = "Q4 " + year;
+    }
+    
+    const newFlow = {
+      month: monthName,
+      q,
+      ingresos: 0,
+      egresos: 0,
+      balance: 0
+    };
+
+    if (currentUser && currentUser.provider === 'supabase') {
+      try {
+        const { error } = await supabase
+          .from('flujos_historicos')
+          .insert({
+            user_id: currentUser.id,
+            month: monthName,
+            q,
+            ingresos: 0,
+            egresos: 0,
+            balance: 0
+          });
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error al insertar mes en Supabase:", err);
+        alert("No se pudo agregar el mes en la base de datos.");
+        return false;
+      }
+    }
+
+    const parseMonthYear = (str) => {
+      const p = str.split(' ');
+      const abbr = p[0];
+      const yr = parseInt(p[1], 10);
+      const monthMap = {
+        "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+        "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11
+      };
+      return new Date(yr, monthMap[abbr] || 0);
+    };
+
+    setHistoricalFlowsState(prev => {
+      if (prev.some(f => f.month === monthName)) return prev;
+      const updated = [...prev, newFlow];
+      return updated.sort((a, b) => parseMonthYear(a.month) - parseMonthYear(b.month));
+    });
+
+    setMonthlyDetailsState(prev => {
+      if (prev[monthName]) return prev;
+      return {
+        ...prev,
+        [monthName]: { ingresos: [], egresos: [] }
+      };
+    });
+
+    return true;
+  };
+
   // ==========================================
   // CRUD Actions: Monthly Details
   // ==========================================
@@ -1459,6 +1532,7 @@ export default function App() {
             currentContext={currentContext}
             addAsset={addAsset}
             addDebt={addDebt}
+            addHistoricalMonth={addHistoricalMonth}
           />
         );
       case "activos_pasivos":
@@ -1520,6 +1594,7 @@ export default function App() {
             monthlyDetailsState={filteredMonthlyDetails}
             updateMonthlyTransaction={updateMonthlyTransaction}
             currentContext={currentContext}
+            addHistoricalMonth={addHistoricalMonth}
           />
         );
       case "deudas":

@@ -38,7 +38,8 @@ export default function DashboardView({
   updateMonthlyTransaction,
   currentContext,
   addAsset,
-  addDebt
+  addDebt,
+  addHistoricalMonth
 }) {
   const isPersonalPlan = currentUser?.subscription_status === 'plan_personal';
   const getCleanName = (name) => {
@@ -170,6 +171,26 @@ export default function DashboardView({
   const [scannerModalOpen, setScannerModalOpen] = useState(false);
   const [scannedData, setScannedData] = useState(null);
   const [selectedMonthForReceipt, setSelectedMonthForReceipt] = useState("Mayo 2026");
+  const [addMonthModalOpen, setAddMonthModalOpen] = useState(false);
+  const [newMonthSelect, setNewMonthSelect] = useState("Ene");
+  const [newYearSelect, setNewYearSelect] = useState(new Date().getFullYear());
+
+  const handleAddMonthSubmit = async (e) => {
+    e.preventDefault();
+    const monthName = `${newMonthSelect} ${newYearSelect}`;
+    
+    // Verificar duplicado
+    if (historicalFlowsState.some(f => f.month === monthName)) {
+      alert("El periodo seleccionado ya existe en el registro.");
+      return;
+    }
+    
+    const success = await addHistoricalMonth(monthName);
+    if (success) {
+      setSelectedMonthForReceipt(monthName);
+      setAddMonthModalOpen(false);
+    }
+  };
 
   // Derive actual monthly variable expenses from monthlyDetailsState to reflect scanned receipts here
   const monthDataForReceipt = monthlyDetailsState[selectedMonthForReceipt] || { ingresos: [], egresos: [] };
@@ -2297,7 +2318,8 @@ He procesado tu consulta y analizado tus números integrados.
                   fontSize: '11.5px',
                   fontWeight: 600,
                   outline: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  marginRight: '2px'
                 }}
               >
                 {historicalFlowsState.map(f => (
@@ -2307,6 +2329,26 @@ He procesado tu consulta y analizado tus números integrados.
                   <option value="Mayo 2026">Mayo 2026</option>
                 )}
               </select>
+              <button
+                onClick={() => setAddMonthModalOpen(true)}
+                style={{
+                  background: 'rgba(var(--accent-rgb), 0.1)',
+                  border: '1px solid rgba(var(--accent-rgb), 0.3)',
+                  color: 'var(--accent)',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  outline: 'none'
+                }}
+                title="Agregar nuevo mes"
+              >
+                <Plus size={14} />
+              </button>
             </div>
 
             {!isPersonalPlan && (
@@ -3658,6 +3700,73 @@ He procesado tu consulta y analizado tus números integrados.
                   Confirmar y Guardar ($)
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {addMonthModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 1200 }} onClick={() => setAddMonthModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '350px', padding: '24px' }}>
+            <button className="close-btn" onClick={() => setAddMonthModalOpen(false)}>
+              <X size={16} />
+            </button>
+
+            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Agregar Periodo Contable</h3>
+
+            <form onSubmit={handleAddMonthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Mes</label>
+                <select
+                  value={newMonthSelect}
+                  onChange={e => setNewMonthSelect(e.target.value)}
+                  style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="Ene">Enero</option>
+                  <option value="Feb">Febrero</option>
+                  <option value="Mar">Marzo</option>
+                  <option value="Abr">Abril</option>
+                  <option value="May">Mayo</option>
+                  <option value="Jun">Junio</option>
+                  <option value="Jul">Julio</option>
+                  <option value="Ago">Agosto</option>
+                  <option value="Sep">Septiembre</option>
+                  <option value="Oct">Octubre</option>
+                  <option value="Nov">Noviembre</option>
+                  <option value="Dic">Diciembre</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Año</label>
+                <select
+                  value={newYearSelect}
+                  onChange={e => setNewYearSelect(Number(e.target.value))}
+                  style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
+                >
+                  {[2025, 2026, 2027, 2028, 2029, 2030].map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginTop: '6px',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Agregar Mes
+              </button>
             </form>
           </div>
         </div>
