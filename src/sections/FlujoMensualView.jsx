@@ -8,7 +8,10 @@ export default function FlujoMensualView({
   updateMonthlyTransaction,
   currentContext,
   addHistoricalMonth,
-  toggleCuota
+  toggleCuota,
+  ingresosFijosState = [],
+  egresosFijosState = [],
+  deleteHistoricalMonth
 }) {
   const getCleanName = (name) => {
     if (!name) return "";
@@ -92,6 +95,30 @@ export default function FlujoMensualView({
   const [newMonthSelect, setNewMonthSelect] = useState("Ene");
   const [newYearSelect, setNewYearSelect] = useState(new Date().getFullYear());
 
+  const [addIncomesOption, setAddIncomesOption] = useState("all"); // "all", "edit", "none"
+  const [addExpensesOption, setAddExpensesOption] = useState("all"); // "all", "edit", "none"
+  const [selectedIncomesCheck, setSelectedIncomesCheck] = useState({});
+  const [selectedExpensesCheck, setSelectedExpensesCheck] = useState({});
+
+  const handleOpenAddMonth = () => {
+    setAddIncomesOption("all");
+    setAddExpensesOption("all");
+    
+    const incomesCheck = {};
+    (ingresosFijosState || []).forEach(item => {
+      incomesCheck[item.id] = true;
+    });
+    setSelectedIncomesCheck(incomesCheck);
+    
+    const expensesCheck = {};
+    (egresosFijosState || []).forEach(item => {
+      expensesCheck[item.id] = true;
+    });
+    setSelectedExpensesCheck(expensesCheck);
+    
+    setAddMonthModalOpen(true);
+  };
+
   const handleAddMonthSubmit = async (e) => {
     e.preventDefault();
     const monthName = `${newMonthSelect} ${newYearSelect}`;
@@ -101,7 +128,21 @@ export default function FlujoMensualView({
       return;
     }
     
-    const success = await addHistoricalMonth(monthName);
+    let incomesToPass = [];
+    if (addIncomesOption === "all") {
+      incomesToPass = ingresosFijosState;
+    } else if (addIncomesOption === "edit") {
+      incomesToPass = ingresosFijosState.filter(item => !!selectedIncomesCheck[item.id]);
+    }
+
+    let expensesToPass = [];
+    if (addExpensesOption === "all") {
+      expensesToPass = egresosFijosState;
+    } else if (addExpensesOption === "edit") {
+      expensesToPass = egresosFijosState.filter(item => !!selectedExpensesCheck[item.id]);
+    }
+
+    const success = await addHistoricalMonth(monthName, incomesToPass, expensesToPass);
     if (success) {
       // Calcular a qué trimestre pertenece el nuevo mes
       const parts = monthName.split(' ');
@@ -119,6 +160,17 @@ export default function FlujoMensualView({
       
       setSelectedTrimestre(targetQ);
       setAddMonthModalOpen(false);
+    }
+  };
+
+  const handleDeleteMonth = async (monthName) => {
+    if (window.confirm(`¿Estás completamente seguro de que deseas eliminar el periodo contable "${monthName}"? Se borrarán de forma permanente todas las transacciones asociadas a este mes.`)) {
+      if (deleteHistoricalMonth) {
+        const success = await deleteHistoricalMonth(monthName);
+        if (success) {
+          setSelectedMonthDetail(null);
+        }
+      }
     }
   };
 
@@ -620,7 +672,7 @@ export default function FlujoMensualView({
             })}
           </div>
           <button
-            onClick={() => setAddMonthModalOpen(true)}
+            onClick={handleOpenAddMonth}
             style={{
               background: 'rgba(var(--accent-rgb), 0.1)',
               border: '1px solid rgba(var(--accent-rgb), 0.3)',
@@ -659,9 +711,21 @@ export default function FlujoMensualView({
                 <span style={{ fontSize: '22px', fontWeight: 700 }}>{latestMonth.month}</span>
                 <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px', fontWeight: 500 }}>(Mes Actual / Principal)</span>
               </div>
-              <span className={`badge ${isNegative ? 'danger' : 'success'}`} style={{ fontSize: '12px', padding: '6px 12px' }}>
-                {isNegative ? 'Deficit' : 'Superávit'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteMonth(latestMonth.month);
+                  }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px', transition: 'opacity 0.2s' }}
+                  title="Eliminar este periodo contable por completo"
+                >
+                  <Trash2 size={18} />
+                </button>
+                <span className={`badge ${isNegative ? 'danger' : 'success'}`} style={{ fontSize: '12px', padding: '6px 12px' }}>
+                  {isNegative ? 'Deficit' : 'Superávit'}
+                </span>
+              </div>
             </div>
 
             <div className="main-month-card-cols">
@@ -756,9 +820,21 @@ export default function FlujoMensualView({
                       <Calendar size={18} color="var(--text-secondary)" />
                       <span style={{ fontSize: '18px', fontWeight: 600 }}>{item.month}</span>
                     </div>
-                    <span className={`badge ${isNegative ? 'danger' : 'success'}`}>
-                      {isNegative ? 'Deficit' : 'Superávit'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteMonth(item.month);
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px', transition: 'opacity 0.2s' }}
+                        title="Eliminar este periodo contable por completo"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <span className={`badge ${isNegative ? 'danger' : 'success'}`}>
+                        {isNegative ? 'Deficit' : 'Superávit'}
+                      </span>
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
@@ -1348,7 +1424,7 @@ export default function FlujoMensualView({
 
       {addMonthModalOpen && (
         <div className="modal-overlay" style={{ zIndex: 1200 }} onClick={() => setAddMonthModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '350px', padding: '24px' }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', padding: '24px' }}>
             <button className="close-btn" onClick={() => setAddMonthModalOpen(false)}>
               <X size={16} />
             </button>
@@ -1356,39 +1432,131 @@ export default function FlujoMensualView({
             <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Agregar Periodo Contable</h3>
 
             <form onSubmit={handleAddMonthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Mes</label>
-                <select
-                  value={newMonthSelect}
-                  onChange={e => setNewMonthSelect(e.target.value)}
-                  style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
-                >
-                  <option value="Ene">Enero</option>
-                  <option value="Feb">Febrero</option>
-                  <option value="Mar">Marzo</option>
-                  <option value="Abr">Abril</option>
-                  <option value="May">Mayo</option>
-                  <option value="Jun">Junio</option>
-                  <option value="Jul">Julio</option>
-                  <option value="Ago">Agosto</option>
-                  <option value="Sep">Septiembre</option>
-                  <option value="Oct">Octubre</option>
-                  <option value="Nov">Noviembre</option>
-                  <option value="Dic">Diciembre</option>
-                </select>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                  <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Mes</label>
+                  <select
+                    value={newMonthSelect}
+                    onChange={e => setNewMonthSelect(e.target.value)}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer', width: '100%' }}
+                  >
+                    <option value="Ene">Enero</option>
+                    <option value="Feb">Febrero</option>
+                    <option value="Mar">Marzo</option>
+                    <option value="Abr">Abril</option>
+                    <option value="May">Mayo</option>
+                    <option value="Jun">Junio</option>
+                    <option value="Jul">Julio</option>
+                    <option value="Ago">Agosto</option>
+                    <option value="Sep">Septiembre</option>
+                    <option value="Oct">Octubre</option>
+                    <option value="Nov">Noviembre</option>
+                    <option value="Dic">Diciembre</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                  <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Año</label>
+                  <select
+                    value={newYearSelect}
+                    onChange={e => setNewYearSelect(Number(e.target.value))}
+                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer', width: '100%' }}
+                  >
+                    {[2025, 2026, 2027, 2028, 2029, 2030].map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
+              {/* Ingresos Fijos option */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Año</label>
+                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Ingresos Fijos a Incluir</label>
                 <select
-                  value={newYearSelect}
-                  onChange={e => setNewYearSelect(Number(e.target.value))}
+                  value={addIncomesOption}
+                  onChange={e => setAddIncomesOption(e.target.value)}
                   style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
                 >
-                  {[2025, 2026, 2027, 2028, 2029, 2030].map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
+                  <option value="all">Todos los ingresos fijos registrados</option>
+                  <option value="edit">Seleccionar/Editar listado...</option>
+                  <option value="none">Ninguno (Empezar en blanco)</option>
                 </select>
+
+                {addIncomesOption === "edit" && (
+                  <div style={{ 
+                    background: 'var(--bg-primary)', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: '8px', 
+                    padding: '10px', 
+                    maxHeight: '130px', 
+                    overflowY: 'auto', 
+                    marginTop: '4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    {ingresosFijosState.length === 0 ? (
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>No hay ingresos fijos registrados.</span>
+                    ) : (
+                      ingresosFijosState.map(item => (
+                        <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!selectedIncomesCheck[item.id]}
+                            onChange={(e) => setSelectedIncomesCheck(prev => ({ ...prev, [item.id]: e.target.checked }))}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <span>{getCleanName(item.name)} ({formatMoney(item.value)})</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Egresos Fijos option */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Egresos Fijos a Incluir</label>
+                <select
+                  value={addExpensesOption}
+                  onChange={e => setAddExpensesOption(e.target.value)}
+                  style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="all">Todos los egresos fijos registrados</option>
+                  <option value="edit">Seleccionar/Editar listado...</option>
+                  <option value="none">Ninguno (Empezar en blanco)</option>
+                </select>
+
+                {addExpensesOption === "edit" && (
+                  <div style={{ 
+                    background: 'var(--bg-primary)', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: '8px', 
+                    padding: '10px', 
+                    maxHeight: '130px', 
+                    overflowY: 'auto', 
+                    marginTop: '4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    {egresosFijosState.length === 0 ? (
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>No hay egresos fijos registrados.</span>
+                    ) : (
+                      egresosFijosState.map(item => (
+                        <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!selectedExpensesCheck[item.id]}
+                            onChange={(e) => setSelectedExpensesCheck(prev => ({ ...prev, [item.id]: e.target.checked }))}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <span>{getCleanName(item.name)} ({formatMoney(item.value)})</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               <button
