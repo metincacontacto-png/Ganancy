@@ -818,12 +818,7 @@ export default function FlujoMensualView({
             </div>
 
             {/* Quick Balance Header inside Modal */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(3, 1fr)', 
-              gap: '16px', 
-              marginBottom: '24px'
-            }}>
+            <div className="modal-balance-grid">
               {/* Row 1: Planned Totals */}
               <div style={{ padding: '12px 16px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 500 }}>Ingresos Totales (Mes)</span>

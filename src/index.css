@@ -1419,3 +1419,18 @@ input[type="range"]::-webkit-slider-thumb:hover {
   }
 }
 
+/* Modal Quick Balance Grid */
+.modal-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .modal-balance-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
