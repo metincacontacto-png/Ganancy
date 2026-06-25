@@ -507,24 +507,22 @@ export default function FlujoMensualView({
                         </span>
                       )}
                       
-                      {!item.isDebtLink && (
-                        <>
-                          <button 
-                            onClick={() => handleOpenEdit(type, item.originalIndex, item)} 
-                            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} 
-                            title="Editar"
-                          >
-                            <Edit2 size={11} />
-                          </button>
-                          <button 
-                            onClick={() => handleTransDelete(type, item.originalIndex, item.name, item.id)} 
-                            style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} 
-                            title="Eliminar"
-                          >
-                            <Trash2 size={11} />
-                          </button>
-                        </>
-                      )}
+                      <>
+                        <button 
+                          onClick={() => handleOpenEdit(type, item.originalIndex, item)} 
+                          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} 
+                          title="Editar"
+                        >
+                          <Edit2 size={11} />
+                        </button>
+                        <button 
+                          onClick={() => handleTransDelete(type, item.originalIndex, item.name, item.id)} 
+                          style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} 
+                          title="Eliminar"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </>
                     </div>
                   </td>
                 </tr>
