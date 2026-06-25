@@ -99,14 +99,45 @@ export default function DashboardView({
 
   const patrimonioNeto = assetsTotal - liabilitiesTotal;
 
-  // 2. Calculate dynamic fixed structural flows
-  const ingresosFijosTotal = ingresosFijosState.reduce((sum, item) => sum + item.value, 0);
-  const egresosFijosTotal = egresosFijosState.reduce((sum, item) => sum + item.value, 0);
+  // Get the latest month from historical flows
+  const latestMonthFromFlows = React.useMemo(() => {
+    if (!historicalFlowsState || historicalFlowsState.length === 0) return null;
+    const parseMonthYear = (str) => {
+      const p = str.split(' ');
+      const abbr = p[0];
+      const yr = parseInt(p[1], 10);
+      const monthMap = {
+        "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+        "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11
+      };
+      return new Date(yr, monthMap[abbr] || 0);
+    };
+    const sorted = [...historicalFlowsState].sort((a, b) => parseMonthYear(b.month) - parseMonthYear(a.month));
+    return sorted[0];
+  }, [historicalFlowsState]);
+
+  const latestMonthDetails = latestMonthFromFlows ? (monthlyDetailsState[latestMonthFromFlows.month] || { ingresos: [], egresos: [] }) : null;
+
+  // 2. Calculate dynamic fixed structural flows from the latest month (or fallback to projections)
+  const ingresosFijosTotal = latestMonthDetails 
+    ? latestMonthDetails.ingresos.filter(it => !it.isVariable).reduce((sum, item) => sum + item.value, 0)
+    : ingresosFijosState.reduce((sum, item) => sum + item.value, 0);
+
+  const egresosFijosTotal = latestMonthDetails 
+    ? latestMonthDetails.egresos.filter(it => !it.isVariable).reduce((sum, item) => sum + item.value, 0)
+    : egresosFijosState.reduce((sum, item) => sum + item.value, 0);
+
   const balanceFijo = ingresosFijosTotal - egresosFijosTotal;
 
-  // 3. Calculate dynamic variable structural flows from state tables
-  const avgVarIncome = ingresosVariablesState.reduce((sum, item) => sum + item.value, 0);
-  const avgVarExpense = egresosVariablesState.reduce((sum, item) => sum + item.value, 0);
+  // 3. Calculate dynamic variable structural flows from the latest month (or fallback to projections)
+  const avgVarIncome = latestMonthDetails 
+    ? latestMonthDetails.ingresos.filter(it => it.isVariable).reduce((sum, item) => sum + item.value, 0)
+    : ingresosVariablesState.reduce((sum, item) => sum + item.value, 0);
+
+  const avgVarExpense = latestMonthDetails 
+    ? latestMonthDetails.egresos.filter(it => it.isVariable).reduce((sum, item) => sum + item.value, 0)
+    : egresosVariablesState.reduce((sum, item) => sum + item.value, 0);
+
   const balanceVariable = avgVarIncome - avgVarExpense;
   const balanceTotal = balanceFijo + balanceVariable;
 
