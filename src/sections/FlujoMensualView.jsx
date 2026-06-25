@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, CheckCircle2, AlertCircle, ArrowUpRight, ArrowDownRight, DollarSign, X, Plus, Trash2, Edit2, Bell, Check, Send, Paperclip, FileText } from 'lucide-react';
+import { Calendar, X, Plus, Trash2, Edit2, Bell, Check, Send, Paperclip, FileText } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
 export default function FlujoMensualView({ 
