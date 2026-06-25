@@ -625,6 +625,50 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Self-healing migration: Ensure all fixed debts have stable [StartMonth: ...] metadata pinned
+  useEffect(() => {
+    if (debtsState.length === 0) return;
+
+    let changed = false;
+    const updatedDebts = debtsState.map(debt => {
+      const isFixed = debt.tipo === 'fija' || (debt.cuotasTotales && debt.cuotasTotales > 1);
+      const hasStartMonth = debt.details && debt.details.includes('[StartMonth:');
+
+      if (isFixed && !hasStartMonth) {
+        const baseMonth = "May 2026";
+        const date = parseMonthYear(baseMonth);
+        const cuotaAct = debt.cuotaActual || 0;
+        date.setMonth(date.getMonth() - cuotaAct);
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        const calculatedStartMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
+
+        const updatedDetails = (debt.details || "").trim() + `\n[StartMonth: ${calculatedStartMonth}]`;
+        changed = true;
+
+        // If logged in, update database in background
+        if (currentUser && currentUser.provider === 'supabase') {
+          supabase
+            .from('deudas')
+            .update({ details: updatedDetails })
+            .eq('id', debt.id)
+            .then(({ error }) => {
+              if (error) console.error("Error patching debt details in background:", error);
+            });
+        }
+
+        return {
+          ...debt,
+          details: updatedDetails
+        };
+      }
+      return debt;
+    });
+
+    if (changed) {
+      setDebtsState(updatedDebts);
+    }
+  }, [debtsState, currentUser, parseMonthYear]);
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
