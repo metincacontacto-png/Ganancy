@@ -1451,7 +1451,7 @@ export default function App() {
     setEgresosVariablesState(prev => prev.filter(item => String(item.id) !== String(id)));
   };
 
-  const addHistoricalMonth = async (monthName) => {
+  const addHistoricalMonth = async (monthName, selectedIncomes = [], selectedExpenses = []) => {
     if (!monthName) return false;
     
     // Parsear el trimestre desde el mes (ej: "Jul 2026" -> "Q3 2026")
@@ -1468,12 +1468,15 @@ export default function App() {
       q = "Q4 " + year;
     }
     
+    const totalIncomesCopied = selectedIncomes.reduce((sum, it) => sum + it.value, 0);
+    const totalExpensesCopied = selectedExpenses.reduce((sum, it) => sum + it.value, 0);
+
     const newFlow = {
       month: monthName,
       q,
-      ingresos: 0,
-      egresos: 0,
-      balance: 0
+      ingresos: totalIncomesCopied,
+      egresos: totalExpensesCopied,
+      balance: totalIncomesCopied - totalExpensesCopied
     };
 
     if (currentUser && currentUser.provider === 'supabase') {
@@ -1484,15 +1487,55 @@ export default function App() {
             user_id: currentUser.id,
             month: monthName,
             q,
-            ingresos: 0,
-            egresos: 0,
-            balance: 0
+            ingresos: totalIncomesCopied,
+            egresos: totalExpensesCopied,
+            balance: totalIncomesCopied - totalExpensesCopied
           });
         if (error) throw error;
       } catch (err) {
         console.error("Error al insertar mes en Supabase:", err);
         alert("No se pudo agregar el mes en la base de datos.");
         return false;
+      }
+    }
+
+    // Inyectar ítems seleccionados en Supabase si está conectado
+    if (currentUser && currentUser.provider === 'supabase') {
+      try {
+        const txsToInsert = [];
+        selectedIncomes.forEach(item => {
+          txsToInsert.push({
+            user_id: currentUser.id,
+            month: monthName,
+            type: 'ingreso',
+            name: item.name,
+            value: item.value,
+            paid: false,
+            is_variable: false,
+            due_date: null
+          });
+        });
+        selectedExpenses.forEach(item => {
+          txsToInsert.push({
+            user_id: currentUser.id,
+            month: monthName,
+            type: 'egreso',
+            name: item.name,
+            value: item.value,
+            paid: false,
+            is_variable: false,
+            due_date: null
+          });
+        });
+
+        if (txsToInsert.length > 0) {
+          const { error: txsErr } = await supabase
+            .from('detalles_mensuales')
+            .insert(txsToInsert);
+          if (txsErr) throw txsErr;
+        }
+      } catch (err) {
+        console.error("Error al pre-poblar transacciones fijas en Supabase:", err);
       }
     }
 
@@ -1515,10 +1558,70 @@ export default function App() {
 
     setMonthlyDetailsState(prev => {
       if (prev[monthName]) return prev;
+      
+      const incomes = selectedIncomes.map(item => ({
+        id: "tx_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9),
+        name: item.name,
+        value: item.value,
+        paid: false,
+        isVariable: false,
+        dueDate: "",
+        reminderEnabled: false,
+        reminderEmail: "",
+        reminderTime: "3_days_before"
+      }));
+
+      const expenses = selectedExpenses.map(item => ({
+        id: "tx_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9),
+        name: item.name,
+        value: item.value,
+        paid: false,
+        isVariable: false,
+        dueDate: "",
+        reminderEnabled: false,
+        reminderEmail: "",
+        reminderTime: "3_days_before"
+      }));
+
       return {
         ...prev,
-        [monthName]: { ingresos: [], egresos: [] }
+        [monthName]: { ingresos: incomes, egresos: expenses }
       };
+    });
+
+    return true;
+  };
+
+  const deleteHistoricalMonth = async (monthName) => {
+    if (!monthName) return false;
+    
+    if (currentUser && currentUser.provider === 'supabase') {
+      try {
+        const { error: flowErr } = await supabase
+          .from('flujos_historicos')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('month', monthName);
+        if (flowErr) throw flowErr;
+
+        const { error: txsErr } = await supabase
+          .from('detalles_mensuales')
+          .delete()
+          .eq('user_id', currentUser.id)
+          .eq('month', monthName);
+        if (txsErr) throw txsErr;
+      } catch (err) {
+        console.error("Error al eliminar mes y transacciones en Supabase:", err);
+        alert("No se pudo eliminar el mes en la base de datos.");
+        return false;
+      }
+    }
+
+    setHistoricalFlowsState(prev => prev.filter(f => f.month !== monthName));
+    setMonthlyDetailsState(prev => {
+      const copy = { ...prev };
+      delete copy[monthName];
+      return copy;
     });
 
     return true;
@@ -1925,6 +2028,9 @@ export default function App() {
             updateMonthlyTransaction={updateMonthlyTransaction}
             currentContext={currentContext}
             addHistoricalMonth={addHistoricalMonth}
+            deleteHistoricalMonth={deleteHistoricalMonth}
+            ingresosFijosState={filteredIngresosFijos}
+            egresosFijosState={filteredEgresosFijos}
             toggleCuota={toggleCuota}
           />
         );
