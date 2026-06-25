@@ -307,13 +307,37 @@ export default function App() {
 
   const filteredMonthlyDetails = React.useMemo(() => {
     const res = {};
+    const exclusions = {}; // month -> Set of excluded IDs
     
-    // 1. Copiar los detalles existentes
+    // 1. Copiar los detalles existentes y detectar exclusiones
     Object.keys(monthlyDetailsState).forEach(month => {
       const monthObj = monthlyDetailsState[month] || { ingresos: [], egresos: [] };
+      exclusions[month] = new Set();
+      
+      const cleanIngresos = [];
+      const cleanEgresos = [];
+      
+      (monthObj.ingresos || []).forEach(it => {
+        if (it.name && it.name.startsWith('__EXCLUDED__')) {
+          const excludedId = it.name.replace('__EXCLUDED__', '');
+          exclusions[month].add(excludedId);
+        } else {
+          cleanIngresos.push(it);
+        }
+      });
+      
+      (monthObj.egresos || []).forEach(it => {
+        if (it.name && it.name.startsWith('__EXCLUDED__')) {
+          const excludedId = it.name.replace('__EXCLUDED__', '');
+          exclusions[month].add(excludedId);
+        } else {
+          cleanEgresos.push(it);
+        }
+      });
+      
       res[month] = {
-        ingresos: [...(monthObj.ingresos || [])],
-        egresos: [...(monthObj.egresos || [])]
+        ingresos: cleanIngresos,
+        egresos: cleanEgresos
       };
     });
     
@@ -338,6 +362,10 @@ export default function App() {
           const index_M = getMonthDistance(startMonth, month);
           
           if (index_M >= 0 && index_M < debt.cuotasTotales) {
+            const virtualId = `debt_virtual_${debt.id}_${index_M}`;
+            if (exclusions[month] && exclusions[month].has(virtualId)) {
+              return;
+            }
             const isCurrentPaid = debt.cuotas && debt.cuotas[index_M];
             const prevUnpaidCount = accumulatedUnpaid[debt.id] || 0;
             
@@ -390,8 +418,12 @@ export default function App() {
             const debtMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
             
             if (debtMonth === month) {
+              const virtualId = `debt_virtual_${debt.id}`;
+              if (exclusions[month] && exclusions[month].has(virtualId)) {
+                return;
+              }
               res[month].egresos.push({
-                id: `debt_virtual_${debt.id}`,
+                id: virtualId,
                 name: taggedName,
                 value: debt.total || 0,
                 paid: debt.completed,
@@ -1496,6 +1528,127 @@ export default function App() {
   // CRUD Actions: Monthly Details
   // ==========================================
   const updateMonthlyTransaction = async (month, type, action, data) => {
+    // Interceptar deudas virtuales para eliminarlas/editarlas mediante exclusiones y sobreescrituras
+    if (action !== "add" && data.id && String(data.id).startsWith("debt_virtual_")) {
+      if (action === "delete") {
+        const exclusionName = `__EXCLUDED__${data.id}`;
+        
+        if (currentUser && currentUser.provider === 'supabase') {
+          try {
+            await supabase
+              .from('detalles_mensuales')
+              .insert({
+                user_id: currentUser.id,
+                month,
+                type: type === 'ingresos' ? 'ingreso' : 'egreso',
+                name: exclusionName,
+                value: 0,
+                paid: false,
+                is_variable: false,
+                due_date: null
+              });
+          } catch (err) {
+            console.error("Error al guardar exclusión de deuda en Supabase:", err);
+          }
+        }
+        
+        setMonthlyDetailsState(prevDetails => {
+          const monthObj = prevDetails[month] || { ingresos: [], egresos: [] };
+          const updatedList = [...(monthObj[type] || [])];
+          updatedList.push({
+            id: "ex_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9),
+            name: exclusionName,
+            value: 0,
+            paid: false,
+            isVariable: false,
+            dueDate: ""
+          });
+          return {
+            ...prevDetails,
+            [month]: {
+              ...monthObj,
+              [type]: updatedList
+            }
+          };
+        });
+        return;
+      }
+      
+      if (action === "edit") {
+        const exclusionName = `__EXCLUDED__${data.id}`;
+        const taggedName = tagWithActiveContext(data.item.name, data.item.context);
+        
+        if (currentUser && currentUser.provider === 'supabase') {
+          try {
+            await supabase
+              .from('detalles_mensuales')
+              .insert([
+                {
+                  user_id: currentUser.id,
+                  month,
+                  type: type === 'ingresos' ? 'ingreso' : 'egreso',
+                  name: exclusionName,
+                  value: 0,
+                  paid: false,
+                  is_variable: false,
+                  due_date: null
+                },
+                {
+                  user_id: currentUser.id,
+                  month,
+                  type: type === 'ingresos' ? 'ingreso' : 'egreso',
+                  name: taggedName,
+                  value: data.item.value,
+                  paid: data.item.paid !== undefined ? data.item.paid : false,
+                  is_variable: data.item.isVariable,
+                  due_date: data.item.dueDate || null,
+                  reminder_enabled: data.item.reminderEnabled || false,
+                  reminder_email: data.item.reminderEmail || "",
+                  reminder_time: data.item.reminderTime || "3_days_before"
+                }
+              ]);
+          } catch (err) {
+            console.error("Error al editar deuda virtual en Supabase:", err);
+          }
+        }
+        
+        setMonthlyDetailsState(prevDetails => {
+          const monthObj = prevDetails[month] || { ingresos: [], egresos: [] };
+          const updatedList = [...(monthObj[type] || [])];
+          
+          updatedList.push({
+            id: "ex_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9),
+            name: exclusionName,
+            value: 0,
+            paid: false,
+            isVariable: false,
+            dueDate: ""
+          });
+          
+          updatedList.push({
+            id: "tx_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9),
+            name: taggedName,
+            value: data.item.value,
+            paid: data.item.paid !== undefined ? data.item.paid : false,
+            isVariable: data.item.isVariable,
+            dueDate: data.item.dueDate || "",
+            reminderEnabled: data.item.reminderEnabled || false,
+            reminderEmail: data.item.reminderEmail || "",
+            reminderTime: data.item.reminderTime || "3_days_before"
+          });
+          
+          return {
+            ...prevDetails,
+            [month]: {
+              ...monthObj,
+              [type]: updatedList
+            }
+          };
+        });
+        return;
+      }
+    }
+
     const monthObject = monthlyDetailsState[month] || { ingresos: [], egresos: [] };
     const list = [...(monthObject[type] || [])];
     
