@@ -1772,6 +1772,7 @@ export default function App() {
             updateMonthlyTransaction={updateMonthlyTransaction}
             currentContext={currentContext}
             addHistoricalMonth={addHistoricalMonth}
+            toggleCuota={toggleCuota}
           />
         );
       case "deudas":
