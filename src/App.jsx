@@ -1058,7 +1058,7 @@ export default function App() {
     const tipo = debtData.tipo || (debtData.cuotasTotales === 1 ? "pago_unico" : "fija");
 
     let newCuotas = undefined;
-    const currentDebtObj = debtsState.find(d => d.id === id);
+    const currentDebtObj = debtsState.find(d => String(d.id) === String(id));
     if (currentDebtObj) {
       if (currentDebtObj.cuotasTotales !== debtData.cuotasTotales || currentDebtObj.cuotaActual !== debtData.cuotaActual) {
         newCuotas = Array.from({ length: debtData.cuotasTotales }, (_, i) => i < debtData.cuotaActual);
@@ -1110,7 +1110,7 @@ export default function App() {
 
     setDebtsState(prev => {
       return prev.map(d => {
-        if (d.id === id) {
+        if (String(d.id) === String(id)) {
           return {
             ...d,
             name: debtData.name,
@@ -1152,7 +1152,7 @@ export default function App() {
   };
 
   const toggleCuota = async (debtId, cuotaIndex) => {
-    const current = debtsState.find(d => d.id === debtId);
+    const current = debtsState.find(d => String(d.id) === String(debtId));
     if (!current) return;
 
     const newCuotas = [...current.cuotas];
@@ -1160,6 +1160,22 @@ export default function App() {
     newCuotas[cuotaIndex] = newVal;
 
     if (newVal) {
+      // Check if there are preceding unpaid cuotas
+      let hasPrecedingUnpaid = false;
+      for (let i = 0; i < cuotaIndex; i++) {
+        if (!newCuotas[i]) {
+          hasPrecedingUnpaid = true;
+          break;
+        }
+      }
+
+      if (hasPrecedingUnpaid) {
+        const confirmMsg = `¿Marcar la cuota ${cuotaIndex + 1} como pagada?\nEsto también marcará automáticamente las cuotas anteriores pendientes como pagadas.`;
+        if (!window.confirm(confirmMsg)) {
+          return;
+        }
+      }
+
       // Mark all preceding unpaid cuotas as paid
       for (let i = 0; i < cuotaIndex; i++) {
         newCuotas[i] = true;
@@ -1190,7 +1206,7 @@ export default function App() {
 
     setDebtsState(prevDebts => {
       return prevDebts.map(d => {
-        if (d.id === debtId) {
+        if (String(d.id) === String(debtId)) {
           return {
             ...d,
             cuotas: newCuotas,

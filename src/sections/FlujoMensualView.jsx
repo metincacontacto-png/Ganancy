@@ -469,6 +469,21 @@ export default function FlujoMensualView({
                             Deuda
                           </span>
                         )}
+
+                        {item.paid && (
+                          <span style={{
+                            background: 'rgba(52, 199, 89, 0.1)',
+                            color: 'var(--success)',
+                            fontSize: '9px',
+                            fontWeight: 600,
+                            padding: '1px 4px',
+                            borderRadius: '3px',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}>
+                            {type === 'ingresos' ? 'Cobrado' : 'Pagado'}
+                          </span>
+                        )}
                       </div>
                       
                       {/* Due date and other details */}
