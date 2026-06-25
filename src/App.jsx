@@ -1155,7 +1155,13 @@ export default function App() {
     const current = debtsState.find(d => String(d.id) === String(debtId));
     if (!current) return;
 
-    const newCuotas = [...current.cuotas];
+    // Safety: ensure cuotas is a valid array of length at least cuotasTotales
+    const cuotasArray = Array.isArray(current.cuotas) ? current.cuotas : [];
+    const newCuotas = [...cuotasArray];
+    while (newCuotas.length < current.cuotasTotales) {
+      newCuotas.push(false);
+    }
+
     const newVal = !newCuotas[cuotaIndex];
     newCuotas[cuotaIndex] = newVal;
 
@@ -1170,15 +1176,15 @@ export default function App() {
       }
 
       if (hasPrecedingUnpaid) {
-        const confirmMsg = `¿Marcar la cuota ${cuotaIndex + 1} como pagada?\nEsto también marcará automáticamente las cuotas anteriores pendientes como pagadas.`;
-        if (!window.confirm(confirmMsg)) {
-          return;
+        const confirmMsg = `¿Deseas marcar también todas las cuotas anteriores pendientes como pagadas?\n\n- Presiona 'Aceptar' para marcar esta cuota y todas las anteriores.\n- Presiona 'Cancelar' para marcar ÚNICAMENTE esta cuota.`;
+        const markPreceding = window.confirm(confirmMsg);
+        
+        if (markPreceding) {
+          // Mark all preceding unpaid cuotas as paid
+          for (let i = 0; i < cuotaIndex; i++) {
+            newCuotas[i] = true;
+          }
         }
-      }
-
-      // Mark all preceding unpaid cuotas as paid
-      for (let i = 0; i < cuotaIndex; i++) {
-        newCuotas[i] = true;
       }
     }
 
