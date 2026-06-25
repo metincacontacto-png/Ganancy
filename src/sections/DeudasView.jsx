@@ -28,6 +28,26 @@ export default function DeudasView({
     return Math.round(debt.total * (1 - paidCount / debt.cuotasTotales));
   };
 
+  const getDueStatus = (dueDateStr, completed) => {
+    if (completed || !dueDateStr) return null;
+    
+    // Parse as YYYY-MM-DD in local time
+    const [year, month, day] = dueDateStr.split('-').map(Number);
+    // Note: JS Date month is 0-indexed. Assume due by end of day.
+    const dueDateObj = new Date(year, month - 1, day, 23, 59, 59);
+    const now = new Date();
+    
+    const diffTime = dueDateObj.getTime() - now.getTime();
+    const diffHours = diffTime / (1000 * 60 * 60);
+    
+    if (diffHours < 0) {
+      return { status: 'overdue', label: 'Vencido', color: 'var(--danger)' };
+    } else if (diffHours <= 48) {
+      return { status: 'due_soon', label: 'Vence pronto (< 48h)', color: 'var(--warning)' };
+    }
+    return null;
+  };
+
   // Filtering and sorting logic
   const filteredDebts = debtsState.filter(d => {
     if (statusFilter === "active") return !d.completed;
@@ -70,11 +90,30 @@ export default function DeudasView({
   const [debtFormDetails, setDebtFormDetails] = useState("");
   const [debtFormContext, setDebtFormContext] = useState("empresa");
 
+  // Auto-calculate Cuota Mensual when relevant values change
+  React.useEffect(() => {
+    if (debtFormTipo === "fija") {
+      const original = Number(debtFormTotalOriginal || 0);
+      const interest = Number(debtFormInteres || 0);
+      const cuotas = Number(debtFormCuotasTotales || 0);
+      if (original > 0 && cuotas > 0) {
+        const totalVal = original * (1 + interest / 100);
+        const calculatedCuota = Math.round(totalVal / cuotas);
+        setDebtFormMontoMensual(String(calculatedCuota));
+      }
+    }
+  }, [debtFormTotalOriginal, debtFormInteres, debtFormCuotasTotales, debtFormTipo]);
+
   // Formatting helper
   const formatMoney = (val) => formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL');
 
   // Verify active tracker exists
   const activeTrackerDebt = debtsState.find(d => d.id === activeTrackerId) || cuotasDebts[0];
+
+  const upcomingOverdueDebts = debtsState.filter(d => {
+    const dueStatus = getDueStatus(d.fechaVencimiento, d.completed);
+    return dueStatus !== null;
+  });
 
 
 
@@ -170,6 +209,44 @@ export default function DeudasView({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       
+      {/* Expiration warning banner */}
+      {upcomingOverdueDebts.length > 0 && (
+        <div style={{
+          background: 'rgba(255, 69, 58, 0.08)',
+          border: '1px solid rgba(255, 69, 58, 0.3)',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          display: 'flex',
+          gap: '16px',
+          alignItems: 'center',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{
+            background: 'var(--danger)',
+            borderRadius: '50%',
+            padding: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            flexShrink: 0
+          }}>
+            <ShieldAlert size={20} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px', marginTop: 0 }}>
+              Recordatorio de Vencimientos de Pago
+            </h4>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+              Tienes {upcomingOverdueDebts.length} {upcomingOverdueDebts.length === 1 ? 'deuda' : 'deudas'} con vencimiento inminente (menos de 48 horas) o atrasado:
+              <strong style={{ marginLeft: '6px', color: 'var(--text-primary)' }}>
+                {upcomingOverdueDebts.map(d => `${d.name} (${formatMoney(d.tipo === 'pago_unico' ? d.total : d.montoMensual)})`).join(', ')}
+              </strong>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Overview View of All Debts */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -284,8 +361,11 @@ export default function DeudasView({
                     <td style={{ fontWeight: 500 }}>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span>{debt.name}</span>
-                        {isSingle && debt.fechaVencimiento && (
-                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Vence: {debt.fechaVencimiento}</span>
+                        {debt.fechaVencimiento && (
+                          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                            {isSingle ? 'Vence: ' : 'Próxima cuota vence: '}
+                            {debt.fechaVencimiento}
+                          </span>
                         )}
                       </div>
                     </td>
@@ -331,9 +411,32 @@ export default function DeudasView({
                       {formatMoney(debt.total)}
                     </td>
                     <td>
-                      <span className={`badge ${debt.completed ? 'success' : 'warning'}`}>
-                        {debt.completed ? 'Saldado' : 'Activo'}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        <span className={`badge ${debt.completed ? 'success' : 'warning'}`}>
+                          {debt.completed ? 'Saldado' : 'Activo'}
+                        </span>
+                        {(() => {
+                          const dueStatus = getDueStatus(debt.fechaVencimiento, debt.completed);
+                          if (dueStatus) {
+                            return (
+                              <span style={{ 
+                                fontSize: '9px', 
+                                padding: '2px 6px', 
+                                borderRadius: '4px', 
+                                background: dueStatus.status === 'overdue' ? 'rgba(255, 69, 58, 0.15)' : 'rgba(255, 159, 10, 0.15)',
+                                color: dueStatus.color,
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}>
+                                <ShieldAlert size={10} /> {dueStatus.label}
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
@@ -591,69 +694,114 @@ export default function DeudasView({
                 </div>
               </div>
 
+              {debtFormTotalOriginal && (() => {
+                const projectedTotal = Math.round(Number(debtFormTotalOriginal || 0) * (1 + Number(debtFormInteres || 0) / 100));
+                return (
+                  <div style={{ 
+                    fontSize: '13px', 
+                    color: 'var(--text-secondary)', 
+                    background: 'var(--bg-primary)', 
+                    padding: '10px 14px', 
+                    borderRadius: '8px', 
+                    border: '1px dashed var(--border-color)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span>Monto Total con Intereses:</span>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
+                      {formatMoney(projectedTotal)}
+                    </strong>
+                  </div>
+                );
+              })()}
+
               {/* Installment parameters (Only visible for Fija) */}
               {debtFormTipo === "fija" && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuota Mensual ($)</label>
-                    <input
-                      type="number"
-                      value={debtFormMontoMensual}
-                      onChange={e => setDebtFormMontoMensual(e.target.value)}
-                      min="0"
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
-                        padding: '10px 10px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuota Mensual ($)</label>
+                      <input
+                        type="number"
+                        value={debtFormMontoMensual}
+                        onChange={e => setDebtFormMontoMensual(e.target.value)}
+                        min="0"
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Cuotas</label>
+                      <input
+                        type="number"
+                        value={debtFormCuotasTotales}
+                        onChange={e => setDebtFormCuotasTotales(e.target.value)}
+                        required
+                        min="2"
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Cuotas</label>
-                    <input
-                      type="number"
-                      value={debtFormCuotasTotales}
-                      onChange={e => setDebtFormCuotasTotales(e.target.value)}
-                      required
-                      min="2"
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
-                        padding: '10px 10px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha de Vencimiento de Próxima Cuota</label>
+                      <input
+                        type="date"
+                        value={debtFormFechaVencimiento}
+                        onChange={e => setDebtFormFechaVencimiento(e.target.value)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuotas Pagadas</label>
-                    <input
-                      type="number"
-                      value={debtFormCuotaActual}
-                      onChange={e => setDebtFormCuotaActual(e.target.value)}
-                      required
-                      min="0"
-                      max={debtFormCuotasTotales}
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
-                        padding: '10px 10px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuotas Pagadas</label>
+                      <input
+                        type="number"
+                        value={debtFormCuotaActual}
+                        onChange={e => setDebtFormCuotaActual(e.target.value)}
+                        required
+                        min="0"
+                        max={debtFormCuotasTotales}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               {/* Payment Date input (Only visible for Pago Único) */}
