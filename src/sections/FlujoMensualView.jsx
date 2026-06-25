@@ -159,6 +159,43 @@ export default function FlujoMensualView({
   // Filter months by quarter
   const filteredMonths = historicalFlowsState.filter(item => item.q === selectedTrimestre);
 
+  // Sort months chronologically descending (newest first)
+  const sortedFilteredMonths = React.useMemo(() => {
+    const parseMonthYear = (str) => {
+      const p = str.split(' ');
+      const abbr = p[0];
+      const yr = parseInt(p[1], 10);
+      const monthMap = {
+        "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+        "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11
+      };
+      return new Date(yr, monthMap[abbr] || 0);
+    };
+    return [...filteredMonths].sort((a, b) => parseMonthYear(b.month) - parseMonthYear(a.month));
+  }, [filteredMonths]);
+
+  const latestMonth = sortedFilteredMonths[0];
+  const otherMonths = sortedFilteredMonths.slice(1);
+
+  // Helper to get fixed and variable totals for a specific month
+  const getMonthDetailedTotals = (monthName) => {
+    const monthDetails = monthlyDetailsState[monthName] || { ingresos: [], egresos: [] };
+    const incomes = monthDetails.ingresos || [];
+    const expenses = monthDetails.egresos || [];
+
+    const ingresosFijos = incomes.filter(x => !x.isVariable).reduce((sum, x) => sum + x.value, 0);
+    const ingresosVariables = incomes.filter(x => x.isVariable).reduce((sum, x) => sum + x.value, 0);
+    const egresosFijos = expenses.filter(x => !x.isVariable).reduce((sum, x) => sum + x.value, 0);
+    const egresosVariables = expenses.filter(x => x.isVariable).reduce((sum, x) => sum + x.value, 0);
+    
+    return {
+      ingresosFijos,
+      ingresosVariables,
+      egresosFijos,
+      egresosVariables
+    };
+  };
+
   // Details sheet CRUD triggers
   const handleOpenAdd = (type, isVariable = true) => {
     setTransModalType(type);
@@ -608,64 +645,159 @@ export default function FlujoMensualView({
         </div>
       </div>
 
-      {/* Cards por Mes */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-        {filteredMonths.map(item => {
-          const isNegative = item.balance < 0;
-          return (
-            <div 
-              key={item.month} 
-              className="card" 
-              onClick={() => setSelectedMonthDetail(item.month)}
-              style={{ 
-                cursor: 'pointer', 
-                borderLeft: `4px solid ${isNegative ? 'var(--danger)' : 'var(--success)'}`,
-                padding: '24px'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar size={18} color="var(--text-secondary)" />
-                  <span style={{ fontSize: '18px', fontWeight: 600 }}>{item.month}</span>
-                </div>
-                <span className={`badge ${isNegative ? 'danger' : 'success'}`}>
-                  {isNegative ? 'Deficit' : 'Superávit'}
-                </span>
+      {/* Tarjeta del Mes Principal */}
+      {latestMonth && (() => {
+        const { ingresosFijos, ingresosVariables, egresosFijos, egresosVariables } = getMonthDetailedTotals(latestMonth.month);
+        const isNegative = latestMonth.balance < 0;
+        
+        return (
+          <div 
+            className="main-month-card" 
+            style={{ borderLeft: `4px solid ${isNegative ? 'var(--danger)' : 'var(--success)'}` }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={22} color="var(--accent)" />
+                <span style={{ fontSize: '22px', fontWeight: 700 }}>{latestMonth.month}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px', fontWeight: 500 }}>(Mes Actual / Principal)</span>
               </div>
+              <span className={`badge ${isNegative ? 'danger' : 'success'}`} style={{ fontSize: '12px', padding: '6px 12px' }}>
+                {isNegative ? 'Deficit' : 'Superávit'}
+              </span>
+            </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Ingresos totales</span>
-                  <strong className="num-positive">{formatMoney(item.ingresos)}</strong>
+            <div className="main-month-card-cols">
+              {/* Columna de Ingresos */}
+              <div className="main-month-col">
+                <div className="main-month-col-title" style={{ color: 'var(--success)' }}>Ingresos</div>
+                <div className="main-month-row">
+                  <span style={{ color: 'var(--text-secondary)' }}>Ingresos Fijos</span>
+                  <strong>{formatMoney(ingresosFijos)}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Egresos totales</span>
-                  <strong className="num-negative">{formatMoney(item.egresos)}</strong>
+                <div className="main-month-row">
+                  <span style={{ color: 'var(--text-secondary)' }}>Ingresos Variables</span>
+                  <strong>{formatMoney(ingresosVariables)}</strong>
                 </div>
-                <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
-                  <strong>Balance del Mes</strong>
-                  <strong className={isNegative ? "num-negative" : "num-positive"}>
-                    {isNegative ? '' : '+'}{formatMoney(item.balance)}
-                  </strong>
+                <div className="main-month-total-row">
+                  <span>Ingresos Totales</span>
+                  <span className="num-positive" style={{ fontSize: '16px' }}>{formatMoney(latestMonth.ingresos)}</span>
                 </div>
               </div>
 
-              <div style={{ 
-                textAlign: 'center', 
-                fontSize: '12px', 
-                color: 'var(--accent)', 
-                fontWeight: 500,
-                padding: '6px',
-                borderRadius: '6px',
-                background: 'var(--bg-primary)'
-              }}>
-                Ver desglose / Editar transacciones
+              {/* Columna de Egresos */}
+              <div className="main-month-col">
+                <div className="main-month-col-title" style={{ color: 'var(--danger)' }}>Egresos</div>
+                <div className="main-month-row">
+                  <span style={{ color: 'var(--text-secondary)' }}>Egresos Fijos</span>
+                  <strong>{formatMoney(egresosFijos)}</strong>
+                </div>
+                <div className="main-month-row">
+                  <span style={{ color: 'var(--text-secondary)' }}>Egresos Variables</span>
+                  <strong>{formatMoney(egresosVariables)}</strong>
+                </div>
+                <div className="main-month-total-row">
+                  <span>Egresos Totales</span>
+                  <span className="num-negative" style={{ fontSize: '16px' }}>{formatMoney(latestMonth.egresos)}</span>
+                </div>
               </div>
             </div>
-          );
-        })}
-      </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+              <div>
+                <span style={{ fontSize: '14px', color: 'var(--text-secondary)', marginRight: '8px' }}>Balance del Mes:</span>
+                <strong style={{ fontSize: '20px' }} className={isNegative ? "num-negative" : "num-positive"}>
+                  {isNegative ? '' : '+'}{formatMoney(latestMonth.balance)}
+                </strong>
+              </div>
+              <button 
+                onClick={() => setSelectedMonthDetail(latestMonth.month)}
+                style={{ 
+                  background: 'var(--accent)', 
+                  border: 'none', 
+                  color: 'white', 
+                  padding: '10px 20px', 
+                  borderRadius: '8px', 
+                  fontWeight: 600, 
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Ver desglose / Editar transacciones
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Otros Meses */}
+      {otherMonths.length > 0 && (
+        <>
+          <h4 className="historical-months-header">
+            <Calendar size={18} color="var(--text-secondary)" />
+            Otros Meses del Trimestre
+          </h4>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+            {otherMonths.map(item => {
+              const isNegative = item.balance < 0;
+              return (
+                <div 
+                  key={item.month} 
+                  className="card" 
+                  onClick={() => setSelectedMonthDetail(item.month)}
+                  style={{ 
+                    cursor: 'pointer', 
+                    borderLeft: `4px solid ${isNegative ? 'var(--danger)' : 'var(--success)'}`,
+                    padding: '24px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Calendar size={18} color="var(--text-secondary)" />
+                      <span style={{ fontSize: '18px', fontWeight: 600 }}>{item.month}</span>
+                    </div>
+                    <span className={`badge ${isNegative ? 'danger' : 'success'}`}>
+                      {isNegative ? 'Deficit' : 'Superávit'}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Ingresos totales</span>
+                      <strong className="num-positive">{formatMoney(item.ingresos)}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Egresos totales</span>
+                      <strong className="num-negative">{formatMoney(item.egresos)}</strong>
+                    </div>
+                    <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
+                      <strong>Balance del Mes</strong>
+                      <strong className={isNegative ? "num-negative" : "num-positive"}>
+                        {isNegative ? '' : '+'}{formatMoney(item.balance)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div style={{ 
+                    textAlign: 'center', 
+                    fontSize: '12px', 
+                    color: 'var(--accent)', 
+                    fontWeight: 500,
+                    padding: '6px',
+                    borderRadius: '6px',
+                    background: 'var(--bg-primary)'
+                  }}>
+                    Ver desglose / Editar transacciones
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Modal / Sheet de Detalle de Mes (DIRECT CRUD & Reminders) */}
       {selectedMonthDetail && currentDetails && currentMonthFlow && (
@@ -731,13 +863,8 @@ export default function FlujoMensualView({
               </div>
             </div>
 
-            {/* Grid Columns for Incomes / Expenses - 4 Panels */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-              gap: '24px', 
-              marginTop: '20px' 
-            }}>
+            {/* Grid Columns for Incomes / Expenses - 4 Panels (2x2 Grid) */}
+            <div className="operational-grid-2x2">
               {/* Left: Ingresos Fijos */}
               <div 
                 className="card" 
