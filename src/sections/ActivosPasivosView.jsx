@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, CheckCircle, Clock, ShieldAlert, Edit2, Trash2, Plus, X, Percent, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle, Clock, ShieldAlert, Edit2, Trash2, Plus, X, Percent, Calendar, Info } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
 export default function ActivosPasivosView({ 
@@ -319,6 +319,40 @@ export default function ActivosPasivosView({
             >
               <Plus size={14} /> Nueva Categoría
             </button>
+          </div>
+
+          {/* Info Box explaining Activos */}
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--border-radius-md)',
+            padding: '16px',
+            marginBottom: '20px',
+            boxShadow: 'var(--shadow-sm)',
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'flex-start'
+          }}>
+            <div style={{
+              background: 'var(--success-light)',
+              color: 'var(--success)',
+              borderRadius: '50%',
+              padding: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Info size={16} />
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                ¿Qué debes agregar en Activos?
+              </h4>
+              <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                Los activos son todos los bienes, recursos o derechos de tu propiedad que tienen un valor económico. Por ejemplo: saldos en cuentas bancarias, efectivo, propiedades, vehículos, equipos tecnológicos (computadores, teléfonos), fondos de inversión, acciones o el inventario de tu negocio.
+              </p>
+            </div>
           </div>
 
           {assetsState.categories.map(category => {

@@ -2440,24 +2440,24 @@ export default function App() {
                 className={activeTab === "activos_pasivos" ? "active" : ""} 
                 onClick={() => setActiveTab("activos_pasivos")}
               >
-                <Database size={16} /> Activos / Pasivos
+                <Database size={16} /> Activos
               </button>
             </li>
           )}
+          <li>
+            <button 
+              className={activeTab === "deudas" ? "active" : ""} 
+              onClick={() => setActiveTab("deudas")}
+            >
+              <CreditCard size={16} /> Deudas / Pasivos
+            </button>
+          </li>
           <li>
             <button 
               className={activeTab === "flujo" ? "active" : ""} 
               onClick={() => setActiveTab("flujo")}
             >
               <Calendar size={16} /> Flujo Mensual
-            </button>
-          </li>
-          <li>
-            <button 
-              className={activeTab === "deudas" ? "active" : ""} 
-              onClick={() => setActiveTab("deudas")}
-            >
-              <CreditCard size={16} /> Deudas
             </button>
           </li>
           <li>
