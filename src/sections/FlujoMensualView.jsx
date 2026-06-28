@@ -1395,7 +1395,7 @@ export default function FlujoMensualView({
       {/* Modal / Sheet de Detalle de Mes (DIRECT CRUD & Reminders) */}
       {selectedMonthDetail && currentDetails && currentMonthFlow && (
         <div className="modal-overlay" onClick={() => setSelectedMonthDetail(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1750px', width: '99%', height: '98vh', maxHeight: '98vh', display: 'flex', flexDirection: 'column', padding: '24px 36px', borderRadius: '16px', overflow: 'hidden' }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1750px', width: '99%', maxHeight: '98vh', display: 'flex', flexDirection: 'column', padding: '24px 36px', borderRadius: '16px', overflowY: 'auto' }}>
             <button className="close-btn" onClick={() => setSelectedMonthDetail(null)}>
               <X size={18} />
             </button>
