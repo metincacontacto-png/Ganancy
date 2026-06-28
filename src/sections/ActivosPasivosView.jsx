@@ -188,22 +188,77 @@ export default function ActivosPasivosView({
     if (files.length === 0) return;
 
     files.forEach(file => {
-      if (file.size > 800 * 1024) {
-        alert(`El archivo "${file.name}" supera el límite de 800KB. Por favor, sube un archivo más pequeño.`);
-        return;
-      }
+      // If it's an image, compress it on the client side!
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const docObj = {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          data: event.target.result // Base64 string
+            // Set maximum dimensions for the compressed image
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Export as JPEG with 0.7 quality (very high compression with good quality)
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+            // Estimate size in bytes
+            const stringLength = compressedBase64.length - 'data:image/jpeg;base64,'.length;
+            const sizeInBytes = 4 * Math.ceil(stringLength / 3) * 0.562489633434383;
+
+            // Generate clean name with .jpg extension
+            const cleanName = file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+
+            const docObj = {
+              name: cleanName,
+              type: 'image/jpeg',
+              size: Math.round(sizeInBytes),
+              data: compressedBase64
+            };
+            setAssetFormDocuments(prev => [...prev, docObj]);
+          };
+          img.src = event.target.result;
         };
-        setAssetFormDocuments(prev => [...prev, docObj]);
-      };
-      reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+      } else {
+        // For non-images (like PDFs), keep the 800KB limit check
+        if (file.size > 800 * 1024) {
+          alert(`El archivo "${file.name}" supera el límite de 800KB. Por favor, sube un archivo más pequeño.`);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const docObj = {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            data: event.target.result // Base64 string
+          };
+          setAssetFormDocuments(prev => [...prev, docObj]);
+        };
+        reader.readAsDataURL(file);
+      }
     });
     e.target.value = "";
   };
