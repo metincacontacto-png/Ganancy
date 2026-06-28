@@ -2102,6 +2102,12 @@ export default function App() {
             ingresosFijosState={filteredIngresosFijos}
             egresosFijosState={filteredEgresosFijos}
             toggleCuota={toggleCuota}
+            addIncome={addIncome}
+            editIncome={editIncome}
+            deleteIncome={deleteIncome}
+            addExpense={addExpense}
+            editExpense={editExpense}
+            deleteExpense={deleteExpense}
           />
         );
       case "deudas":

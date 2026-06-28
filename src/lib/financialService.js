@@ -274,35 +274,71 @@ export const initializeDefaultUserData = async (userId) => {
     const { error: flowsErr } = await supabase.from('flujos_historicos').insert(flowsInserts);
     if (flowsErr) throw flowsErr;
 
-    // 7. Seed detailed Transactions for April 2026
-    const abrDetails = MONTH_DETAILS["Abr 2026"];
-    if (abrDetails) {
-      const detailsInserts = [];
-      abrDetails.ingresos.forEach(item => {
-        detailsInserts.push({
-          user_id: userId,
-          month: "Abr 2026",
-          type: "ingreso",
-          name: item.name,
-          value: item.value,
-          paid: item.paid,
-          is_variable: !INGRESOS_FIJOS.some(f => item.name.toLowerCase().includes(f.name.split(' (')[0].toLowerCase())),
-          due_date: "2026-04-10"
+    // 7. Seed detailed Transactions for all historical months
+    const detailsInserts = [];
+    
+    HISTORICAL_FLOWS.forEach(f => {
+      const monthName = f.month;
+      
+      if (monthName === "Abr 2026" && MONTH_DETAILS["Abr 2026"]) {
+        const abrDetails = MONTH_DETAILS["Abr 2026"];
+        abrDetails.ingresos.forEach(item => {
+          detailsInserts.push({
+            user_id: userId,
+            month: "Abr 2026",
+            type: "ingreso",
+            name: item.name,
+            value: item.value,
+            paid: item.paid,
+            is_variable: !INGRESOS_FIJOS.some(x => item.name.toLowerCase().includes(x.name.split(' (')[0].toLowerCase())),
+            due_date: "2026-04-10"
+          });
         });
-      });
-      abrDetails.egresos.forEach(item => {
-        detailsInserts.push({
-          user_id: userId,
-          month: "Abr 2026",
-          type: "egreso",
-          name: item.name,
-          value: item.value,
-          paid: item.paid,
-          is_variable: !EGRESOS_FIJOS.some(f => item.name.toLowerCase().includes(f.name.split(' (')[0].toLowerCase())),
-          due_date: "2026-04-05"
+        abrDetails.egresos.forEach(item => {
+          detailsInserts.push({
+            user_id: userId,
+            month: "Abr 2026",
+            type: "egreso",
+            name: item.name,
+            value: item.value,
+            paid: item.paid,
+            is_variable: !EGRESOS_FIJOS.some(x => item.name.toLowerCase().includes(x.name.split(' (')[0].toLowerCase())),
+            due_date: "2026-04-05"
+          });
         });
-      });
+      } else {
+        // For other months, seed them with the general fixed incomes and expenses
+        INGRESOS_FIJOS.forEach(item => {
+          detailsInserts.push({
+            user_id: userId,
+            month: monthName,
+            type: "ingreso",
+            name: item.name,
+            value: item.value,
+            paid: true, // Mark as paid/received for historical months
+            is_variable: false,
+            due_date: null
+          });
+        });
+        EGRESOS_FIJOS.forEach(item => {
+          // Skip the "cuotas_deudas" item because debts are dynamically injected from the deudas table
+          if (item.id === "cuotas_deudas") return;
+          
+          detailsInserts.push({
+            user_id: userId,
+            month: monthName,
+            type: "egreso",
+            name: item.name,
+            value: item.value,
+            paid: true, // Mark as paid for historical months
+            is_variable: false,
+            due_date: null
+          });
+        });
+      }
+    });
 
+    if (detailsInserts.length > 0) {
       const { error: detailsErr } = await supabase.from('detalles_mensuales').insert(detailsInserts);
       if (detailsErr) throw detailsErr;
     }

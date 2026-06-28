@@ -44,7 +44,8 @@ export default function DashboardView({
   const isPersonalPlan = currentUser?.subscription_status === 'plan_personal';
   const getCleanName = (name) => {
     if (!name) return "";
-    return name.replace(' [Personal]', '').replace(' [Empresa]', '');
+    const parts = name.split(' ||| ');
+    return parts[0].replace(' [Personal]', '').replace(' [Empresa]', '');
   };
 
   const renderContextBadge = (name) => {
@@ -1689,6 +1690,52 @@ He procesado tu consulta y analizado tus números integrados.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
+      {/* Banner de bienvenida y carga de simulación */}
+      {!step1Completed && !step2Completed && !step3Completed && (
+        <div style={{
+          background: 'linear-gradient(135deg, var(--accent) 0%, #0056b3 100%)',
+          color: 'white',
+          padding: '20px 24px',
+          borderRadius: '16px',
+          boxShadow: 'var(--shadow-md)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '16px',
+          flexWrap: 'wrap',
+          marginBottom: '8px'
+        }}>
+          <div style={{ flex: 1, minWidth: '280px' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={20} /> ¡Bienvenido a Ganancy!
+            </h3>
+            <p style={{ margin: '6px 0 0 0', fontSize: '13.5px', color: 'rgba(255, 255, 255, 0.9)', lineHeight: '1.5' }}>
+              Para comenzar a explorar todas las funciones, proyecciones y análisis de la aplicación, puedes cargar nuestra plantilla de demostración con datos financieros simulados.
+            </p>
+          </div>
+          <button
+            onClick={loadDemoData}
+            style={{
+              background: 'white',
+              color: 'var(--accent)',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '10px',
+              fontWeight: 600,
+              fontSize: '13.5px',
+              cursor: 'pointer',
+              boxShadow: 'var(--shadow-sm)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <RefreshCw size={14} /> Cargar Datos de Simulación
+          </button>
+        </div>
+      )}
+      
       {/* ========================================================
           ONBOARDING QUICK START & PREMIUM FILE UPLOADER GRID
          ======================================================== */}
@@ -1897,6 +1944,47 @@ He procesado tu consulta y analizado tus números integrados.
               )}
             </div>
           </div>
+
+          {/* Quick link to reload/clear simulation data */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '10px', marginTop: '4px' }}>
+            <button
+              type="button"
+              onClick={loadDemoData}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent)',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <RefreshCw size={10} /> Recargar Demo
+            </button>
+            
+            <button
+              type="button"
+              onClick={clearAllData}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--danger)',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <Trash size={10} /> Limpiar Datos
+            </button>
+          </div>
         </div>
 
         {/* Importadores si no es Plan Personal */}
@@ -2091,7 +2179,8 @@ He procesado tu consulta y analizado tus números integrados.
       }}>
         {/* Card Saldo Neto Total (Haber o Déficit) */}
         <div 
-          className="card"
+          className="card kpi-card"
+          onClick={() => onNavigate && onNavigate("flujo")}
           style={{
             padding: '16px 20px',
             borderRadius: '16px',
@@ -2102,7 +2191,9 @@ He procesado tu consulta y analizado tus números integrados.
             alignItems: 'center',
             gap: '16px',
             gridColumn: 'span 2',
-            minHeight: '96px'
+            minHeight: '96px',
+            cursor: 'pointer',
+            transition: 'transform 0.2s'
           }}
         >
           <div className="kpi-icon" style={{ 
@@ -2176,7 +2267,7 @@ He procesado tu consulta y analizado tus números integrados.
         <div className="kpi-grid" style={{ marginBottom: '12px' }}>
           <div 
             className="card kpi-card"
-            onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
+            onClick={() => onNavigate && onNavigate("flujo")}
             style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
           >
             <div className="kpi-icon" style={{ backgroundColor: 'var(--accent-light)', color: 'var(--accent)' }}>
@@ -2190,7 +2281,7 @@ He procesado tu consulta y analizado tus números integrados.
 
           <div 
             className="card kpi-card"
-            onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
+            onClick={() => onNavigate && onNavigate("flujo")}
             style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
           >
             <div className="kpi-icon" style={{ backgroundColor: 'var(--danger-light)', color: 'var(--danger)' }}>
@@ -2204,7 +2295,7 @@ He procesado tu consulta y analizado tus números integrados.
 
           <div 
             className="card kpi-card"
-            onClick={() => onNavigate && onNavigate("dashboard", "fixed-incomes-table")}
+            onClick={() => onNavigate && onNavigate("flujo")}
             style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
           >
             <div className="kpi-icon" style={{ 
@@ -2231,7 +2322,7 @@ He procesado tu consulta y analizado tus números integrados.
         <div className="kpi-grid" style={{ marginBottom: '12px' }}>
           <div 
             className="card kpi-card" 
-            onClick={() => onNavigate && onNavigate("dashboard", "variable-incomes-table")}
+            onClick={() => onNavigate && onNavigate("flujo")}
             style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
           >
             <div className="kpi-icon" style={{ backgroundColor: 'rgba(52, 199, 89, 0.08)', color: 'var(--success)' }}>
@@ -2245,7 +2336,7 @@ He procesado tu consulta y analizado tus números integrados.
 
           <div 
             className="card kpi-card" 
-            onClick={() => onNavigate && onNavigate("dashboard", "variable-expenses-table")}
+            onClick={() => onNavigate && onNavigate("flujo")}
             style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
           >
             <div className="kpi-icon" style={{ backgroundColor: 'rgba(255, 59, 48, 0.08)', color: 'var(--danger)' }}>
@@ -2259,7 +2350,7 @@ He procesado tu consulta y analizado tus números integrados.
 
           <div 
             className="card kpi-card" 
-            onClick={() => onNavigate && onNavigate("dashboard", "variable-incomes-table")}
+            onClick={() => onNavigate && onNavigate("flujo")}
             style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
           >
             <div className="kpi-icon" style={{ 

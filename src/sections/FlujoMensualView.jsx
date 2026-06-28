@@ -2,6 +2,42 @@ import React, { useState } from 'react';
 import { Calendar, X, Plus, Trash2, Edit2, Bell, Check, Send, Paperclip, FileText } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
+const parseMonthYear = (str) => {
+  if (!str) return new Date();
+  const parts = str.split(' ');
+  const abbr = parts[0];
+  const yr = parseInt(parts[1], 10);
+  const monthMap = {
+    "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+    "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11,
+    "Mayo": 4
+  };
+  return new Date(yr, monthMap[abbr] !== undefined ? monthMap[abbr] : 0, 1);
+};
+
+const getQuarterInfo = (monthStr, startMonthStr) => {
+  const date = parseMonthYear(monthStr);
+  const startDate = parseMonthYear(startMonthStr);
+  
+  const diffMonths = (date.getFullYear() - startDate.getFullYear()) * 12 + (date.getMonth() - startDate.getMonth());
+  
+  const qIndex = Math.floor(diffMonths / 3);
+  
+  const qStartMonth = new Date(startDate.getFullYear(), startDate.getMonth() + qIndex * 3, 1);
+  const qEndMonth = new Date(startDate.getFullYear(), startDate.getMonth() + qIndex * 3 + 2, 1);
+  
+  const monthNamesAbbr = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  
+  const startLabel = `${monthNamesAbbr[qStartMonth.getMonth()]} ${String(qStartMonth.getFullYear()).slice(-2)}`;
+  const endLabel = `${monthNamesAbbr[qEndMonth.getMonth()]} ${String(qEndMonth.getFullYear()).slice(-2)}`;
+  
+  const qNumber = qIndex >= 0 ? qIndex + 1 : qIndex;
+  const id = `Q_${qIndex}`;
+  const label = `Trimestre ${qNumber} (${startLabel} - ${endLabel})`;
+  
+  return { id, label, qIndex };
+};
+
 export default function FlujoMensualView({ 
   historicalFlowsState, 
   monthlyDetailsState, 
@@ -11,11 +47,24 @@ export default function FlujoMensualView({
   toggleCuota,
   ingresosFijosState = [],
   egresosFijosState = [],
-  deleteHistoricalMonth
+  deleteHistoricalMonth,
+  addIncome,
+  editIncome,
+  deleteIncome,
+  addExpense,
+  editExpense,
+  deleteExpense
 }) {
   const getCleanName = (name) => {
     if (!name) return "";
-    return name.replace(' [Personal]', '').replace(' [Empresa]', '');
+    const parts = name.split(' ||| ');
+    return parts[0].replace(' [Personal]', '').replace(' [Empresa]', '');
+  };
+
+  const parseFixedStartMonth = (fullName) => {
+    if (!fullName) return null;
+    const parts = fullName.split(' ||| ');
+    return parts[1] || null;
   };
 
   const renderContextBadge = (name) => {
@@ -60,35 +109,172 @@ export default function FlujoMensualView({
     return null;
   };
 
-  const uniqueQuarters = React.useMemo(() => {
-    const quarters = historicalFlowsState.map(item => item.q);
-    const unique = [];
-    quarters.forEach(q => {
-      if (q && !unique.includes(q)) {
-        unique.push(q);
+  // Accounting start date states
+  const [accountingStartDate, setAccountingStartDate] = useState(() => {
+    const localVal = localStorage.getItem('accountingStartDate');
+    if (localVal) return localVal;
+    
+    // Default to the earliest month in historicalFlowsState
+    if (historicalFlowsState && historicalFlowsState.length > 0) {
+      const sorted = [...historicalFlowsState].sort((a, b) => {
+        return parseMonthYear(a.month) - parseMonthYear(b.month);
+      });
+      return sorted[0].month;
+    }
+    
+    const monthNamesAbbr = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const now = new Date();
+    return `${monthNamesAbbr[now.getMonth()]} ${now.getFullYear()}`;
+  });
+
+  const [isChangingStartDate, setIsChangingStartDate] = useState(false);
+  const [tempStartMonth, setTempStartMonth] = useState("Jun");
+  const [tempStartYear, setTempStartYear] = useState(new Date().getFullYear());
+
+  const handleSaveStartDate = () => {
+    const newDateStr = `${tempStartMonth} ${tempStartYear}`;
+    localStorage.setItem('accountingStartDate', newDateStr);
+    setAccountingStartDate(newDateStr);
+    setIsChangingStartDate(false);
+    
+    // Re-evaluate quarters and select the latest
+    const newFlows = historicalFlowsState.map(item => {
+      const qInfo = getQuarterInfo(item.month, newDateStr);
+      return { ...item, q: qInfo.id, qLabel: qInfo.label };
+    });
+    if (newFlows.length > 0) {
+      const sorted = [...newFlows].sort((a, b) => {
+        const indexA = parseInt(a.q.replace('Q_', ''), 10);
+        const indexB = parseInt(b.q.replace('Q_', ''), 10);
+        return indexA - indexB;
+      });
+      setSelectedTrimestre(sorted[sorted.length - 1].q);
+    }
+  };
+
+  // Compute custom quarters and map
+  const { processedFlows, uniqueQuarters, quartersMap } = React.useMemo(() => {
+    const processed = historicalFlowsState.map(item => {
+      const qInfo = getQuarterInfo(item.month, accountingStartDate);
+      return {
+        ...item,
+        q: qInfo.id,
+        qLabel: qInfo.label
+      };
+    });
+
+    const qMap = {};
+    processed.forEach(item => {
+      if (item.q && !qMap[item.q]) {
+        qMap[item.q] = item.qLabel;
       }
     });
-    
-    // Ordenar trimestres cronológicamente (ej: "Q4 2025" vs "Q1 2026")
-    return unique.sort((a, b) => {
-      const partsA = a.split(' ');
-      const partsB = b.split(' ');
-      const yearA = parseInt(partsA[1], 10);
-      const yearB = parseInt(partsB[1], 10);
-      if (yearA !== yearB) return yearA - yearB;
-      const qA = parseInt(partsA[0].replace('Q', ''), 10);
-      const qB = parseInt(partsB[0].replace('Q', ''), 10);
-      return qA - qB;
+
+    const unique = Object.keys(qMap).sort((a, b) => {
+      const indexA = parseInt(a.replace('Q_', ''), 10);
+      const indexB = parseInt(b.replace('Q_', ''), 10);
+      return indexA - indexB;
     });
-  }, [historicalFlowsState]);
+
+    return { processedFlows: processed, uniqueQuarters: unique, quartersMap: qMap };
+  }, [historicalFlowsState, accountingStartDate]);
 
   const [selectedTrimestre, setSelectedTrimestre] = useState(() => {
     if (historicalFlowsState && historicalFlowsState.length > 0) {
-      return historicalFlowsState[historicalFlowsState.length - 1].q;
+      const latestMonth = historicalFlowsState[historicalFlowsState.length - 1].month;
+      const localVal = localStorage.getItem('accountingStartDate');
+      let startMonth = localVal;
+      if (!startMonth) {
+        const sorted = [...historicalFlowsState].sort((a, b) => {
+          return parseMonthYear(a.month) - parseMonthYear(b.month);
+        });
+        startMonth = sorted[0].month;
+      }
+      return getQuarterInfo(latestMonth, startMonth).id;
     }
-    return "Q2 2026";
+    return "Q_0";
   });
   const [selectedMonthDetail, setSelectedMonthDetail] = useState(null);
+
+  // Fixed Template States
+  const [fixedTemplatesOpen, setFixedTemplatesOpen] = useState(false);
+  const [fixedModalOpen, setFixedModalOpen] = useState(false);
+  const [fixedModalType, setFixedModalType] = useState("ingresos"); // "ingresos" | "egresos"
+  const [fixedModalMode, setFixedModalMode] = useState("add"); // "add" | "edit"
+  const [fixedEditingItem, setFixedEditingItem] = useState(null);
+  const [fixedFormName, setFixedFormName] = useState("");
+  const [fixedFormValue, setFixedFormValue] = useState("");
+  const [fixedFormContext, setFixedFormContext] = useState("empresa");
+  const [fixedLimitStartDate, setFixedLimitStartDate] = useState(false);
+  const [fixedStartMonthSelect, setFixedStartMonthSelect] = useState("Ene");
+  const [fixedStartYearSelect, setFixedStartYearSelect] = useState(new Date().getFullYear());
+
+  const handleOpenFixedModal = (type, mode, item = null) => {
+    setFixedModalType(type);
+    setFixedModalMode(mode);
+    setFixedEditingItem(item);
+    if (item) {
+      const hasPersonalTag = item.name.includes('[Personal]');
+      const parts = item.name.split(' ||| ');
+      const cleanName = parts[0].replace(' [Personal]', '').replace(' [Empresa]', '');
+      setFixedFormName(cleanName);
+      setFixedFormValue(item.value);
+      setFixedFormContext(hasPersonalTag ? 'personal' : 'empresa');
+      
+      if (parts[1]) {
+        const dateParts = parts[1].split(' ');
+        setFixedLimitStartDate(true);
+        setFixedStartMonthSelect(dateParts[0]);
+        setFixedStartYearSelect(Number(dateParts[1]));
+      } else {
+        setFixedLimitStartDate(false);
+        setFixedStartMonthSelect("Ene");
+        setFixedStartYearSelect(new Date().getFullYear());
+      }
+    } else {
+      setFixedFormName("");
+      setFixedFormValue("");
+      setFixedFormContext(currentContext === 'personal' ? 'personal' : 'empresa');
+      setFixedLimitStartDate(false);
+      setFixedStartMonthSelect("Ene");
+      setFixedStartYearSelect(new Date().getFullYear());
+    }
+    setFixedModalOpen(true);
+  };
+
+  const handleFixedSubmit = async (e) => {
+    e.preventDefault();
+    if (!fixedFormName.trim() || !fixedFormValue) return;
+
+    const value = Math.round(Number(fixedFormValue));
+    const nameWithContext = fixedFormContext === 'personal' ? `${fixedFormName} [Personal]` : `${fixedFormName} [Empresa]`;
+    const finalName = fixedLimitStartDate ? `${nameWithContext} ||| ${fixedStartMonthSelect} ${fixedStartYearSelect}` : nameWithContext;
+
+    if (fixedModalType === 'ingresos') {
+      if (fixedModalMode === 'add') {
+        if (addIncome) await addIncome(finalName, value);
+      } else {
+        if (editIncome && fixedEditingItem) await editIncome(fixedEditingItem.id, finalName, value);
+      }
+    } else {
+      if (fixedModalMode === 'add') {
+        if (addExpense) await addExpense(finalName, value);
+      } else {
+        if (editExpense && fixedEditingItem) await editExpense(fixedEditingItem.id, finalName, value);
+      }
+    }
+    setFixedModalOpen(false);
+  };
+
+  const handleConfirmDeleteFixed = async (type, id, name) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar "${getCleanName(name)}" de la plantilla de flujos fijos generales?`)) {
+      if (type === 'ingresos') {
+        if (deleteIncome) await deleteIncome(id);
+      } else {
+        if (deleteExpense) await deleteExpense(id);
+      }
+    }
+  };
 
   // Sub-modal states for adding/editing transaction inside details sheet
   const [addMonthModalOpen, setAddMonthModalOpen] = useState(false);
@@ -128,36 +314,36 @@ export default function FlujoMensualView({
       return;
     }
     
+    // Filter by start date
+    const activeIncomes = ingresosFijosState.filter(item => {
+      const startMonth = parseFixedStartMonth(item.name);
+      if (!startMonth) return true;
+      return parseMonthYear(monthName) >= parseMonthYear(startMonth);
+    });
+
     let incomesToPass = [];
     if (addIncomesOption === "all") {
-      incomesToPass = ingresosFijosState;
+      incomesToPass = activeIncomes;
     } else if (addIncomesOption === "edit") {
-      incomesToPass = ingresosFijosState.filter(item => !!selectedIncomesCheck[item.id]);
+      incomesToPass = activeIncomes.filter(item => !!selectedIncomesCheck[item.id]);
     }
+
+    const activeExpenses = egresosFijosState.filter(item => {
+      const startMonth = parseFixedStartMonth(item.name);
+      if (!startMonth) return true;
+      return parseMonthYear(monthName) >= parseMonthYear(startMonth);
+    });
 
     let expensesToPass = [];
     if (addExpensesOption === "all") {
-      expensesToPass = egresosFijosState;
+      expensesToPass = activeExpenses;
     } else if (addExpensesOption === "edit") {
-      expensesToPass = egresosFijosState.filter(item => !!selectedExpensesCheck[item.id]);
+      expensesToPass = activeExpenses.filter(item => !!selectedExpensesCheck[item.id]);
     }
 
     const success = await addHistoricalMonth(monthName, incomesToPass, expensesToPass);
     if (success) {
-      // Calcular a qué trimestre pertenece el nuevo mes
-      const parts = monthName.split(' ');
-      const monthAbbr = parts[0];
-      const year = parts[1];
-      
-      let targetQ = "Q1 " + year;
-      if (["Abr", "May", "Jun"].includes(monthAbbr)) {
-        targetQ = "Q2 " + year;
-      } else if (["Jul", "Ago", "Sep"].includes(monthAbbr)) {
-        targetQ = "Q3 " + year;
-      } else if (["Oct", "Nov", "Dic"].includes(monthAbbr)) {
-        targetQ = "Q4 " + year;
-      }
-      
+      const targetQ = getQuarterInfo(monthName, accountingStartDate).id;
       setSelectedTrimestre(targetQ);
       setAddMonthModalOpen(false);
     }
@@ -207,13 +393,13 @@ export default function FlujoMensualView({
 
   // Format Helper
   const formatMoney = (val) => formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL');
-
+  
   // Filter months by quarter
-  const filteredMonths = historicalFlowsState.filter(item => item.q === selectedTrimestre);
+  const filteredMonths = processedFlows.filter(item => item.q === selectedTrimestre);
 
   // Sort months chronologically descending (newest first)
   const sortedFilteredMonths = React.useMemo(() => {
-    const parseMonthYear = (str) => {
+    const parseMonthYearLocal = (str) => {
       const p = str.split(' ');
       const abbr = p[0];
       const yr = parseInt(p[1], 10);
@@ -223,11 +409,61 @@ export default function FlujoMensualView({
       };
       return new Date(yr, monthMap[abbr] || 0);
     };
-    return [...filteredMonths].sort((a, b) => parseMonthYear(b.month) - parseMonthYear(a.month));
+    return [...filteredMonths].sort((a, b) => parseMonthYearLocal(b.month) - parseMonthYearLocal(a.month));
   }, [filteredMonths]);
 
   const latestMonth = sortedFilteredMonths[0];
   const otherMonths = sortedFilteredMonths.slice(1);
+
+  // Modals for adding/editing transactions inside the month details
+  const [transList, setTransList] = useState([]);
+  
+  const handleOpenMonthDetail = (monthName) => {
+    setSelectedMonthDetail(monthName);
+  };
+
+  const handleCloseMonthDetail = () => {
+    setSelectedMonthDetail(null);
+  };
+
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [reminderMethod, setReminderMethod] = useState("email"); // "email" | "whatsapp"
+  const [reminderDaysBefore, setReminderDaysBefore] = useState("3"); // "1" | "3" | "7" | "custom"
+  const [reminderCustomDate, setReminderCustomDate] = useState("");
+
+  const handleSaveReminder = (transName, transType, originalIndex) => {
+    const method = reminderMethod === "email" ? "Correo electrónico" : "WhatsApp";
+    let optionLabel = "";
+    let dueDate = null;
+
+    if (currentMonthFlow) {
+      // Find the transaction due date
+      const monthDetails = monthlyDetailsState[selectedMonthDetail] || { ingresos: [], egresos: [] };
+      const transList = transType === "ingresos" ? monthDetails.ingresos : monthDetails.egresos;
+      const transItem = transList[originalIndex];
+      if (transItem && transItem.dueDate) {
+        dueDate = transItem.dueDate;
+      }
+    }
+
+    if (reminderDaysBefore === "custom") {
+      optionLabel = `el ${reminderCustomDate}`;
+    } else {
+      optionLabel = `${reminderDaysBefore} días antes`;
+    }
+
+    const dateStr = dueDate ? ` el ${dueDate}` : ' en su vencimiento';
+    setToastMessage(`🔔 Recordatorio programado con éxito: Se enviará una notificación por **${method}** para la transacción **"${transName}"** ${optionLabel}${dateStr}.`);
+    setActiveReminderIdx(null); // Close popover
+
+    // Auto clear toast after 5 seconds
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
+
+  const currentDetails = selectedMonthDetail ? (monthlyDetailsState[selectedMonthDetail] || { ingresos: [], egresos: [] }) : null;
+  const currentMonthFlow = selectedMonthDetail ? processedFlows.find(m => m.month === selectedMonthDetail) : null;
 
   // Helper to get fixed and variable totals for a specific month
   const getMonthDetailedTotals = (monthName) => {
@@ -357,9 +593,6 @@ export default function FlujoMensualView({
     }, 5000);
   };
 
-  const currentDetails = selectedMonthDetail ? (monthlyDetailsState[selectedMonthDetail] || { ingresos: [], egresos: [] }) : null;
-  const currentMonthFlow = selectedMonthDetail ? historicalFlowsState.find(m => m.month === selectedMonthDetail) : null;
-
   // Totals calculations inside the modal
   const totalIngresosMes = currentDetails ? currentDetails.ingresos.reduce((sum, item) => sum + item.value, 0) : 0;
   const totalEgresosMes = currentDetails ? currentDetails.egresos.reduce((sum, item) => sum + item.value, 0) : 0;
@@ -385,21 +618,21 @@ export default function FlujoMensualView({
 
   const renderTransactionTable = (items, type, montoLabel, emptyMessage) => {
     return (
-      <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+      <div className="table-responsive" style={{ maxHeight: '38vh', overflowY: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1.5px solid var(--border-color)' }}>
-              <th style={{ width: '28px', padding: '8px 4px' }}></th>
-              <th style={{ textAlign: 'left', padding: '8px', fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Concepto</th>
-              <th style={{ textAlign: 'right', padding: '8px', width: '110px', fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>{montoLabel}</th>
-              <th style={{ width: '90px', textAlign: 'center', padding: '8px', fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Acción</th>
+              <th style={{ width: '32px', padding: '8px 4px' }}></th>
+              <th style={{ textAlign: 'left', padding: '8px', fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Concepto</th>
+              <th style={{ textAlign: 'right', padding: '8px', width: '120px', fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>{montoLabel}</th>
+              <th style={{ width: '100px', textAlign: 'center', padding: '8px', fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Acción</th>
             </tr>
           </thead>
           <tbody>
             {items.map(item => {
               const isExpense = type === "egresos";
               return (
-                <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)', height: '48px' }}>
+                <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)', height: '54px' }}>
                   {/* Checkbox column */}
                   <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
                     <span
@@ -409,9 +642,9 @@ export default function FlujoMensualView({
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '4px',
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '6px',
                         border: item.paid ? '1px solid var(--success)' : '1px solid var(--text-secondary)',
                         background: item.paid ? 'var(--success)' : 'transparent',
                         color: item.paid ? 'white' : 'transparent',
@@ -419,20 +652,20 @@ export default function FlujoMensualView({
                       }}
                       title={item.paid ? "Marcar como Pendiente" : "Marcar como Pagado"}
                     >
-                      <Check size={12} strokeWidth={3} />
+                      <Check size={14} strokeWidth={3} />
                     </span>
                   </td>
                   
                   {/* Concepto column */}
                   <td style={{ padding: '8px', verticalAlign: 'middle' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span style={{ 
-                          fontWeight: 500, 
+                          fontWeight: 600, 
                           color: 'var(--text-primary)', 
                           textDecoration: item.paid ? 'line-through' : 'none',
                           opacity: item.paid ? 0.6 : 1,
-                          fontSize: '13px'
+                          fontSize: '15px'
                         }}>
                           {getCleanName(item.name)}
                         </span>
@@ -443,10 +676,10 @@ export default function FlujoMensualView({
                           <span style={{
                             background: 'rgba(52, 199, 89, 0.1)',
                             color: 'var(--success)',
-                            fontSize: '9px',
+                            fontSize: '11px',
                             fontWeight: 600,
-                            padding: '1px 4px',
-                            borderRadius: '3px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
                             display: 'inline-flex',
                             alignItems: 'center'
                           }} title="Gasto Real / Boleta cargada en el mes">
@@ -459,10 +692,10 @@ export default function FlujoMensualView({
                           <span style={{
                             background: 'rgba(10, 132, 255, 0.1)',
                             color: 'var(--accent)',
-                            fontSize: '9px',
+                            fontSize: '11px',
                             fontWeight: 600,
-                            padding: '1px 4px',
-                            borderRadius: '3px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
                             display: 'inline-flex',
                             alignItems: 'center'
                           }}>
@@ -474,10 +707,10 @@ export default function FlujoMensualView({
                           <span style={{
                             background: 'rgba(52, 199, 89, 0.1)',
                             color: 'var(--success)',
-                            fontSize: '9px',
+                            fontSize: '11px',
                             fontWeight: 600,
-                            padding: '1px 4px',
-                            borderRadius: '3px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
                             display: 'inline-flex',
                             alignItems: 'center'
                           }}>
@@ -487,8 +720,8 @@ export default function FlujoMensualView({
                       </div>
                       
                       {/* Due date and other details */}
-                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Calendar size={10} />
+                      <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar size={12} />
                         {isExpense ? 'Vence' : 'Cobro'}: {item.dueDate || 'Sin fecha'}
                       </span>
                     </div>
@@ -498,9 +731,9 @@ export default function FlujoMensualView({
                   <td style={{ 
                     padding: '8px', 
                     textAlign: 'right', 
-                    fontWeight: 600, 
+                    fontWeight: 700, 
                     verticalAlign: 'middle',
-                    fontSize: '13px',
+                    fontSize: '15px',
                     textDecoration: item.paid ? 'line-through' : 'none',
                     opacity: item.paid ? 0.6 : 1
                   }} className={isExpense ? "num-negative" : "num-positive"}>
@@ -577,17 +810,17 @@ export default function FlujoMensualView({
                       <>
                         <button 
                           onClick={() => handleOpenEdit(type, item.originalIndex, item)} 
-                          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }} 
+                          style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }} 
                           title="Editar"
                         >
-                          <Edit2 size={11} />
+                          <Edit2 size={13} />
                         </button>
                         <button 
                           onClick={() => handleTransDelete(type, item.originalIndex, item.name, item.id)} 
-                          style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }} 
+                          style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }} 
                           title="Eliminar"
                         >
-                          <Trash2 size={11} />
+                          <Trash2 size={13} />
                         </button>
                       </>
                     </div>
@@ -646,24 +879,131 @@ export default function FlujoMensualView({
       )}
 
       {/* Selector de Trimestre & Header */}
-      <div className="section-header">
+      <div className="section-header" style={{ marginBottom: '24px' }}>
         <div>
-          <h2>Flujo de Caja Mensual</h2>
-          <p className="subtitle">Historial de transacciones consolidado por periodos trimestrales</p>
+          <h2 style={{ margin: 0 }}>Flujo de Caja Mensual</h2>
+          <p className="subtitle" style={{ margin: '4px 0 0 0' }}>Historial de transacciones consolidado por periodos trimestrales</p>
+          
+          {isChangingStartDate ? (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '10px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              padding: '6px 12px',
+              borderRadius: '10px'
+            }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Inicio:</span>
+              <select
+                value={tempStartMonth}
+                onChange={e => setTempStartMonth(e.target.value)}
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  outline: 'none'
+                }}
+              >
+                {["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              <select
+                value={tempStartYear}
+                onChange={e => setTempStartYear(Number(e.target.value))}
+                style={{
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  outline: 'none'
+                }}
+              >
+                {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleSaveStartDate}
+                style={{
+                  background: 'var(--success)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={() => setIsChangingStartDate(false)}
+                style={{
+                  background: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                  border: 'none',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginTop: '10px',
+              fontSize: '12.5px',
+              color: 'var(--text-secondary)',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              padding: '4px 10px',
+              borderRadius: '8px'
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                <Calendar size={14} style={{ color: 'var(--accent)', marginRight: '6px' }} />
+                Inicio del libro:&nbsp;<strong>{accountingStartDate}</strong>
+              </span>
+              <button
+                onClick={() => {
+                  const parts = accountingStartDate.split(' ');
+                  setTempStartMonth(parts[0]);
+                  setTempStartYear(Number(parts[1]));
+                  setIsChangingStartDate(true);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  padding: '2px 4px',
+                  fontSize: '11.5px'
+                }}
+              >
+                Cambiar
+              </button>
+            </div>
+          )}
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', background: 'var(--border-color)', padding: '4px', borderRadius: '10px', gap: '2px', flexWrap: 'wrap' }}>
             {uniqueQuarters.map(q => {
-              const formatQuarterLabel = (quarterStr) => {
-                if (!quarterStr) return "";
-                const parts = quarterStr.split(' ');
-                if (parts.length === 2) {
-                  const qNum = parts[0].replace('Q', '');
-                  return `Trimestre ${qNum} ${parts[1]}`;
-                }
-                return quarterStr;
-              };
               return (
                 <button
                   key={q}
@@ -681,7 +1021,7 @@ export default function FlujoMensualView({
                     transition: 'all 0.2s'
                   }}
                 >
-                  {formatQuarterLabel(q)}
+                  {quartersMap[q]}
                 </button>
               );
             })}
@@ -708,6 +1048,170 @@ export default function FlujoMensualView({
             <Plus size={14} /> Añadir Mes
           </button>
         </div>
+      </div>
+
+      {/* Sección de Plantilla de Flujos Fijos (Collapsible) */}
+      <div className="card glass-panel" style={{
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '16px',
+        padding: '16px 20px',
+        marginBottom: '16px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setFixedTemplatesOpen(!fixedTemplatesOpen)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <Calendar size={18} style={{ color: 'var(--accent)' }} />
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Plantilla de Ingresos y Egresos Fijos Generales
+            </h3>
+            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              (Se auto-copian al crear nuevos meses en el libro)
+            </span>
+          </div>
+          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>
+            {fixedTemplatesOpen ? 'Ocultar' : 'Configurar'}
+          </span>
+        </div>
+
+        {fixedTemplatesOpen && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+            {/* Column 1: Ingresos Fijos */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--success)', fontWeight: 600 }}>Ingresos Fijos Generales</h4>
+                <button
+                  type="button"
+                  onClick={() => handleOpenFixedModal('ingresos', 'add')}
+                  style={{
+                    background: 'var(--success-light)',
+                    color: 'var(--success)',
+                    border: 'none',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Plus size={10} /> Agregar
+                </button>
+              </div>
+              {ingresosFijosState.length === 0 ? (
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '10px 0' }}>No hay ingresos fijos registrados.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {ingresosFijosState.map((item, idx) => (
+                    <div key={item.id || idx} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: 'var(--bg-primary)',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                        {getCleanName(item.name)}
+                        {renderContextBadge(item.name)}
+                        {parseFixedStartMonth(item.name) && (
+                          <span style={{
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-secondary)',
+                            fontSize: '10px',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            fontWeight: 500,
+                            marginLeft: '4px'
+                          }}>
+                            Desde {parseFixedStartMonth(item.name)}
+                          </span>
+                        )}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(item.value)}</span>
+                        <button type="button" onClick={() => handleOpenFixedModal('ingresos', 'edit', item)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}><Edit2 size={11} /></button>
+                        <button type="button" onClick={() => handleConfirmDeleteFixed('ingresos', item.id, item.name)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }}><Trash2 size={11} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Column 2: Egresos Fijos */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--danger)', fontWeight: 600 }}>Egresos Fijos Generales</h4>
+                <button
+                  type="button"
+                  onClick={() => handleOpenFixedModal('egresos', 'add')}
+                  style={{
+                    background: 'var(--danger-light)',
+                    color: 'var(--danger)',
+                    border: 'none',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Plus size={10} /> Agregar
+                </button>
+              </div>
+              {egresosFijosState.length === 0 ? (
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '10px 0' }}>No hay egresos fijos registrados.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {egresosFijosState.map((item, idx) => (
+                    <div key={item.id || idx} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: 'var(--bg-primary)',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      gap: '8px'
+                    }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                        {getCleanName(item.name)}
+                        {renderContextBadge(item.name)}
+                        {parseFixedStartMonth(item.name) && (
+                          <span style={{
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-secondary)',
+                            fontSize: '10px',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            fontWeight: 500,
+                            marginLeft: '4px'
+                          }}>
+                            Desde {parseFixedStartMonth(item.name)}
+                          </span>
+                        )}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(item.value)}</span>
+                        <button type="button" onClick={() => handleOpenFixedModal('egresos', 'edit', item)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}><Edit2 size={11} /></button>
+                        <button type="button" onClick={() => handleConfirmDeleteFixed('egresos', item.id, item.name)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }}><Trash2 size={11} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tarjeta del Mes Principal */}
@@ -891,93 +1395,93 @@ export default function FlujoMensualView({
       {/* Modal / Sheet de Detalle de Mes (DIRECT CRUD & Reminders) */}
       {selectedMonthDetail && currentDetails && currentMonthFlow && (
         <div className="modal-overlay" onClick={() => setSelectedMonthDetail(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1150px', width: '95%' }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1750px', width: '99%', height: '98vh', maxHeight: '98vh', display: 'flex', flexDirection: 'column', padding: '24px 36px', borderRadius: '16px', overflow: 'hidden' }}>
             <button className="close-btn" onClick={() => setSelectedMonthDetail(null)}>
-              <X size={16} />
+              <X size={18} />
             </button>
             
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Calendar size={22} color="var(--accent)" />
-                <h3 style={{ fontSize: '22px', fontWeight: 600 }}>Desglose Operacional — {selectedMonthDetail}</h3>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Calendar size={26} color="var(--accent)" />
+                <h3 style={{ fontSize: '26px', fontWeight: 700 }}>Desglose Operacional — {selectedMonthDetail}</h3>
               </div>
-              <p className="subtitle" style={{ marginTop: '4px' }}>
+              <p className="subtitle" style={{ marginTop: '6px', fontSize: '15px' }}>
                 Registra, edita o elimina movimientos mensuales. Tilda los cheques correspondientes para marcar ingresos recibidos o egresos pagados.
               </p>
             </div>
 
             {/* Quick Balance Header inside Modal */}
-            <div className="modal-balance-grid">
+            <div className="modal-balance-grid" style={{ marginBottom: '16px' }}>
               {/* Row 1: Planned Totals */}
-              <div style={{ padding: '12px 16px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 500 }}>Ingresos Totales (Mes)</span>
-                <strong style={{ fontSize: '16px', color: 'var(--success)' }}>{formatMoney(totalIngresosMes)}</strong>
+              <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Totales (Mes)</span>
+                <strong style={{ fontSize: '20px', color: 'var(--success)', display: 'block', marginTop: '4px' }}>{formatMoney(totalIngresosMes)}</strong>
               </div>
-              <div style={{ padding: '12px 16px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 500 }}>Egresos Totales (Mes)</span>
-                <strong style={{ fontSize: '16px', color: 'var(--danger)' }}>{formatMoney(totalEgresosMes)}</strong>
+              <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Totales (Mes)</span>
+                <strong style={{ fontSize: '20px', color: 'var(--danger)', display: 'block', marginTop: '4px' }}>{formatMoney(totalEgresosMes)}</strong>
               </div>
-              <div style={{ padding: '12px 16px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 500 }}>Balance Neto Proyectado</span>
-                <strong style={{ fontSize: '16px' }} className={balanceNetoMes >= 0 ? "num-positive" : "num-negative"}>
+              <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance Neto Proyectado</span>
+                <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balanceNetoMes >= 0 ? "num-positive" : "num-negative"}>
                   {balanceNetoMes >= 0 ? '+' : ''}{formatMoney(balanceNetoMes)}
                 </strong>
               </div>
 
               {/* Row 2: Actual / Paid to Date Totals */}
-              <div style={{ padding: '12px 16px', background: 'rgba(52, 199, 89, 0.05)', border: '1px solid rgba(52, 199, 89, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '11.5px', color: 'var(--success)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Recibidos (a la fecha)</span>
-                <strong style={{ fontSize: '16px', color: 'var(--success)' }}>{formatMoney(ingresosRecibidos)}</strong>
+              <div style={{ padding: '14px 18px', background: 'rgba(52, 199, 89, 0.05)', border: '1px solid rgba(52, 199, 89, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--success)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Recibidos (a la fecha)</span>
+                <strong style={{ fontSize: '20px', color: 'var(--success)', display: 'block', marginTop: '4px' }}>{formatMoney(ingresosRecibidos)}</strong>
               </div>
-              <div style={{ padding: '12px 16px', background: 'rgba(255, 59, 48, 0.05)', border: '1px solid rgba(255, 59, 48, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '11.5px', color: 'var(--danger)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Pagados (a la fecha)</span>
-                <strong style={{ fontSize: '16px', color: 'var(--danger)' }}>{formatMoney(egresosPagados)}</strong>
+              <div style={{ padding: '14px 18px', background: 'rgba(255, 59, 48, 0.05)', border: '1px solid rgba(255, 59, 48, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--danger)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Pagados (a la fecha)</span>
+                <strong style={{ fontSize: '20px', color: 'var(--danger)', display: 'block', marginTop: '4px' }}>{formatMoney(egresosPagados)}</strong>
               </div>
               <div style={{ 
-                padding: '12px 16px', 
+                padding: '14px 18px', 
                 background: balanceCajaActual >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
                 border: balanceCajaActual >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
                 borderRadius: '12px', 
                 textAlign: 'center' 
               }}>
-                <span style={{ fontSize: '11.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Caja Real a la fecha</span>
-                <strong style={{ fontSize: '16px' }} className={balanceCajaActual >= 0 ? "num-positive" : "num-negative"}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Caja Real a la fecha</span>
+                <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balanceCajaActual >= 0 ? "num-positive" : "num-negative"}>
                   {balanceCajaActual >= 0 ? '+' : ''}{formatMoney(balanceCajaActual)}
                 </strong>
               </div>
             </div>
 
             {/* Grid Columns for Incomes / Expenses - 4 Panels (2x2 Grid) */}
-            <div className="operational-grid-2x2">
+            <div className="operational-grid-2x2" style={{ marginTop: '14px', gap: '20px' }}>
               {/* Left: Ingresos Fijos */}
               <div 
                 className="card" 
                 style={{ 
-                  padding: '20px 0', 
+                  padding: '24px 0 16px 0', 
                   backgroundColor: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   boxShadow: 'var(--shadow-sm)'
                 }}
               >
-                <div style={{ padding: '0 20px 12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                    <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
                       Ingresos Fijos
                     </h4>
-                    <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos recurrentes mensuales</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos recurrentes mensuales</p>
                   </div>
                   <button 
                     onClick={() => handleOpenAdd("ingresos", false)} 
-                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '4px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
                   >
-                    <Plus size={12} /> Agregar
+                    <Plus size={14} /> Agregar
                   </button>
                 </div>
                 {renderTransactionTable(ingresosFijos, "ingresos", "Monto Mensual", "No hay ingresos fijos registrados.")}
-                <div style={{ padding: '12px 20px 0 20px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Ingresos Fijos</span>
-                  <span style={{ fontSize: '15px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosFijos)}</span>
+                <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Ingresos Fijos</span>
+                  <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosFijos)}</span>
                 </div>
               </div>
 
@@ -985,31 +1489,31 @@ export default function FlujoMensualView({
               <div 
                 className="card" 
                 style={{ 
-                  padding: '20px 0', 
+                  padding: '24px 0 16px 0', 
                   backgroundColor: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   boxShadow: 'var(--shadow-sm)'
                 }}
               >
-                <div style={{ padding: '0 20px 12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                    <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
                       Egresos Fijos
                     </h4>
-                    <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de costos recurrentes</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de costos recurrentes</p>
                   </div>
                   <button 
                     onClick={() => handleOpenAdd("egresos", false)} 
-                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '4px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
                   >
-                    <Plus size={12} /> Agregar
+                    <Plus size={14} /> Agregar
                   </button>
                 </div>
                 {renderTransactionTable(egresosFijos, "egresos", "Monto Mensual", "No hay egresos fijos registrados.")}
-                <div style={{ padding: '12px 20px 0 20px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Egresos Fijos</span>
-                  <span style={{ fontSize: '15px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosFijos)}</span>
+                <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Egresos Fijos</span>
+                  <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosFijos)}</span>
                 </div>
               </div>
 
@@ -1017,31 +1521,31 @@ export default function FlujoMensualView({
               <div 
                 className="card" 
                 style={{ 
-                  padding: '20px 0', 
+                  padding: '24px 0 16px 0', 
                   backgroundColor: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   boxShadow: 'var(--shadow-sm)'
                 }}
               >
-                <div style={{ padding: '0 20px 12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                    <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
                       Ingresos Variables
                     </h4>
-                    <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos variables de ingresos</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos variables de ingresos</p>
                   </div>
                   <button 
                     onClick={() => handleOpenAdd("ingresos", true)} 
-                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '4px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
                   >
-                    <Plus size={12} /> Agregar
+                    <Plus size={14} /> Agregar
                   </button>
                 </div>
                 {renderTransactionTable(ingresosVariables, "ingresos", "Monto Estimado", "No hay ingresos variables registrados.")}
-                <div style={{ padding: '12px 20px 0 20px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Ingresos Var.</span>
-                  <span style={{ fontSize: '15px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosVariables)}</span>
+                <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Ingresos Var.</span>
+                  <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosVariables)}</span>
                 </div>
               </div>
 
@@ -1049,31 +1553,31 @@ export default function FlujoMensualView({
               <div 
                 className="card" 
                 style={{ 
-                  padding: '20px 0', 
+                  padding: '24px 0 16px 0', 
                   backgroundColor: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   boxShadow: 'var(--shadow-sm)'
                 }}
               >
-                <div style={{ padding: '0 20px 12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                    <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
                       Egresos Variables
                     </h4>
-                    <p style={{ fontSize: '10px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de egresos variables</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de egresos variables</p>
                   </div>
                   <button 
                     onClick={() => handleOpenAdd("egresos", true)} 
-                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '4px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
                   >
-                    <Plus size={12} /> Agregar
+                    <Plus size={14} /> Agregar
                   </button>
                 </div>
                 {renderTransactionTable(egresosVariables, "egresos", "Monto Estimado", "No hay egresos variables registrados.")}
-                <div style={{ padding: '12px 20px 0 20px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Egresos Var.</span>
-                  <span style={{ fontSize: '15px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosVariables)}</span>
+                <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Egresos Var.</span>
+                  <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosVariables)}</span>
                 </div>
               </div>
             </div>
@@ -1591,6 +2095,161 @@ export default function FlujoMensualView({
               >
                 Agregar Mes
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal para Agregar/Editar Flujo Fijo General */}
+      {fixedModalOpen && (
+        <div className="modal-overlay" onClick={() => setFixedModalOpen(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <button className="close-btn" onClick={() => setFixedModalOpen(false)}>
+              <X size={16} />
+            </button>
+
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>
+              {fixedModalMode === "add" 
+                ? `Agregar ${fixedModalType === 'ingresos' ? 'Ingreso' : 'Egreso'} Fijo General`
+                : `Editar ${fixedModalType === 'ingresos' ? 'Ingreso' : 'Egreso'} Fijo General`
+              }
+            </h3>
+
+            <form onSubmit={handleFixedSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Nombre / Concepto</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Arriendo Oficina, Suscripción SaaS..."
+                  value={fixedFormName}
+                  onChange={e => setFixedFormName(e.target.value)}
+                  required
+                  style={{
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Monto Fijo Mensual</label>
+                <input
+                  type="number"
+                  placeholder="Ej: 500000"
+                  value={fixedFormValue}
+                  onChange={e => setFixedFormValue(e.target.value)}
+                  required
+                  style={{
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {currentContext === 'consolidado' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Contexto</label>
+                  <select
+                    value={fixedFormContext}
+                    onChange={e => setFixedFormContext(e.target.value)}
+                    style={{
+                      background: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="empresa">🏢 Empresa / Negocio</option>
+                    <option value="personal">🏠 Personal</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Start Date Configuration */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--bg-secondary)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                  <input
+                    type="checkbox"
+                    checked={fixedLimitStartDate}
+                    onChange={e => setFixedLimitStartDate(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <div>
+                    <span style={{ display: 'block' }}>Activar desde un mes específico</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 400, display: 'block', marginTop: '2px' }}>
+                      (Si está desactivado, se aplicará a todos los meses históricos y futuros)
+                    </span>
+                  </div>
+                </label>
+                
+                {fixedLimitStartDate && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Aplicar desde:</span>
+                    <select
+                      value={fixedStartMonthSelect}
+                      onChange={e => setFixedStartMonthSelect(e.target.value)}
+                      style={{
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        fontSize: '12.5px',
+                        outline: 'none'
+                      }}
+                    >
+                      {["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={fixedStartYearSelect}
+                      onChange={e => setFixedStartYearSelect(Number(e.target.value))}
+                      style={{
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        fontSize: '12.5px',
+                        outline: 'none'
+                      }}
+                    >
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setFixedModalOpen(false)}
+                  style={{ flex: 1, background: 'var(--border-color)', border: 'none', color: 'var(--text-primary)', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{ flex: 1, background: 'var(--accent)', border: 'none', color: 'white', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}
+                >
+                  Guardar
+                </button>
+              </div>
             </form>
           </div>
         </div>
