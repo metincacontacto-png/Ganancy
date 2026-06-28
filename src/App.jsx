@@ -263,6 +263,10 @@ export default function App() {
     if (name.includes('[Personal]') || name.includes('[Empresa]')) return name;
     const targetCtx = explicitContext || currentContext;
     const contextSuffix = targetCtx === 'personal' ? ' [Personal]' : ' [Empresa]';
+    if (name.includes(' ||| ')) {
+      const parts = name.split(' ||| ');
+      return parts[0] + contextSuffix + ' ||| ' + parts[1];
+    }
     return name + contextSuffix;
   }, [currentContext]);
 

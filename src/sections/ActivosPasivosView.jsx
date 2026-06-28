@@ -110,6 +110,68 @@ export default function ActivosPasivosView({
     }
   };
 
+  // Documents Helper Functions
+  const parseAssetName = (rawName) => {
+    if (!rawName) return { name: "", documents: [] };
+    const parts = rawName.split(" ||| ");
+    const name = parts[0];
+    let documents = [];
+    if (parts[1]) {
+      try {
+        documents = JSON.parse(parts[1]);
+      } catch (e) {
+        console.error("Error parsing asset documents:", e);
+      }
+    }
+    return { name, documents };
+  };
+
+  const handleViewDocument = (doc) => {
+    try {
+      const newTab = window.open();
+      if (!newTab) {
+        alert("El navegador bloqueó la ventana emergente. Por favor, permite las ventanas emergentes para este sitio.");
+        return;
+      }
+      newTab.document.title = doc.name;
+      newTab.document.write(`
+        <html>
+          <head>
+            <title>${doc.name}</title>
+            <style>
+              body { margin: 0; display: flex; justify-content: center; align-items: center; background: #000; height: 100vh; overflow: hidden; }
+              iframe, img { max-width: 100%; max-height: 100%; border: none; }
+            </style>
+          </head>
+          <body>
+            ${doc.type.startsWith('image/') 
+              ? `<img src="${doc.data}" alt="${doc.name}" style="max-width:90%; max-height:90%; object-fit:contain; box-shadow:0 8px 30px rgba(0,0,0,0.5); border-radius:8px;" />`
+              : `<iframe src="${doc.data}" width="100%" height="100%"></iframe>`
+            }
+          </body>
+        </html>
+      `);
+      newTab.document.close();
+    } catch (e) {
+      console.error("Error opening document:", e);
+      alert("No se pudo abrir el documento.");
+    }
+  };
+
+  const handleDownloadDocument = (doc) => {
+    try {
+      const link = document.createElement('a');
+      link.href = doc.data;
+      link.download = doc.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Error downloading document:", e);
+      alert("No se pudo descargar el documento.");
+    }
+  };
+
   // Asset Modal States
   const [assetModalOpen, setAssetModalOpen] = useState(false);
   const [assetModalMode, setAssetModalMode] = useState("add"); // "add" or "edit"
@@ -118,6 +180,37 @@ export default function ActivosPasivosView({
   const [assetFormName, setAssetFormName] = useState("");
   const [assetFormValue, setAssetFormValue] = useState("");
   const [assetFormContext, setAssetFormContext] = useState("empresa");
+  const [assetFormDocuments, setAssetFormDocuments] = useState([]);
+
+  // File Handlers
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    files.forEach(file => {
+      if (file.size > 800 * 1024) {
+        alert(`El archivo "${file.name}" supera el límite de 800KB. Por favor, sube un archivo más pequeño.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const docObj = {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: event.target.result // Base64 string
+        };
+        setAssetFormDocuments(prev => [...prev, docObj]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const handleRemoveDocument = (index) => {
+    setAssetFormDocuments(prev => prev.filter((_, i) => i !== index));
+  };
 
   // Debt Modal States
   const [debtModalOpen, setDebtModalOpen] = useState(false);
@@ -143,6 +236,7 @@ export default function ActivosPasivosView({
     setAssetFormName("");
     setAssetFormValue("");
     setAssetFormContext(currentContext === 'personal' ? 'personal' : 'empresa');
+    setAssetFormDocuments([]);
     setAssetModalOpen(true);
   };
 
@@ -150,8 +244,10 @@ export default function ActivosPasivosView({
     setActiveAssetCatId(catId);
     setAssetModalMode("edit");
     setEditingAssetIndex(index);
-    setAssetFormName(item.name);
+    const { name, documents } = parseAssetName(item.name);
+    setAssetFormName(name);
     setAssetFormValue(item.value);
+    setAssetFormDocuments(documents || []);
     setAssetModalOpen(true);
   };
 
@@ -160,16 +256,19 @@ export default function ActivosPasivosView({
     if (!assetFormName.trim() || !assetFormValue) return;
 
     const value = Math.round(Number(assetFormValue));
+    const serializedName = assetFormName.trim() + (assetFormDocuments.length > 0 ? " ||| " + JSON.stringify(assetFormDocuments) : "");
+
     if (assetModalMode === "add") {
-      addAsset(activeAssetCatId, assetFormName, value, assetFormContext);
+      addAsset(activeAssetCatId, serializedName, value, assetFormContext);
     } else {
-      editAsset(activeAssetCatId, editingAssetIndex, assetFormName, value);
+      editAsset(activeAssetCatId, editingAssetIndex, serializedName, value);
     }
     setAssetModalOpen(false);
   };
 
   const handleAssetDelete = (catId, index, name) => {
-    if (window.confirm(`¿Estás seguro de que deseas eliminar el activo "${name}"?`)) {
+    const { name: cleanName } = parseAssetName(name);
+    if (window.confirm(`¿Estás seguro de que deseas eliminar el activo "${cleanName}"?`)) {
       deleteAsset(catId, index);
     }
   };
@@ -295,7 +394,7 @@ export default function ActivosPasivosView({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '32px', alignItems: 'start' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         
         {/* Left Column: Activos Colapsables */}
         <div>
@@ -359,13 +458,15 @@ export default function ActivosPasivosView({
             const isOpen = openCategories[category.id];
             
             // Clean suffix tags for display
-            const getCleanName = (name) => {
-              if (!name) return "";
+            const getCleanName = (rawName) => {
+              if (!rawName) return "";
+              const { name } = parseAssetName(rawName);
               return name.replace(' [Personal]', '').replace(' [Empresa]', '');
             };
 
-            const renderContextBadge = (name) => {
-              if (!name) return null;
+            const renderContextBadge = (rawName) => {
+              if (!rawName) return null;
+              const { name } = parseAssetName(rawName);
               if (currentContext !== 'consolidado') return null; // Only show context tags in consolidated view
               if (name.includes('[Personal]')) {
                 return (
@@ -399,7 +500,7 @@ export default function ActivosPasivosView({
                     alignItems: 'center',
                     verticalAlign: 'middle'
                   }}>
-                    Negocio
+                    Empresa
                   </span>
                 );
               }
@@ -407,25 +508,22 @@ export default function ActivosPasivosView({
             };
 
             return (
-              <div 
-                key={category.id} 
-                className="accordion"
-                onDragOver={(e) => handleDragOver(e, category.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, category.id)}
-                style={{
-                  border: dragOverCatId === category.id ? '2px dashed var(--accent)' : undefined,
-                  backgroundColor: dragOverCatId === category.id ? 'rgba(var(--accent-rgb), 0.05)' : undefined,
-                  transform: dragOverCatId === category.id ? 'scale(1.01) translateY(-2px)' : undefined,
-                  boxShadow: dragOverCatId === category.id ? '0 8px 30px rgba(var(--accent-rgb), 0.15)' : undefined,
-                  transition: 'all 0.25s ease',
-                  borderRadius: '12px',
-                  marginBottom: '16px'
-                }}
-              >
+              <div key={category.id} style={{ marginBottom: '16px' }}>
                 <div 
-                  className="accordion-header" 
+                  className="accordion-header"
                   onClick={() => toggleCategory(category.id)}
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    padding: '16px 20px',
+                    borderRadius: isOpen ? '16px 16px 0 0' : '16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
                 >
                   <div className="accordion-title">
                     <span style={{ 
@@ -454,237 +552,112 @@ export default function ActivosPasivosView({
                         </tr>
                       </thead>
                       <tbody>
-                        {category.items.map((item, idx) => (
-                          <tr 
-                            key={item.id || idx}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, item, category.id, idx)}
-                            onDragEnd={() => {
-                              setDraggedAsset(null);
-                              setSourceCatId(null);
-                              setSourceIndex(null);
-                            }}
-                            style={{
-                              cursor: draggedAsset?.id === item.id ? 'grabbing' : 'grab',
-                              opacity: draggedAsset?.id === item.id ? 0.4 : 1,
-                              transition: 'all 0.2s ease',
-                            }}
-                          >
-                            <td>{getCleanName(item.name)}{renderContextBadge(item.name)}</td>
-                            <td style={{ textAlign: 'right', fontWeight: 500 }}>{formatMoney(item.value)}</td>
-                            <td>
-                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                <button onClick={() => openEditAsset(category.id, idx, item)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}>
-                                  <Edit2 size={12} />
-                                </button>
-                                <button onClick={() => handleAssetDelete(category.id, idx, item.name)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}>
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {category.items.map((item, idx) => {
+                          const { documents } = parseAssetName(item.name);
+                          return (
+                            <tr 
+                              key={item.id || idx}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, item, category.id, idx)}
+                              onDragEnd={() => {
+                                setDraggedAsset(null);
+                                setSourceCatId(null);
+                                setSourceIndex(null);
+                              }}
+                              style={{
+                                cursor: draggedAsset?.id === item.id ? 'grabbing' : 'grab',
+                                opacity: draggedAsset?.id === item.id ? 0.4 : 1,
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              <td>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <div>
+                                    {getCleanName(item.name)}
+                                    {renderContextBadge(item.name)}
+                                  </div>
+                                  {documents && documents.length > 0 && (
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                      {documents.map((doc, docIdx) => (
+                                        <span key={docIdx} style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          background: 'var(--accent-light)',
+                                          color: 'var(--accent)',
+                                          padding: '2px 8px',
+                                          borderRadius: '12px',
+                                          fontSize: '11px',
+                                          fontWeight: 500
+                                        }}>
+                                          <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {doc.name}
+                                          </span>
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleViewDocument(doc); }}
+                                            style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontWeight: 700, fontSize: '10px' }}
+                                            title="Visualizar"
+                                          >
+                                            Ver
+                                          </button>
+                                          <span style={{ opacity: 0.5 }}>|</span>
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleDownloadDocument(doc); }}
+                                            style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, fontWeight: 700, fontSize: '10px' }}
+                                            title="Descargar"
+                                          >
+                                            Bajar
+                                          </button>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'right', fontWeight: 500 }}>{formatMoney(item.value)}</td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                  <button onClick={() => openEditAsset(category.id, idx, item)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}>
+                                    <Edit2 size={12} />
+                                  </button>
+                                  <button onClick={() => handleAssetDelete(category.id, idx, item.name)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}>
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        <tr>
+                          <td colSpan="3" style={{ textAlign: 'center', padding: '16px 0 0 0' }}>
+                            <button 
+                              onClick={() => openAddAsset(category.id)}
+                              style={{
+                                background: 'var(--success-light)',
+                                border: 'none',
+                                color: 'var(--success)',
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              <Plus size={12} /> Agregar Activo
+                            </button>
+                          </td>
+                        </tr>
                       </tbody>
                     </table>
-                    <div style={{ padding: '12px 24px 0 24px', display: 'flex', justifyContent: 'flex-end' }}>
-                      <button 
-                        onClick={() => openAddAsset(category.id)}
-                        style={{
-                          background: 'var(--success-light)',
-                          border: 'none',
-                          color: 'var(--success)',
-                          padding: '6px 12px',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Plus size={12} /> Agregar Activo
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
             );
           })}
         </div>
-
-        {/* Right Column: Pasivos List */}
-        <div>
-          <div className="section-header">
-            <h2>Registro de Pasivos y Deudas</h2>
-            <button 
-              onClick={openAddDebt}
-              style={{
-                background: 'var(--accent-light)',
-                border: 'none',
-                color: 'var(--accent)',
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Plus size={14} /> Registrar Deuda
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {debtsState.map(debt => {
-              const paidCount = (debt.cuotas || []).filter(Boolean).length;
-              const isSingle = debt.tipo === "pago_unico";
-              
-              const progressPercent = debt.cuotasTotales > 0 
-                ? (paidCount / debt.cuotasTotales) * 100 
-                : (debt.completed ? 100 : 0);
-              
-              const remainingValue = debt.completed ? 0 : Math.round(debt.total * (1 - paidCount / debt.cuotasTotales));
-
-              return (
-                <div key={debt.id} className="card" style={{ padding: '20px', borderLeft: isSingle ? '4px solid var(--warning)' : '4px solid var(--accent)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 600 }}>{debt.name}</h3>
-                        <span style={{ 
-                          fontSize: '10px', 
-                          padding: '2px 6px', 
-                          borderRadius: '4px', 
-                          background: isSingle ? 'rgba(255, 159, 10, 0.1)' : 'rgba(10, 132, 255, 0.1)',
-                          color: isSingle ? 'var(--warning)' : 'var(--accent)',
-                          fontWeight: 600
-                        }}>
-                          {isSingle ? 'Pago Único' : 'Cuotas'}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                        {(debt.details || "").replace(/\n?\[StartMonth:\s*[^\]]+\]/g, "")}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {debt.completed ? (
-                        <span className="badge success">
-                          <CheckCircle size={12} /> Pagado
-                        </span>
-                      ) : (
-                        <span className="badge warning">
-                          <Clock size={12} /> Pendiente
-                        </span>
-                      )}
-                      
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <button onClick={() => openEditDebt(debt)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }} title="Editar Deuda">
-                          <Edit2 size={13} />
-                        </button>
-                        <button onClick={() => handleDebtDelete(debt.id, debt.name)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }} title="Eliminar Deuda">
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', margin: '14px 0', fontSize: '13px' }}>
-                    <div>
-                      <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px' }}>
-                        {isSingle ? 'Interés' : 'Cuota mensual'}
-                      </span>
-                      <strong style={{ fontSize: '14px' }}>
-                        {isSingle ? `${debt.interes || 0}%` : (debt.montoMensual > 0 ? formatMoney(debt.montoMensual) : 'N/A')}
-                      </strong>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px' }}>Saldo restante</span>
-                      <strong style={{ fontSize: '14px' }} className={remainingValue > 0 ? "num-negative" : "num-neutral"}>
-                        {formatMoney(remainingValue)}
-                      </strong>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '11px' }}>Monto total (+ int)</span>
-                      <strong style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                        {formatMoney(debt.total)}
-                      </strong>
-                    </div>
-                  </div>
-
-                  {/* Payment date for one-off debts */}
-                  {isSingle && debt.fechaVencimiento && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                      <Calendar size={13} />
-                      <span>Fecha acordada de pago: <strong>{debt.fechaVencimiento}</strong></span>
-                    </div>
-                  )}
-
-                  {/* Installment Progress */}
-                  {!isSingle && debt.cuotasTotales > 1 && (
-                    <div style={{ marginTop: '12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                        <span>Progreso de cuotas</span>
-                        <span>{paidCount} de {debt.cuotasTotales} ({Math.round(progressPercent)}%)</span>
-                      </div>
-                      <div className="progress-bar-container">
-                        <div className="progress-bar" style={{ width: `${progressPercent}%`, backgroundColor: debt.completed ? 'var(--success)' : 'var(--accent)' }}></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Direct Payment Action for One-Off Debts (as requested in Page 5) */}
-                  {isSingle && (
-                    <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={() => handleToggleSinglePayment(debt)}
-                        style={{
-                          background: debt.completed ? 'var(--border-color)' : 'var(--success)',
-                          color: debt.completed ? 'var(--text-primary)' : 'white',
-                          border: 'none',
-                          padding: '6px 12px',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        <CheckCircle size={12} />
-                        <span>{debt.completed ? 'Marcar como Pendiente' : 'Definir como PAGADA'}</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Prepago */}
-                  {debt.prepago > 0 && !debt.completed && (
-                    <div style={{ 
-                      marginTop: '12px', 
-                      padding: '8px 12px', 
-                      background: 'rgba(var(--accent-rgb), 0.05)', 
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      border: '1px solid rgba(var(--accent-rgb), 0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <ShieldAlert size={14} color="var(--accent)" />
-                      <span>
-                        Prepago disponible: <strong>{formatMoney(debt.prepago)}</strong>
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
       </div>
 
       {/* Asset Form Modal */}
@@ -762,6 +735,77 @@ export default function ActivosPasivosView({
                   </select>
                 </div>
               )}
+
+              {/* Document Upload and Management */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Documentos / Anexos</label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                  id="asset-document-upload"
+                  accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
+                />
+                <label
+                  htmlFor="asset-document-upload"
+                  style={{
+                    background: 'var(--bg-primary)',
+                    border: '1px dashed var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease',
+                    fontWeight: 500
+                  }}
+                >
+                  <Plus size={14} /> Subir Documentos (Máx. 800KB)
+                </label>
+
+                {assetFormDocuments.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px', maxHeight: '150px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {assetFormDocuments.map((doc, idx) => (
+                      <div key={idx} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: 'var(--bg-primary)',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        gap: '8px'
+                      }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }} title={doc.name}>
+                          {doc.name}
+                        </span>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleViewDocument(doc)}
+                            style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '11px', fontWeight: 600, padding: '2px' }}
+                          >
+                            Ver
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDocument(idx)}
+                            style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '11px', fontWeight: 600, padding: '2px' }}
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                 <button
