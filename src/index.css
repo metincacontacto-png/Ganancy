@@ -1434,3 +1434,63 @@ input[type="range"]::-webkit-slider-thumb:hover {
   }
 }
 
+/* ==========================================================================
+   GLOBAL TYPOGRAPHY UPSCALING FOR LEGIBILITY AND FRIENDLY UI
+   ========================================================================== */
+
+body {
+  font-size: 16.5px;
+}
+
+/* Base selectors upscaling */
+h1 { font-size: 30px; }
+h2 { font-size: 26px; }
+h3 { font-size: 20px; }
+h4 { font-size: 17px; }
+.subtitle { font-size: 16px; }
+.nav-tabs button { font-size: 16px; }
+table { font-size: 15.5px; }
+th { font-size: 14.5px; }
+td { font-size: 15.5px; }
+.badge { font-size: 13.5px; }
+.hero-box .label { font-size: 16px; }
+.hero-box .value { font-size: 42px; }
+.hero-box .details { font-size: 14px; }
+.kpi-info h3 { font-size: 15px; }
+.kpi-info p { font-size: 24px; }
+.accordion-title { font-size: 18px; }
+.metric-box label { font-size: 13px; }
+.metric-box span { font-size: 20px; }
+.alert-item { font-size: 15px; }
+.alert-text h4 { font-size: 16px; }
+.section-header h2 { font-size: 24px; }
+.detail-column-title { font-size: 17px; }
+.detail-item { font-size: 14.5px; }
+.user-name { font-size: 15px; }
+.user-email { font-size: 13px; }
+.logout-btn { font-size: 14px; }
+.main-month-col-title { font-size: 16px; }
+.main-month-row { font-size: 16px; }
+.historical-months-header { font-size: 22px; }
+
+/* Inline font-size scaling overrides (React inline styles) */
+[style*="font-size:9px"], [style*="font-size: 9px"] { font-size: 11.5px !important; }
+[style*="font-size:10px"], [style*="font-size: 10px"] { font-size: 13px !important; }
+[style*="font-size:11px"], [style*="font-size: 11px"] { font-size: 14px !important; }
+[style*="font-size:11.5px"], [style*="font-size: 11.5px"] { font-size: 14.5px !important; }
+[style*="font-size:12px"], [style*="font-size: 12px"] { font-size: 15px !important; }
+[style*="font-size:12.5px"], [style*="font-size: 12.5px"] { font-size: 15px !important; }
+[style*="font-size:13px"], [style*="font-size: 13px"] { font-size: 15.5px !important; }
+[style*="font-size:13.5px"], [style*="font-size: 13.5px"] { font-size: 16px !important; }
+[style*="font-size:14px"], [style*="font-size: 14px"] { font-size: 16.5px !important; }
+[style*="font-size:14.5px"], [style*="font-size: 14.5px"] { font-size: 17px !important; }
+[style*="font-size:15px"], [style*="font-size: 15px"] { font-size: 17.5px !important; }
+[style*="font-size:16px"], [style*="font-size: 16px"] { font-size: 18.5px !important; }
+[style*="font-size:18px"], [style*="font-size: 18px"] { font-size: 20.5px !important; }
+[style*="font-size:20px"], [style*="font-size: 20px"] { font-size: 22.5px !important; }
+[style*="font-size:22px"], [style*="font-size: 22px"] { font-size: 24.5px !important; }
+[style*="font-size:24px"], [style*="font-size: 24px"] { font-size: 27px !important; }
+[style*="font-size:26px"], [style*="font-size: 26px"] { font-size: 29px !important; }
+[style*="font-size:28px"], [style*="font-size: 28px"] { font-size: 32px !important; }
+[style*="font-size:36px"], [style*="font-size: 36px"] { font-size: 42px !important; }
+
