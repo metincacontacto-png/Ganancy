@@ -393,6 +393,11 @@ export default function FlujoMensualView({
 
   // Format Helper
   const formatMoney = (val) => formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL');
+
+  // Totales de la plantilla fija general
+  const totalIngresosFijosGeneral = (ingresosFijosState || []).reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+  const totalEgresosFijosGeneral = (egresosFijosState || []).reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+  const balanceFijoGeneral = totalIngresosFijosGeneral - totalEgresosFijosGeneral;
   
   // Filter months by quarter
   const filteredMonths = processedFlows.filter(item => item.q === selectedTrimestre);
@@ -1058,7 +1063,7 @@ export default function FlujoMensualView({
         padding: '16px 20px',
         marginBottom: '16px'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setFixedTemplatesOpen(!fixedTemplatesOpen)}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', flexWrap: 'wrap', gap: '12px' }} onClick={() => setFixedTemplatesOpen(!fixedTemplatesOpen)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <Calendar size={18} style={{ color: 'var(--accent)' }} />
             <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -1068,9 +1073,33 @@ export default function FlujoMensualView({
               (Se auto-copian al crear nuevos meses en el libro)
             </span>
           </div>
-          <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>
-            {fixedTemplatesOpen ? 'Ocultar' : 'Configurar'}
-          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-primary)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--border-color)' }} onClick={(e) => e.stopPropagation()}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Total Fijo:</span>
+              <span style={{ fontSize: '12.5px', color: 'var(--success)', fontWeight: 600 }}>
+                {formatMoney(totalIngresosFijosGeneral)}
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>/</span>
+              <span style={{ fontSize: '12.5px', color: 'var(--danger)', fontWeight: 600 }}>
+                {formatMoney(totalEgresosFijosGeneral)}
+              </span>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: balanceFijoGeneral >= 0 ? 'var(--success)' : 'var(--danger)',
+                background: balanceFijoGeneral >= 0 ? 'var(--success-light)' : 'var(--danger-light)',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                marginLeft: '4px'
+              }}>
+                {balanceFijoGeneral >= 0 ? '+' : ''}{formatMoney(balanceFijoGeneral)}
+              </span>
+            </div>
+            <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>
+              {fixedTemplatesOpen ? 'Ocultar' : 'Configurar'}
+            </span>
+          </div>
         </div>
 
         {fixedTemplatesOpen && (
@@ -1139,6 +1168,20 @@ export default function FlujoMensualView({
                       </div>
                     </div>
                   ))}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'var(--bg-primary)',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    borderTop: '2px solid var(--success)',
+                    marginTop: '6px'
+                  }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Ingresos</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--success)' }}>{formatMoney(totalIngresosFijosGeneral)}</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -1207,6 +1250,20 @@ export default function FlujoMensualView({
                       </div>
                     </div>
                   ))}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'var(--bg-primary)',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    borderTop: '2px solid var(--danger)',
+                    marginTop: '6px'
+                  }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Egresos</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--danger)' }}>{formatMoney(totalEgresosFijosGeneral)}</span>
+                  </div>
                 </div>
               )}
             </div>
