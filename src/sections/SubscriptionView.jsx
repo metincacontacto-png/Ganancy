@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { 
   CreditCard, Check, ShieldCheck, AlertCircle, X, Loader, 
   Sparkles, Briefcase, Building, Lock, CheckCircle2, ChevronRight,
-  User, TrendingUp, LineChart, Cpu, Camera
+  User, Users, TrendingUp, LineChart, Cpu, Camera
 } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
@@ -66,6 +66,24 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
         "Simulador de punto de equilibrio y márgenes"
       ],
       popular: true
+    },
+    {
+      id: "plan_familiar",
+      name: "Plan Familiar (Multi-Perfil)",
+      price: 14990,
+      originalPrice: 29990,
+      icon: Users,
+      color: "#ff9500",
+      target: "Parejas y Familias",
+      desc: "Administra las finanzas de tu hogar de forma colaborativa. Crea perfiles independientes para cada miembro y visualiza el presupuesto familiar consolidado.",
+      features: [
+        "Todo lo del Plan Único",
+        "👥 Hasta 4 perfiles familiares independientes",
+        "🔄 Switcher rápido de perfiles en la cabecera",
+        "📊 Vista consolidada familiar en tiempo real",
+        "🔒 Privacidad y separación de cuentas entre miembros"
+      ],
+      popular: false
     },
     {
       id: "plan_custom",

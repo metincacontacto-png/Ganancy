@@ -129,6 +129,12 @@ export default function App() {
     return saved || 'light';
   });
 
+  // Profile modals and dropdown states
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showManageProfilesModal, setShowManageProfilesModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   // 8. User Auth State
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('currentUser');
@@ -152,6 +158,23 @@ export default function App() {
   // 10. Public Landing / Context states
   const [showLogin, setShowLogin] = useState(false);
   const [currentContext, setCurrentContext] = useState('consolidado'); // 'consolidado', 'empresa', 'personal'
+  const [profiles, setProfiles] = useState(() => {
+    const saved = localStorage.getItem('family_profiles');
+    return saved ? JSON.parse(saved) : [{ id: 'default', name: 'Principal (Tú)', color: '#0a84ff' }];
+  });
+  const [activeProfileId, setActiveProfileId] = useState(() => {
+    const saved = localStorage.getItem('active_profile_id');
+    return saved || 'default';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('family_profiles', JSON.stringify(profiles));
+  }, [profiles]);
+
+  useEffect(() => {
+    localStorage.setItem('active_profile_id', activeProfileId);
+  }, [activeProfileId]);
+
   const [pendingMigration, setPendingMigration] = useState(null); // { previousMonth, newMonth, items: [...] }
   const [migrationActions, setMigrationActions] = useState({});
   const migrateLandingData = (data) => {
@@ -299,26 +322,65 @@ export default function App() {
     };
   }, [isSupabaseConfigured]);
 
+  const getProfileIdFromName = (name) => {
+    if (!name) return 'default';
+    if (name.includes(' ||| ')) {
+      const parts = name.split(' ||| ');
+      const meta = parts[1];
+      if (meta.startsWith('profile:')) {
+        return meta.substring(8);
+      }
+    }
+    return 'default';
+  };
+
   // Reactive filters based on Context Switcher
   const filterByActiveContext = React.useCallback((list) => {
+    if (!list) return [];
     if (currentContext === 'empresa') {
       return list.filter(item => !item.name.includes('[Personal]'));
     } else if (currentContext === 'personal') {
-      return list.filter(item => item.name.includes('[Personal]'));
+      const personalItems = list.filter(item => item.name.includes('[Personal]'));
+      if (activeProfileId === 'family_consolidated') {
+        return personalItems;
+      }
+      return personalItems.filter(item => {
+        const itemProfileId = getProfileIdFromName(item.name);
+        return itemProfileId === activeProfileId;
+      });
     }
     return list;
-  }, [currentContext]);
+  }, [currentContext, activeProfileId]);
 
   const tagWithActiveContext = React.useCallback((name, explicitContext) => {
-    if (name.includes('[Personal]') || name.includes('[Empresa]')) return name;
+    if (!name) return "";
     const targetCtx = explicitContext || currentContext;
-    const contextSuffix = targetCtx === 'personal' ? ' [Personal]' : ' [Empresa]';
-    if (name.includes(' ||| ')) {
-      const parts = name.split(' ||| ');
-      return parts[0] + contextSuffix + ' ||| ' + parts[1];
+    
+    const parts = name.split(' ||| ');
+    let baseName = parts[0];
+    
+    if (baseName.includes('[Personal]') || baseName.includes('[Empresa]')) {
+      return name;
     }
-    return name + contextSuffix;
-  }, [currentContext]);
+
+    const contextSuffix = targetCtx === 'personal' ? ' [Personal]' : ' [Empresa]';
+    const newParts = [baseName + contextSuffix];
+    
+    let hasProfile = false;
+    for (let i = 1; i < parts.length; i++) {
+      newParts.push(parts[i]);
+      if (parts[i].startsWith('profile:')) {
+        hasProfile = true;
+      }
+    }
+    
+    if (targetCtx === 'personal' && !hasProfile) {
+      const profileIdToUse = activeProfileId === 'family_consolidated' ? 'default' : activeProfileId;
+      newParts.push(`profile:${profileIdToUse}`);
+    }
+    
+    return newParts.join(' ||| ');
+  }, [currentContext, activeProfileId]);
 
   // Apply context filters to fixed and variable list states
   const filteredIngresosFijos = React.useMemo(() => filterByActiveContext(ingresosFijosState), [ingresosFijosState, filterByActiveContext]);
@@ -2478,64 +2540,300 @@ export default function App() {
           </div>
         </div>
 
-        {/* Global Context Switcher (WOW feature: Personal vs Business differentiation) */}
-        {currentUser?.subscription_status !== 'plan_personal' ? (
-          <div style={{
-            display: 'flex',
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '2px',
-            gap: '2px',
-            alignSelf: 'center',
-            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)'
-          }}>
-            {[
-              { id: 'empresa', label: '🏢 Negocio', desc: 'Muestra solo ingresos/egresos del negocio' },
-              { id: 'personal', label: '🏠 Personal', desc: 'Muestra solo tus gastos personales familiares' },
-              { id: 'consolidado', label: '📊 Vista Consolidada', desc: 'Integra y sobrepone ambos flujos en tiempo real' }
-            ].map(opt => (
+        {/* Global Context Switcher & Profile Switcher (WOW feature) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', alignSelf: 'center' }}>
+          {currentUser?.subscription_status !== 'plan_personal' ? (
+            <div style={{
+              display: 'flex',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '12px',
+              padding: '2px',
+              gap: '2px',
+              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)'
+            }}>
+              {[
+                { id: 'empresa', label: '🏢 Negocio', desc: 'Muestra solo ingresos/egresos del negocio' },
+                { id: 'personal', label: '🏠 Personal', desc: 'Muestra solo tus gastos personales familiares' },
+                { id: 'consolidado', label: '📊 Vista Consolidada', desc: 'Integra y sobrepone ambos flujos en tiempo real' }
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setCurrentContext(opt.id)}
+                  title={opt.desc}
+                  style={{
+                    background: currentContext === opt.id ? 'var(--accent, #0a84ff)' : 'transparent',
+                    color: currentContext === opt.id ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
+                    border: 'none',
+                    padding: '6px 14px',
+                    borderRadius: '10px',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: currentContext === opt.id ? '0 4px 10px rgba(10, 132, 255, 0.25)' : 'none'
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.1)',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
+              color: '#38bdf8',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              🏠 Vista Personal Activa
+            </div>
+          )}
+
+          {/* Profile Switcher Pill (Only visible in Personal context) */}
+          {currentContext === 'personal' && (
+            <div style={{ position: 'relative' }}>
               <button
-                key={opt.id}
-                onClick={() => setCurrentContext(opt.id)}
-                title={opt.desc}
+                onClick={() => {
+                  const hasFamilyPlan = currentUser?.subscription_status === 'plan_familiar' || currentUser?.subscription_status === 'plan_custom';
+                  if (hasFamilyPlan) {
+                    setProfileDropdownOpen(!profileDropdownOpen);
+                  } else {
+                    setShowUpgradeModal(true);
+                  }
+                }}
                 style={{
-                  background: currentContext === opt.id ? 'var(--accent, #0a84ff)' : 'transparent',
-                  color: currentContext === opt.id ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
-                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '12px',
                   padding: '6px 14px',
-                  borderRadius: '10px',
+                  color: 'var(--text-primary, #ffffff)',
                   fontSize: '12.5px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: currentContext === opt.id ? '0 4px 10px rgba(10, 132, 255, 0.25)' : 'none'
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                 }}
               >
-                {opt.label}
+                {activeProfileId === 'family_consolidated' ? (
+                  <div style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #ff9500, #ff5e00)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '10px',
+                    color: '#ffffff',
+                    fontWeight: 'bold'
+                  }}>
+                    👥
+                  </div>
+                ) : (
+                  <div style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    background: profiles.find(p => p.id === activeProfileId)?.color || '#0a84ff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '9px',
+                    color: '#ffffff',
+                    fontWeight: 'bold'
+                  }}>
+                    {(profiles.find(p => p.id === activeProfileId)?.name || 'P').substring(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <span>
+                  {activeProfileId === 'family_consolidated' 
+                    ? 'Familia (Consolidado)' 
+                    : (profiles.find(p => p.id === activeProfileId)?.name || 'Principal')}
+                </span>
+                {!(currentUser?.subscription_status === 'plan_familiar' || currentUser?.subscription_status === 'plan_custom') ? (
+                  <span style={{ fontSize: '10px', opacity: 0.6 }}>🔒</span>
+                ) : (
+                  <span style={{ fontSize: '10px', opacity: 0.6 }}>▼</span>
+                )}
               </button>
-            ))}
-          </div>
-        ) : (
-          <div style={{
-            alignSelf: 'center',
-            background: 'rgba(56, 189, 248, 0.1)',
-            border: '1px solid rgba(56, 189, 248, 0.2)',
-            color: '#38bdf8',
-            padding: '6px 14px',
-            borderRadius: '10px',
-            fontSize: '12.5px',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            🏠 Vista Personal Activa
-          </div>
-        )}
+
+              {profileDropdownOpen && (
+                <>
+                  <div 
+                    onClick={() => setProfileDropdownOpen(false)} 
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    background: theme === 'dark' ? 'rgba(25, 25, 25, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '14px',
+                    width: '220px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                    zIndex: 1000,
+                    padding: '6px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}>
+                    <div style={{ padding: '6px 10px', fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Perfiles Familiares
+                    </div>
+                    
+                    {profiles.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setActiveProfileId(p.id);
+                          setProfileDropdownOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '8px 10px',
+                          background: activeProfileId === p.id ? 'rgba(255,255,255,0.06)' : 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          color: 'var(--text-primary)',
+                          fontSize: '13px',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          width: '100%',
+                          transition: 'background 0.15s'
+                        }}
+                      >
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: p.color,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          color: '#ffffff',
+                          fontWeight: 'bold'
+                        }}>
+                          {p.name.substring(0, 1).toUpperCase()}
+                        </div>
+                        <span style={{ flex: 1, fontWeight: activeProfileId === p.id ? 600 : 400 }}>{p.name}</span>
+                        {activeProfileId === p.id && <span style={{ color: 'var(--accent)', fontSize: '11px' }}>✓</span>}
+                      </button>
+                    ))}
+
+                    <button
+                      onClick={() => {
+                        setActiveProfileId('family_consolidated');
+                        setProfileDropdownOpen(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '8px 10px',
+                        background: activeProfileId === 'family_consolidated' ? 'rgba(255,255,255,0.06)' : 'transparent',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        width: '100%',
+                        transition: 'background 0.15s'
+                      }}
+                    >
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #ff9500, #ff5e00)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '10px',
+                        color: '#ffffff',
+                        fontWeight: 'bold'
+                      }}>
+                        👥
+                      </div>
+                      <span style={{ flex: 1, fontWeight: activeProfileId === 'family_consolidated' ? 600 : 400 }}>Vista Consolidada</span>
+                      {activeProfileId === 'family_consolidated' && <span style={{ color: 'var(--accent)', fontSize: '11px' }}>✓</span>}
+                    </button>
+
+                    <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} />
+
+                    <button
+                      onClick={() => {
+                        setShowProfileModal(true);
+                        setProfileDropdownOpen(false);
+                      }}
+                      disabled={profiles.length >= 4}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '8px 10px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: profiles.length >= 4 ? 'var(--text-secondary)' : 'var(--text-primary)',
+                        fontSize: '12.5px',
+                        textAlign: 'left',
+                        cursor: profiles.length >= 4 ? 'not-allowed' : 'pointer',
+                        width: '100%',
+                        opacity: profiles.length >= 4 ? 0.5 : 1
+                      }}
+                    >
+                      <span style={{ fontSize: '14px' }}>➕</span>
+                      <span>Agregar Perfil ({profiles.length}/4)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowManageProfilesModal(true);
+                        setProfileDropdownOpen(false);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '8px 10px',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: 'var(--text-primary)',
+                        fontSize: '12.5px',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        width: '100%'
+                      }}
+                    >
+                      <span style={{ fontSize: '14px' }}>⚙️</span>
+                      <span>Gestionar Perfiles</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="header-controls">
           {currentUser && (
@@ -3078,6 +3376,357 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* ---------------------------------------------------------------------
+          PROFILE MODALS (Plan Familiar)
+          --------------------------------------------------------------------- */}
+      {showProfileModal && (
+        <CreateProfileModal 
+          onClose={() => setShowProfileModal(false)}
+          onSave={(name, color) => {
+            const newId = 'profile_' + Date.now();
+            setProfiles(prev => [...prev, { id: newId, name, color }]);
+            setActiveProfileId(newId);
+            setShowProfileModal(false);
+          }}
+        />
+      )}
+
+      {showManageProfilesModal && (
+        <ManageProfilesModal 
+          profiles={profiles}
+          onClose={() => setShowManageProfilesModal(false)}
+          onUpdate={(updatedProfiles) => {
+            setProfiles(updatedProfiles);
+            if (!updatedProfiles.some(p => p.id === activeProfileId) && activeProfileId !== 'family_consolidated') {
+              setActiveProfileId('default');
+            }
+          }}
+          activeProfileId={activeProfileId}
+        />
+      )}
+
+      {showUpgradeModal && (
+        <UpgradePlanModal 
+          onClose={() => setShowUpgradeModal(false)}
+          onUpgrade={() => {
+            setShowUpgradeModal(false);
+            setSubscriptionSubTab("plan");
+            setActiveTab("suscripcion");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// HELPER COMPONENTS FOR FAMILY PLAN PROFILES
+// ---------------------------------------------------------------------
+
+function CreateProfileModal({ onClose, onSave }) {
+  const [name, setName] = useState("");
+  const [selectedColor, setSelectedColor] = useState("#0a84ff");
+  const colors = ["#0a84ff", "#5856d6", "#ff9500", "#34c759", "#ff2d55"];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    onSave(name.trim(), selectedColor);
+  };
+
+  return (
+    <div className="modal-overlay" style={{ zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', width: '90%', padding: '24px', position: 'relative', background: 'var(--bg-primary)', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', marginTop: 0 }}>
+          👥 Agregar Miembro Familiar
+        </h3>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.5' }}>
+          Crea un nuevo perfil para organizar de forma independiente los ingresos, egresos y deudas de tu familia.
+        </p>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Nombre</label>
+            <input 
+              type="text" 
+              placeholder="Ej: Mamá, Pareja, Hijo 1" 
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              autoFocus
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                fontSize: '14px',
+                color: 'var(--text-primary)',
+                outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Color Identificador</label>
+            <div style={{ display: 'flex', gap: '12px', padding: '4px 0' }}>
+              {colors.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setSelectedColor(c)}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: c,
+                    border: selectedColor === c ? '3px solid #ffffff' : 'none',
+                    cursor: 'pointer',
+                    transform: selectedColor === c ? 'scale(1.1)' : 'scale(1)',
+                    transition: 'all 0.2s ease',
+                    boxShadow: selectedColor === c ? '0 0 10px rgba(255,255,255,0.3)' : 'none'
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                flex: 1,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                padding: '10px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={!name.trim()}
+              style={{
+                flex: 1,
+                background: 'var(--accent, #0a84ff)',
+                border: 'none',
+                color: '#ffffff',
+                padding: '10px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                opacity: !name.trim() ? 0.5 : 1
+              }}
+            >
+              Crear Perfil
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ManageProfilesModal({ profiles, onClose, onUpdate, activeProfileId }) {
+  const [localProfiles, setLocalProfiles] = useState(profiles);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+
+  const handleSaveName = (id) => {
+    if (!editName.trim()) return;
+    const updated = localProfiles.map(p => p.id === id ? { ...p, name: editName.trim() } : p);
+    setLocalProfiles(updated);
+    onUpdate(updated);
+    setEditingId(null);
+  };
+
+  const handleDelete = (id) => {
+    if (id === 'default') return;
+    if (confirm("¿Estás seguro de que deseas eliminar este perfil? Los elementos financieros asociados se mantendrán pero no se mostrarán en su perfil.")) {
+      const updated = localProfiles.filter(p => p.id !== id);
+      setLocalProfiles(updated);
+      onUpdate(updated);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" style={{ zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px', width: '90%', padding: '24px', position: 'relative', background: 'var(--bg-primary)', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', marginTop: 0 }}>
+          ⚙️ Gestionar Perfiles Familiares
+        </h3>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.5' }}>
+          Edita o elimina los miembros de tu grupo familiar. El perfil Principal (Tú) no se puede eliminar.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '280px', overflowY: 'auto', marginBottom: '20px', paddingRight: '4px' }}>
+          {localProfiles.map(p => (
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: p.color,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                flexShrink: 0
+              }}>
+                {p.name.substring(0, 1).toUpperCase()}
+              </div>
+
+              {editingId === p.id ? (
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid var(--accent)',
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    fontSize: '13px',
+                    color: 'var(--text-primary)',
+                    outline: 'none'
+                  }}
+                  autoFocus
+                  onBlur={() => handleSaveName(p.id)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleSaveName(p.id);
+                    if (e.key === 'Escape') setEditingId(null);
+                  }}
+                />
+              ) : (
+                <span style={{ flex: 1, fontSize: '13.5px', color: 'var(--text-primary)', fontWeight: 500 }}>
+                  {p.name} {p.id === 'default' && <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>(Tú)</span>}
+                </span>
+              )}
+
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {editingId === p.id ? (
+                  <button
+                    onClick={() => handleSaveName(p.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                  >
+                    Guardar
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setEditingId(p.id);
+                      setEditName(p.name);
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px' }}
+                  >
+                    Editar
+                  </button>
+                )}
+
+                {p.id !== 'default' && (
+                  <button
+                    onClick={() => handleDelete(p.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--error, #ff453a)', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%',
+            background: 'var(--accent, #0a84ff)',
+            border: 'none',
+            color: '#ffffff',
+            padding: '10px',
+            borderRadius: '10px',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          Listo
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UpgradePlanModal({ onClose, onUpgrade }) {
+  return (
+    <div className="modal-overlay" style={{ zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', width: '90%', padding: '28px', position: 'relative', background: 'var(--bg-primary)', borderRadius: '18px', border: '1px solid var(--border-color)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)', textAlign: 'center' }}>
+        <div style={{
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          background: 'rgba(255, 149, 0, 0.1)',
+          color: '#ff9500',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '24px',
+          margin: '0 auto 16px auto'
+        }}>
+          👥
+        </div>
+        <h3 style={{ fontSize: '19px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', marginTop: 0 }}>
+          Desbloquea el Plan Familiar
+        </h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6' }}>
+          La gestión multi-perfil y la vista consolidada familiar son exclusivas del **Plan Familiar**. 
+          Actualiza tu cuenta para habilitar hasta 4 perfiles y ordenar las finanzas de todo tu hogar.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <button
+            onClick={onUpgrade}
+            style={{
+              background: 'linear-gradient(135deg, #ff9500 0%, #ff5e00 100%)',
+              color: '#ffffff',
+              border: 'none',
+              padding: '12px',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(255, 149, 0, 0.25)'
+            }}
+          >
+            Ver Planes de Suscripción
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              padding: '10px',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer'
+            }}
+          >
+            Tal vez más tarde
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

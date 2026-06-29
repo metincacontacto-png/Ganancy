@@ -116,9 +116,11 @@ export default function ActivosPasivosView({
     const parts = rawName.split(" ||| ");
     const name = parts[0];
     let documents = [];
-    if (parts[1]) {
+    // Search for the part that represents the JSON array of documents
+    const jsonPart = parts.find(p => p.trim().startsWith('[') && p.trim().endsWith(']'));
+    if (jsonPart) {
       try {
-        documents = JSON.parse(parts[1]);
+        documents = JSON.parse(jsonPart);
       } catch (e) {
         console.error("Error parsing asset documents:", e);
       }

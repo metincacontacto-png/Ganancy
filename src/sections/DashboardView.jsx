@@ -746,7 +746,7 @@ export default function DashboardView({
     // Exportar Ingresos
     ingresos.forEach(item => {
       const isPersonal = item.name.includes('[Personal]');
-      const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
+      const cleanName = getCleanName(item.name);
       const neto = item.value;
       const iva = 0;
       
@@ -756,7 +756,7 @@ export default function DashboardView({
     // Exportar Egresos
     egresos.forEach(item => {
       const isPersonal = item.name.includes('[Personal]');
-      const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
+      const cleanName = getCleanName(item.name);
       const iva = Math.round(item.value * 19 / 119);
       const neto = item.value - iva;
       
@@ -1560,7 +1560,7 @@ He procesado tu consulta y analizado tus números integrados.
     setFormValue(item.value);
     
     const hasPersonalTag = item.name.includes('[Personal]');
-    const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
+    const cleanName = getCleanName(item.name);
     setFormName(cleanName);
     setFormContext(hasPersonalTag ? 'personal' : 'empresa');
     
@@ -1568,7 +1568,7 @@ He procesado tu consulta y analizado tus números integrados.
   };
 
   const handleDelete = (type, id, name) => {
-    const cleanName = name.replace(' [Personal]', '').replace(' [Empresa]', '');
+    const cleanName = getCleanName(name);
     if (confirm(`¿Estás seguro de que deseas eliminar "${cleanName}"?`)) {
       if (type === "income" && deleteIncome) deleteIncome(id);
       else if (type === "expense" && deleteExpense) deleteExpense(id);
@@ -2557,7 +2557,7 @@ He procesado tu consulta y analizado tus números integrados.
 
                 return filteredList.map(item => {
                   const isPersonal = item.name.includes('[Personal]');
-                  const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
+                  const cleanName = getCleanName(item.name);
                   
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.2s' }} className="hover-row">

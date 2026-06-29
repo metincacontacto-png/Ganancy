@@ -514,7 +514,7 @@ export default function FlujoMensualView({
     setEditingId(item.id || null);
     
     const hasPersonalTag = item.name.includes('[Personal]');
-    const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
+    const cleanName = item.name.split(' ||| ')[0].replace(' [Personal]', '').replace(' [Empresa]', '');
     setFormName(cleanName);
     setFormContext(hasPersonalTag ? 'personal' : 'empresa');
 
