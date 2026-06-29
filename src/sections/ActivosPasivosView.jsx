@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle, Clock, ShieldAlert, Edit2, Trash2, Plus, X, Percent, Calendar, Info } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
@@ -283,6 +283,50 @@ export default function ActivosPasivosView({
   const [debtFormFechaInicio, setDebtFormFechaInicio] = useState("");
   const [debtFormDetails, setDebtFormDetails] = useState("");
   const [debtFormContext, setDebtFormContext] = useState("empresa");
+
+  // Auto-calculate Cuota Mensual when relevant values change
+  useEffect(() => {
+    if (debtFormTipo === "fija") {
+      const original = Number(debtFormTotalOriginal || 0);
+      const interest = Number(debtFormInteres || 0);
+      const cuotas = Number(debtFormCuotasTotales || 0);
+      if (original > 0 && cuotas > 0) {
+        const totalVal = original * (1 + interest / 100);
+        const calculatedCuota = Math.round(totalVal / cuotas);
+        setDebtFormMontoMensual(String(calculatedCuota));
+      }
+    }
+  }, [debtFormTotalOriginal, debtFormInteres, debtFormCuotasTotales, debtFormTipo]);
+
+  // Auto-calculate Cuotas Pagadas and Next Due Date based on Fecha de Inicio
+  useEffect(() => {
+    if (debtModalMode !== "add" || !debtFormFechaInicio || debtFormTipo !== "fija") return;
+    
+    const startDate = new Date(debtFormFechaInicio + "T00:00:00");
+    if (isNaN(startDate.getTime())) return;
+    
+    const today = new Date();
+    
+    // Calculate elapsed months
+    let elapsedMonths = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+    
+    // Clamp between 0 and totalCuotas
+    const totalCuotas = Number(debtFormCuotasTotales || 12);
+    if (elapsedMonths < 0) elapsedMonths = 0;
+    if (elapsedMonths > totalCuotas) elapsedMonths = totalCuotas;
+    
+    setDebtFormCuotaActual(String(elapsedMonths));
+    
+    // Calculate next due date: startDate + elapsedMonths
+    const nextDate = new Date(startDate);
+    nextDate.setMonth(startDate.getMonth() + elapsedMonths);
+    
+    // Format nextDate as YYYY-MM-DD
+    const yyyy = nextDate.getFullYear();
+    const mm = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(nextDate.getDate()).padStart(2, '0');
+    setDebtFormFechaVencimiento(`${yyyy}-${mm}-${dd}`);
+  }, [debtFormFechaInicio, debtFormTipo, debtFormCuotasTotales, debtModalMode]);
 
   // Asset CRUD Actions
   const openAddAsset = (catId) => {

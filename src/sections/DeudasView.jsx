@@ -110,6 +110,36 @@ export default function DeudasView({
     }
   }, [debtFormTotalOriginal, debtFormInteres, debtFormCuotasTotales, debtFormTipo]);
 
+  // Auto-calculate Cuotas Pagadas and Next Due Date based on Fecha de Inicio
+  React.useEffect(() => {
+    if (debtModalMode !== "add" || !debtFormFechaInicio || debtFormTipo !== "fija") return;
+    
+    const startDate = new Date(debtFormFechaInicio + "T00:00:00");
+    if (isNaN(startDate.getTime())) return;
+    
+    const today = new Date();
+    
+    // Calculate elapsed months
+    let elapsedMonths = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+    
+    // Clamp between 0 and totalCuotas
+    const totalCuotas = Number(debtFormCuotasTotales || 12);
+    if (elapsedMonths < 0) elapsedMonths = 0;
+    if (elapsedMonths > totalCuotas) elapsedMonths = totalCuotas;
+    
+    setDebtFormCuotaActual(String(elapsedMonths));
+    
+    // Calculate next due date: startDate + elapsedMonths
+    const nextDate = new Date(startDate);
+    nextDate.setMonth(startDate.getMonth() + elapsedMonths);
+    
+    // Format nextDate as YYYY-MM-DD
+    const yyyy = nextDate.getFullYear();
+    const mm = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(nextDate.getDate()).padStart(2, '0');
+    setDebtFormFechaVencimiento(`${yyyy}-${mm}-${dd}`);
+  }, [debtFormFechaInicio, debtFormTipo, debtFormCuotasTotales, debtModalMode]);
+
   // Formatting helper
   const formatMoney = (val) => formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL');
 

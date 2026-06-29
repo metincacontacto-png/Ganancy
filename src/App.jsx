@@ -15,6 +15,53 @@ import { LANDING_PAGE_DEFAULTS } from './data/landingPageDefaults';
 import { supabase } from './lib/supabaseClient';
 import { fetchAllUserData, initializeDefaultUserData } from './lib/financialService';
 
+// Helper to automatically mark past installments as paid based on elapsed months since start date
+function adjustDebtsPaidInstallments(debts) {
+  if (!Array.isArray(debts)) return [];
+  const today = new Date();
+  return debts.map(debt => {
+    if (debt.tipo !== 'fija' || !debt.fechaInicio || !debt.cuotasTotales || debt.cuotasTotales <= 1) {
+      return debt;
+    }
+    const startDate = new Date(debt.fechaInicio + "T00:00:00");
+    if (isNaN(startDate.getTime())) return debt;
+
+    // Calculate elapsed months since start date
+    let elapsedMonths = (today.getFullYear() - startDate.getFullYear()) * 12 + (today.getMonth() - startDate.getMonth());
+    if (elapsedMonths < 0) elapsedMonths = 0;
+    if (elapsedMonths > debt.cuotasTotales) elapsedMonths = debt.cuotasTotales;
+
+    // Build the new cuotas array
+    const cuotasArray = Array.isArray(debt.cuotas) ? debt.cuotas : [];
+    const newCuotas = [...cuotasArray];
+    while (newCuotas.length < debt.cuotasTotales) {
+      newCuotas.push(false);
+    }
+
+    // Automatically mark all past installments as paid (true)
+    let changed = false;
+    for (let i = 0; i < elapsedMonths; i++) {
+      if (!newCuotas[i]) {
+        newCuotas[i] = true;
+        changed = true;
+      }
+    }
+
+    const paidCount = newCuotas.filter(Boolean).length;
+    const completed = paidCount === debt.cuotasTotales;
+
+    if (changed || debt.cuotaActual !== paidCount || debt.completed !== completed) {
+      return {
+        ...debt,
+        cuotas: newCuotas,
+        cuotaActual: paidCount,
+        completed
+      };
+    }
+    return debt;
+  });
+}
+
 export default function App() {
   // 1. Assets State (Categorized + Total)
   const [assetsState, setAssetsState] = useState(() => {
@@ -27,7 +74,7 @@ export default function App() {
   // 2. Debts State with Interest and Categories (fija vs pago_unico)
   const [debtsState, setDebtsState] = useState(() => {
     const saved = localStorage.getItem('debts_data');
-    if (saved) return JSON.parse(saved);
+    if (saved) return adjustDebtsPaidInstallments(JSON.parse(saved));
     return []; // Empty by default for new real users
   });
 
@@ -533,7 +580,7 @@ export default function App() {
           } else {
             // Existing user: Load all database states
             setAssetsState(dbData.assetsState);
-            setDebtsState(dbData.debtsState);
+            setDebtsState(adjustDebtsPaidInstallments(dbData.debtsState));
             setIngresosFijosState(dbData.ingresosFijosState);
             setEgresosFijosState(dbData.egresosFijosState);
             setIngresosVariablesState(dbData.ingresosVariablesState);
@@ -877,7 +924,7 @@ export default function App() {
           const dbData = await fetchAllUserData(currentUser.id);
           
           setAssetsState(dbData.assetsState);
-          setDebtsState(dbData.debtsState);
+          setDebtsState(adjustDebtsPaidInstallments(dbData.debtsState));
           setIngresosFijosState(dbData.ingresosFijosState);
           setEgresosFijosState(dbData.egresosFijosState);
           setIngresosVariablesState(dbData.ingresosVariablesState);
@@ -887,11 +934,11 @@ export default function App() {
         } else {
           // Local demo reset
           setAssetsState(ACTIVOS_DATA);
-          setDebtsState(PASIVOS_DATA.map(d => {
+          setDebtsState(adjustDebtsPaidInstallments(PASIVOS_DATA.map(d => {
             const cuotas = Array.from({ length: d.cuotasTotales }, (_, i) => d.completed || i < d.cuotaActual);
             const tipo = d.cuotasTotales === 1 ? "pago_unico" : "fija";
             return { ...d, totalOriginal: d.total, interes: 0, total: d.total, tipo, cuotas, fechaVencimiento: "" };
-          }));
+          })));
           setIngresosFijosState(INGRESOS_FIJOS);
           setEgresosFijosState(EGRESOS_FIJOS);
           setIngresosVariablesState([
