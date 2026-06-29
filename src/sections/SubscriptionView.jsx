@@ -84,23 +84,6 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
         "🔒 Privacidad y separación de cuentas entre miembros"
       ],
       popular: false
-    },
-    {
-      id: "plan_custom",
-      name: "Plan Corporativo (A Medida)",
-      price: null,
-      originalPrice: null,
-      icon: Cpu,
-      color: "#a78bfa",
-      target: "PYMEs consolidadas y corporativos",
-      desc: "Solución a medida para empresas que buscan automatización total, múltiples roles y reportabilidad premium.",
-      features: [
-        "Todo lo del Plan Único",
-        "🔌 Conectores API automáticos con bancos y SII",
-        "👥 Cuentas multi-usuario (Administrador, Contador)",
-        "👔 Consultoría CFO directa de nuestro equipo financiero",
-        "📞 Canal de soporte prioritario VIP 24/7"
-      ]
     }
   ];
 

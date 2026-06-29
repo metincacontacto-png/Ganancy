@@ -181,32 +181,67 @@ export default function App() {
     if (!data) return LANDING_PAGE_DEFAULTS;
     let modified = false;
     
-    // Check if plan_personal exists to migrate
-    if (data.plans && data.plans.some(p => p.id === 'plan_personal')) {
-      data.plans = data.plans.filter(p => p.id !== 'plan_personal');
+    if (data.plans) {
+      const originalCount = data.plans.length;
+      const hasOldPlans = data.plans.some(p => p.id === 'plan_personal' || p.id === 'plan_custom');
       
-      // Update plan_completo features and name
-      const completoIdx = data.plans.findIndex(p => p.id === 'plan_completo');
-      if (completoIdx !== -1) {
-        data.plans[completoIdx].name = "Plan Único (Personal + Negocio)";
-        data.plans[completoIdx].tag = "Más Recomendado";
-        
-        const newFeatures = [
-          "Control de ingresos y egresos personales",
-          "Gestión de deudas y cuotas individuales",
-          "Bloqueo absoluto de vistas de Negocio"
-        ];
-        
-        let currentFeats = data.plans[completoIdx].features || [];
-        // Remove restrictions since they are no longer applicable
-        currentFeats = currentFeats.filter(f => !f.includes('🚫'));
-        
-        data.plans[completoIdx].features = [
-          ...newFeatures,
-          ...currentFeats.filter(f => !newFeatures.includes(f))
-        ];
+      // Keep only plan_completo and plan_familiar
+      data.plans = data.plans.filter(p => p.id === 'plan_completo' || p.id === 'plan_familiar');
+      
+      // Ensure plan_completo exists
+      if (!data.plans.some(p => p.id === 'plan_completo')) {
+        data.plans.unshift({
+          id: "plan_completo",
+          name: "Plan Único (Personal + Negocio)",
+          price: 9990,
+          originalPrice: 24990,
+          period: "mes",
+          iconName: "Briefcase",
+          color: "#0a84ff",
+          desc: "La solución total para separar de verdad tu vida de tu negocio. Controla tu caja, IA y auditoría tributaria en vivo.",
+          features: [
+            "Control de ingresos y egresos personales",
+            "Gestión de deudas y cuotas individuales",
+            "Bloqueo absoluto de vistas de Negocio",
+            "Separación Contable 1-Click (Vistas Negocio/Personal)",
+            "Vista Consolidada Unificada en Tiempo Real",
+            "📷 Escáner Inteligente OCR de boletas y facturas",
+            "📦 Visor Tributario y almacenamiento para el SII",
+            "🛠️ Gestor de Activos y Categorías con drag-and-drop",
+            "🤖 Asesor Contable y CFO Inteligente IA de Élite completo",
+            "Simulador de punto de equilibrio y márgenes"
+          ],
+          popular: true,
+          tag: "Más Recomendado"
+        });
       }
-      modified = true;
+      
+      // Ensure plan_familiar exists
+      if (!data.plans.some(p => p.id === 'plan_familiar')) {
+        data.plans.push({
+          id: "plan_familiar",
+          name: "Plan Familiar (Multi-Perfil)",
+          price: 14990,
+          originalPrice: 29990,
+          period: "mes",
+          iconName: "Users",
+          color: "#ff9500",
+          desc: "Administra las finanzas de tu hogar de forma colaborativa. Crea perfiles independientes para cada miembro y visualiza el presupuesto familiar consolidado.",
+          features: [
+            "Todo lo del Plan Único",
+            "👥 Hasta 4 perfiles familiares independientes",
+            "🔄 Switcher rápido de perfiles en la cabecera",
+            "📊 Vista consolidada familiar en tiempo real",
+            "🔒 Privacidad y separación de cuentas entre miembros"
+          ],
+          popular: false,
+          tag: "Parejas y Familias"
+        });
+      }
+      
+      if (data.plans.length !== originalCount || hasOldPlans) {
+        modified = true;
+      }
     }
 
     if (data.hero && data.hero.title === "Detén la mezcla de dinero que frena el crecimiento de tu negocio") {

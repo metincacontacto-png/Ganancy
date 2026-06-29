@@ -50,7 +50,7 @@ export const LANDING_PAGE_DEFAULTS = {
       originalPrice: 24990,
       period: "mes",
       iconName: "Briefcase",
-      color: "#fb7185",
+      color: "#0a84ff",
       desc: "La solución total para separar de verdad tu vida de tu negocio. Controla tu caja, IA y auditoría tributaria en vivo.",
       features: [
         "Control de ingresos y egresos personales",
@@ -68,23 +68,23 @@ export const LANDING_PAGE_DEFAULTS = {
       tag: "Más Recomendado"
     },
     {
-      id: "plan_custom",
-      name: "Plan Corporativo (A Medida)",
-      price: null,
-      originalPrice: null,
-      period: "a medida",
-      iconName: "Cpu",
-      color: "#a78bfa",
-      desc: "Solución a medida para empresas que buscan automatización total, múltiples roles y reportabilidad premium.",
+      id: "plan_familiar",
+      name: "Plan Familiar (Multi-Perfil)",
+      price: 14990,
+      originalPrice: 29990,
+      period: "mes",
+      iconName: "Users",
+      color: "#ff9500",
+      desc: "Administra las finanzas de tu hogar de forma colaborativa. Crea perfiles independientes para cada miembro y visualiza el presupuesto familiar consolidado.",
       features: [
-        "Todo lo del Plan Completo",
-        "🔌 Conectores API automáticos con bancos y SII",
-        "👥 Cuentas multi-usuario (Administrador, Contador)",
-        "👔 Consultoría CFO directa de nuestro equipo financiero",
-        "📞 Canal de soporte prioritario VIP 24/7"
+        "Todo lo del Plan Único",
+        "👥 Hasta 4 perfiles familiares independientes",
+        "🔄 Switcher rápido de perfiles en la cabecera",
+        "📊 Vista consolidada familiar en tiempo real",
+        "🔒 Privacidad y separación de cuentas entre miembros"
       ],
       popular: false,
-      tag: "Enterprise"
+      tag: "Parejas y Familias"
     }
   ],
   faqsHeader: {
