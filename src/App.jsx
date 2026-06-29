@@ -322,6 +322,24 @@ export default function App() {
     };
   }, [isSupabaseConfigured]);
 
+  // Handle /super-admin routing
+  useEffect(() => {
+    const handleUrlCheck = () => {
+      const isSuperAdmin = window.location.pathname === '/super-admin' || window.location.hash === '#/super-admin';
+      if (isSuperAdmin) {
+        if (!currentUser) {
+          setShowLogin(true);
+        } else if (currentUser.email === 'contacto@ganancy.cl' || currentUser.email === 'metincacontacto@gmail.com') {
+          setActiveTab("editor_landing");
+        }
+      }
+    };
+
+    handleUrlCheck();
+    window.addEventListener('hashchange', handleUrlCheck);
+    return () => window.removeEventListener('hashchange', handleUrlCheck);
+  }, [currentUser]);
+
   const getProfileIdFromName = (name) => {
     if (!name) return 'default';
     if (name.includes(' ||| ')) {
