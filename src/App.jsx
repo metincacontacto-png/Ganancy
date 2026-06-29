@@ -2547,21 +2547,81 @@ export default function App() {
   return (
     <div className="app-container">
       {/* Header (Cleaned up: No Reset button) */}
-      <header>
-        <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <img 
-            src={theme === 'dark' ? '/ganancy_logo_light.png' : '/ganancy_logo_dark.png'} 
-            alt="GANANCY" 
-            style={{ height: '36px', width: 'auto', display: 'block' }} 
-          />
-          <div>
-            <h1 style={{ fontSize: '20px', fontWeight: '600', margin: 0, color: 'var(--text-primary)' }}>Dashboard Financiero</h1>
-            <div className="subtitle" style={{ fontSize: '11px', margin: 0, color: 'var(--text-secondary)' }}>GANANCY — Control de Activos, Pasivos y Proyecciones</div>
+      {/* Header (Cleaned up: No Reset button) */}
+      <header style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '16px', 
+        padding: '16px 0 8px 0',
+        marginBottom: '24px',
+        borderBottom: '1px solid var(--border-color)'
+      }}>
+        {/* Top Row: Logo & User Controls */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          width: '100%',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}>
+          {/* Logo & Title */}
+          <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <img 
+              src={theme === 'dark' ? '/ganancy_logo_light.png' : '/ganancy_logo_dark.png'} 
+              alt="GANANCY" 
+              style={{ height: '36px', width: 'auto', display: 'block' }} 
+            />
+            <div>
+              <h1 style={{ fontSize: '20px', fontWeight: '600', margin: 0, color: 'var(--text-primary)' }}>Dashboard Financiero</h1>
+              <div className="subtitle" style={{ fontSize: '11px', margin: 0, color: 'var(--text-secondary)' }}>GANANCY — Control de Activos, Pasivos y Proyecciones</div>
+            </div>
+          </div>
+
+          {/* User Profile & Theme Toggle */}
+          <div className="header-controls" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {currentUser && (
+              <div className="user-profile-pill" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {currentUser.photoURL ? (
+                    <img src={currentUser.photoURL} alt={currentUser.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    currentUser.avatarInitials
+                  )}
+                </div>
+                <div className="user-details">
+                  <span className="user-name">{currentUser.displayName}</span>
+                  <span className="user-email">{currentUser.email}</span>
+                </div>
+                <button 
+                  onClick={handleLogout} 
+                  className="logout-btn"
+                  title="Cerrar sesión"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+
+            {/* Theme Toggle Button */}
+            <button onClick={toggleTheme} className="theme-btn" title="Alternar Modo Oscuro/Claro">
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
           </div>
         </div>
 
-        {/* Global Context Switcher & Profile Switcher (WOW feature) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', alignSelf: 'center' }}>
+        {/* Bottom Row: Context & Profile Switchers */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          width: '100%',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '8px 0',
+          borderTop: '1px solid var(--border-color)'
+        }}>
+          {/* Context Switcher */}
           {currentUser?.subscription_status !== 'plan_personal' ? (
             <div style={{
               display: 'flex',
@@ -2853,36 +2913,6 @@ export default function App() {
               )}
             </div>
           )}
-        </div>
-
-        <div className="header-controls">
-          {currentUser && (
-            <div className="user-profile-pill">
-              <div className="user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {currentUser.photoURL ? (
-                  <img src={currentUser.photoURL} alt={currentUser.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  currentUser.avatarInitials
-                )}
-              </div>
-              <div className="user-details">
-                <span className="user-name">{currentUser.displayName}</span>
-                <span className="user-email">{currentUser.email}</span>
-              </div>
-              <button 
-                onClick={handleLogout} 
-                className="logout-btn"
-                title="Cerrar sesión"
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          )}
-
-          {/* Theme Toggle Button */}
-          <button onClick={toggleTheme} className="theme-btn" title="Alternar Modo Oscuro/Claro">
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
         </div>
       </header>
 
