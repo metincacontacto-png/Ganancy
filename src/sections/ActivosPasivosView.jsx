@@ -280,6 +280,7 @@ export default function ActivosPasivosView({
   const [debtFormMontoMensual, setDebtFormMontoMensual] = useState("");
   const [debtFormPrepago, setDebtFormPrepago] = useState("");
   const [debtFormFechaVencimiento, setDebtFormFechaVencimiento] = useState("");
+  const [debtFormFechaInicio, setDebtFormFechaInicio] = useState("");
   const [debtFormDetails, setDebtFormDetails] = useState("");
   const [debtFormContext, setDebtFormContext] = useState("empresa");
 
@@ -341,6 +342,7 @@ export default function ActivosPasivosView({
     setDebtFormMontoMensual("0");
     setDebtFormPrepago("0");
     setDebtFormFechaVencimiento("");
+    setDebtFormFechaInicio("");
     setDebtFormDetails("");
     setDebtFormContext(currentContext === 'personal' ? 'personal' : 'empresa');
     setDebtModalOpen(true);
@@ -358,7 +360,11 @@ export default function ActivosPasivosView({
     setDebtFormMontoMensual(debt.montoMensual);
     setDebtFormPrepago(debt.prepago);
     setDebtFormFechaVencimiento(debt.fechaVencimiento || "");
-    setDebtFormDetails((debt.details || "").replace(/\n?\[StartMonth:\s*[^\]]+\]/g, ""));
+    setDebtFormFechaInicio(debt.fechaInicio || "");
+    setDebtFormDetails((debt.details || "")
+      .replace(/\n?\[StartMonth:\s*[^\]]+\]/g, "")
+      .replace(/\n?\[StartDate:\s*[^\]]+\]/g, "")
+    );
     setDebtModalOpen(true);
   };
 
@@ -383,6 +389,7 @@ export default function ActivosPasivosView({
       montoMensual: isSingle ? 0 : Math.round(Number(debtFormMontoMensual || 0)),
       prepago: Math.round(Number(debtFormPrepago || 0)),
       fechaVencimiento: debtFormFechaVencimiento,
+      fechaInicio: debtFormFechaInicio,
       details: debtFormDetails,
       context: debtFormContext
     };
@@ -911,7 +918,9 @@ export default function ActivosPasivosView({
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    width: '100%',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
@@ -929,7 +938,9 @@ export default function ActivosPasivosView({
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      outline: 'none'
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box'
                     }}
                   >
                     <option value="empresa">🏢 Empresa / Negocio</option>
@@ -945,7 +956,7 @@ export default function ActivosPasivosView({
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
                     <input
                       type="radio"
-                      name="debt_type"
+                      name="debt_type_activospasivos"
                       value="fija"
                       checked={debtFormTipo === "fija"}
                       onChange={() => setDebtFormTipo("fija")}
@@ -955,7 +966,7 @@ export default function ActivosPasivosView({
                   <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', cursor: 'pointer' }}>
                     <input
                       type="radio"
-                      name="debt_type"
+                      name="debt_type_activospasivos"
                       value="pago_unico"
                       checked={debtFormTipo === "pago_unico"}
                       onChange={() => {
@@ -969,7 +980,7 @@ export default function ActivosPasivosView({
                 </div>
               </div>
 
-              {/* Original & Interest Inputs (as requested in Page 1) */}
+              {/* Original & Interest Inputs */}
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Monto Original de la Deuda ($)</label>
@@ -987,14 +998,16 @@ export default function ActivosPasivosView({
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      outline: 'none'
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box'
                     }}
                   />
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Intereses (%)</label>
-                  <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
                     <input
                       type="number"
                       placeholder="0"
@@ -1010,7 +1023,8 @@ export default function ActivosPasivosView({
                         borderRadius: '8px',
                         fontSize: '14px',
                         outline: 'none',
-                        width: '100%'
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     />
                     <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', color: 'var(--text-secondary)' }}>%</span>
@@ -1018,11 +1032,33 @@ export default function ActivosPasivosView({
                 </div>
               </div>
 
-              {/* Cuotas Inputs (Only visible for Fija) */}
+              {debtFormTotalOriginal && (() => {
+                const projectedTotal = Math.round(Number(debtFormTotalOriginal || 0) * (1 + Number(debtFormInteres || 0) / 100));
+                return (
+                  <div style={{ 
+                    fontSize: '13px', 
+                    color: 'var(--text-secondary)', 
+                    background: 'var(--bg-primary)', 
+                    padding: '10px 14px', 
+                    borderRadius: '8px', 
+                    border: '1px dashed var(--border-color)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span>Monto Total con Intereses:</span>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '14px' }}>
+                      {formatMoney(projectedTotal)}
+                    </strong>
+                  </div>
+                );
+              })()}
+
+              {/* Installment parameters (Only visible for Fija) */}
               {debtFormTipo === "fija" && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>Cuota Mensual ($)</label>
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuota Mensual ($)</label>
                     <input
                       type="number"
                       value={debtFormMontoMensual}
@@ -1032,80 +1068,154 @@ export default function ActivosPasivosView({
                         background: 'var(--bg-primary)',
                         border: '1px solid var(--border-color)',
                         color: 'var(--text-primary)',
-                        padding: '10px 10px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        width: '100%'
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>Total Cuotas</label>
-                    <input
-                      type="number"
-                      value={debtFormCuotasTotales}
-                      onChange={e => setDebtFormCuotasTotales(e.target.value)}
-                      required
-                      min="2"
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
-                        padding: '10px 10px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        width: '100%'
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500, whiteSpace: 'nowrap' }}>Cuotas Pagadas</label>
-                    <input
-                      type="number"
-                      value={debtFormCuotaActual}
-                      onChange={e => setDebtFormCuotaActual(e.target.value)}
-                      required
-                      min="0"
-                      max={debtFormCuotasTotales}
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
-                        padding: '10px 10px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        width: '100%'
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Payment Date input (Only visible for Pago Único) */}
-              {debtFormTipo === "pago_unico" && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha Pactada de Pago</label>
-                    <input
-                      type="date"
-                      value={debtFormFechaVencimiento}
-                      onChange={e => setDebtFormFechaVencimiento(e.target.value)}
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
                         padding: '10px 14px',
                         borderRadius: '8px',
                         fontSize: '14px',
                         outline: 'none',
-                        fontFamily: 'inherit'
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Cuotas</label>
+                      <input
+                        type="number"
+                        value={debtFormCuotasTotales}
+                        onChange={e => setDebtFormCuotasTotales(e.target.value)}
+                        required
+                        min="2"
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuotas Pagadas</label>
+                      <input
+                        type="number"
+                        value={debtFormCuotaActual}
+                        onChange={e => setDebtFormCuotaActual(e.target.value)}
+                        required
+                        min="0"
+                        max={debtFormCuotasTotales}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha de Inicio</label>
+                      <input
+                        type="date"
+                        value={debtFormFechaInicio}
+                        onChange={e => setDebtFormFechaInicio(e.target.value)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha de Vencimiento de Próxima Cuota</label>
+                      <input
+                        type="date"
+                        value={debtFormFechaVencimiento}
+                        onChange={e => setDebtFormFechaVencimiento(e.target.value)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Payment Date input (Only visible for Pago Único) */}
+              {debtFormTipo === "pago_unico" && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha de Inicio</label>
+                      <input
+                        type="date"
+                        value={debtFormFechaInicio}
+                        onChange={e => setDebtFormFechaInicio(e.target.value)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha Pactada de Pago</label>
+                      <input
+                        type="date"
+                        value={debtFormFechaVencimiento}
+                        onChange={e => setDebtFormFechaVencimiento(e.target.value)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
                   </div>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1120,14 +1230,16 @@ export default function ActivosPasivosView({
                         padding: '10px 14px',
                         borderRadius: '8px',
                         fontSize: '14px',
-                        outline: 'none'
+                        outline: 'none',
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     >
                       <option value="0">Pendiente (No pagado)</option>
                       <option value="1">Saldado (Pagado)</option>
                     </select>
                   </div>
-                </div>
+                </>
               )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
@@ -1145,7 +1257,9 @@ export default function ActivosPasivosView({
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      outline: 'none'
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box'
                     }}
                   />
                 </div>
@@ -1167,7 +1281,9 @@ export default function ActivosPasivosView({
                     fontSize: '14px',
                     outline: 'none',
                     fontFamily: 'inherit',
-                    resize: 'none'
+                    resize: 'none',
+                    width: '100%',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>

@@ -78,22 +78,28 @@ export const fetchAllUserData = async (userId) => {
     // --- MAPPING DATA TO REACT STATES ---
     const assetsState = reconstructAssetsState(assetsRows || []);
 
-    const debtsState = (debtsRows || []).map(d => ({
-      id: d.id,
-      name: d.name,
-      totalOriginal: Number(d.total_original),
-      interes: Number(d.interes),
-      total: Number(d.total),
-      cuotaActual: d.cuota_actual,
-      cuotasTotales: d.cuotas_totales,
-      montoMensual: Number(d.monto_mensual),
-      prepago: Number(d.prepago),
-      completed: d.completed,
-      details: d.details || "",
-      tipo: d.tipo,
-      fechaVencimiento: d.fecha_vencimiento || "",
-      cuotas: Array.isArray(d.cuotas) ? d.cuotas : []
-    }));
+    const debtsState = (debtsRows || []).map(d => {
+      const detailsStr = d.details || "";
+      const startDateMatch = detailsStr.match(/\[StartDate:\s*([^\]]+)\]/);
+      const fechaInicio = startDateMatch ? startDateMatch[1].trim() : "";
+      return {
+        id: d.id,
+        name: d.name,
+        totalOriginal: Number(d.total_original),
+        interes: Number(d.interes),
+        total: Number(d.total),
+        cuotaActual: d.cuota_actual,
+        cuotasTotales: d.cuotas_totales,
+        montoMensual: Number(d.monto_mensual),
+        prepago: Number(d.prepago),
+        completed: d.completed,
+        details: detailsStr,
+        tipo: d.tipo,
+        fechaVencimiento: d.fecha_vencimiento || "",
+        fechaInicio,
+        cuotas: Array.isArray(d.cuotas) ? d.cuotas : []
+      };
+    });
 
     const ingresosFijosState = (fvRows || [])
       .filter(r => r.type === 'ingreso_fijo')

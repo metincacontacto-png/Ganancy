@@ -87,8 +87,14 @@ export default function DeudasView({
   const [debtFormMontoMensual, setDebtFormMontoMensual] = useState("");
   const [debtFormPrepago, setDebtFormPrepago] = useState("");
   const [debtFormFechaVencimiento, setDebtFormFechaVencimiento] = useState("");
+  const [debtFormFechaInicio, setDebtFormFechaInicio] = useState("");
   const [debtFormDetails, setDebtFormDetails] = useState("");
   const [debtFormContext, setDebtFormContext] = useState("empresa");
+
+  // Scheduling month modal states
+  const [schedulingDebt, setSchedulingDebt] = useState(null);
+  const [scheduleMonth, setScheduleMonth] = useState("Ene");
+  const [scheduleYear, setScheduleYear] = useState(new Date().getFullYear());
 
   // Auto-calculate Cuota Mensual when relevant values change
   React.useEffect(() => {
@@ -146,6 +152,7 @@ export default function DeudasView({
     setDebtFormMontoMensual("0");
     setDebtFormPrepago("0");
     setDebtFormFechaVencimiento("");
+    setDebtFormFechaInicio("");
     setDebtFormDetails("");
     setDebtFormContext(currentContext === 'personal' ? 'personal' : 'empresa');
     setDebtModalOpen(true);
@@ -163,7 +170,11 @@ export default function DeudasView({
     setDebtFormMontoMensual(debt.montoMensual);
     setDebtFormPrepago(debt.prepago);
     setDebtFormFechaVencimiento(debt.fechaVencimiento || "");
-    setDebtFormDetails((debt.details || "").replace(/\n?\[StartMonth:\s*[^\]]+\]/g, ""));
+    setDebtFormFechaInicio(debt.fechaInicio || "");
+    setDebtFormDetails((debt.details || "")
+      .replace(/\n?\[StartMonth:\s*[^\]]+\]/g, "")
+      .replace(/\n?\[StartDate:\s*[^\]]+\]/g, "")
+    );
     setDebtModalOpen(true);
   };
 
@@ -188,6 +199,7 @@ export default function DeudasView({
       montoMensual: isSingle ? 0 : Math.round(Number(debtFormMontoMensual || 0)),
       prepago: Math.round(Number(debtFormPrepago || 0)),
       fechaVencimiento: debtFormFechaVencimiento,
+      fechaInicio: debtFormFechaInicio,
       details: debtFormDetails,
       context: debtFormContext
     };
@@ -204,6 +216,40 @@ export default function DeudasView({
     if (window.confirm(`¿Estás seguro de que deseas eliminar la deuda "${name}"?`)) {
       deleteDebt(id);
     }
+  };
+
+  const handleOpenScheduleMonthModal = (debt) => {
+    setSchedulingDebt(debt);
+    if (debt.fechaVencimiento) {
+      const date = new Date(debt.fechaVencimiento + "T00:00:00");
+      if (!isNaN(date.getTime())) {
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+        setScheduleMonth(months[date.getMonth()]);
+        setScheduleYear(date.getFullYear());
+        return;
+      }
+    }
+    // Default to current month/year
+    const now = new Date();
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    setScheduleMonth(months[now.getMonth()]);
+    setScheduleYear(now.getFullYear());
+  };
+
+  const handleSaveSchedule = () => {
+    if (!schedulingDebt) return;
+    const monthMap = {
+      "Ene": "01", "Feb": "02", "Mar": "03", "Abr": "04", "May": "05", "Jun": "06",
+      "Jul": "07", "Ago": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dic": "12"
+    };
+    const dateStr = `${scheduleYear}-${monthMap[scheduleMonth]}-01`;
+    
+    editDebt(schedulingDebt.id, {
+      ...schedulingDebt,
+      fechaVencimiento: dateStr
+    });
+    
+    setSchedulingDebt(null);
   };
 
   return (
@@ -393,8 +439,41 @@ export default function DeudasView({
                           </div>
                         </div>
                       ) : (
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                          {debt.completed ? 'Pagado (1/1)' : 'Pendiente (0/1)'}
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span>{debt.completed ? 'Pagado (1/1)' : 'Pendiente (0/1)'}</span>
+                          {!debt.completed && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                                {debt.fechaVencimiento 
+                                  ? `Mes: ${(() => {
+                                      const date = new Date(debt.fechaVencimiento + "T00:00:00");
+                                      const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+                                      return isNaN(date.getTime()) ? debt.fechaVencimiento : `${months[date.getMonth()]} ${date.getFullYear()}`;
+                                    })()}`
+                                  : 'Sin programar'
+                                }
+                              </span>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenScheduleMonthModal(debt);
+                                }} 
+                                style={{
+                                  background: 'rgba(var(--accent-rgb, 10, 132, 255), 0.1)',
+                                  border: 'none',
+                                  color: 'var(--accent)',
+                                  fontSize: '10px',
+                                  cursor: 'pointer',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontWeight: 600,
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {debt.fechaVencimiento ? 'Cambiar' : 'Programar'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </td>
@@ -589,7 +668,9 @@ export default function DeudasView({
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    outline: 'none'
+                    outline: 'none',
+                    width: '100%',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
@@ -607,7 +688,9 @@ export default function DeudasView({
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      outline: 'none'
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box'
                     }}
                   >
                     <option value="empresa">🏢 Empresa / Negocio</option>
@@ -664,14 +747,16 @@ export default function DeudasView({
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      outline: 'none'
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box'
                     }}
                   />
                 </div>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Intereses (%)</label>
-                  <div style={{ position: 'relative' }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
                     <input
                       type="number"
                       value={debtFormInteres}
@@ -686,7 +771,8 @@ export default function DeudasView({
                         borderRadius: '8px',
                         fontSize: '14px',
                         outline: 'none',
-                        width: '100%'
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     />
                     <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', color: 'var(--text-secondary)' }}>%</span>
@@ -719,26 +805,28 @@ export default function DeudasView({
               {/* Installment parameters (Only visible for Fija) */}
               {debtFormTipo === "fija" && (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuota Mensual ($)</label>
-                      <input
-                        type="number"
-                        value={debtFormMontoMensual}
-                        onChange={e => setDebtFormMontoMensual(e.target.value)}
-                        min="0"
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Cuota Mensual ($)</label>
+                    <input
+                      type="number"
+                      value={debtFormMontoMensual}
+                      onChange={e => setDebtFormMontoMensual(e.target.value)}
+                      min="0"
+                      style={{
+                        background: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        color: 'var(--text-primary)',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        outline: 'none',
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
 
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Cuotas</label>
                       <input
@@ -754,28 +842,9 @@ export default function DeudasView({
                           padding: '10px 14px',
                           borderRadius: '8px',
                           fontSize: '14px',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha de Vencimiento de Próxima Cuota</label>
-                      <input
-                        type="date"
-                        value={debtFormFechaVencimiento}
-                        onChange={e => setDebtFormFechaVencimiento(e.target.value)}
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-color)',
-                          color: 'var(--text-primary)',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          fontSize: '14px',
                           outline: 'none',
-                          fontFamily: 'inherit'
+                          width: '100%',
+                          boxSizing: 'border-box'
                         }}
                       />
                     </div>
@@ -796,7 +865,53 @@ export default function DeudasView({
                           padding: '10px 14px',
                           borderRadius: '8px',
                           fontSize: '14px',
-                          outline: 'none'
+                          outline: 'none',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha de Inicio</label>
+                      <input
+                        type="date"
+                        value={debtFormFechaInicio}
+                        onChange={e => setDebtFormFechaInicio(e.target.value)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha de Vencimiento de Próxima Cuota</label>
+                      <input
+                        type="date"
+                        value={debtFormFechaVencimiento}
+                        onChange={e => setDebtFormFechaVencimiento(e.target.value)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          boxSizing: 'border-box'
                         }}
                       />
                     </div>
@@ -806,24 +921,49 @@ export default function DeudasView({
 
               {/* Payment Date input (Only visible for Pago Único) */}
               {debtFormTipo === "pago_unico" && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha Pactada de Pago</label>
-                    <input
-                      type="date"
-                      value={debtFormFechaVencimiento}
-                      onChange={e => setDebtFormFechaVencimiento(e.target.value)}
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        fontFamily: 'inherit'
-                      }}
-                    />
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha de Inicio</label>
+                      <input
+                        type="date"
+                        value={debtFormFechaInicio}
+                        onChange={e => setDebtFormFechaInicio(e.target.value)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Fecha Pactada de Pago</label>
+                      <input
+                        type="date"
+                        value={debtFormFechaVencimiento}
+                        onChange={e => setDebtFormFechaVencimiento(e.target.value)}
+                        style={{
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          color: 'var(--text-primary)',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          outline: 'none',
+                          fontFamily: 'inherit',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
                   </div>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -838,14 +978,16 @@ export default function DeudasView({
                         padding: '10px 14px',
                         borderRadius: '8px',
                         fontSize: '14px',
-                        outline: 'none'
+                        outline: 'none',
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     >
                       <option value="0">Pendiente (No pagado)</option>
                       <option value="1">Saldado (Pagado)</option>
                     </select>
                   </div>
-                </div>
+                </>
               )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
@@ -863,7 +1005,9 @@ export default function DeudasView({
                       padding: '10px 14px',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      outline: 'none'
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box'
                     }}
                   />
                 </div>
@@ -885,7 +1029,9 @@ export default function DeudasView({
                     fontSize: '14px',
                     outline: 'none',
                     fontFamily: 'inherit',
-                    resize: 'none'
+                    resize: 'none',
+                    width: '100%',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
@@ -906,6 +1052,79 @@ export default function DeudasView({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Scheduling Month Modal */}
+      {schedulingDebt && (
+        <div className="modal-overlay" onClick={() => setSchedulingDebt(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '320px', padding: '20px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>
+              Programar Mes de Pago
+            </h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.4' }}>
+              Selecciona el mes en el que se realizará el pago único para <strong>{schedulingDebt.name}</strong>:
+            </p>
+            
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <select
+                value={scheduleMonth}
+                onChange={e => setScheduleMonth(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              >
+                {["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+              
+              <select
+                value={scheduleYear}
+                onChange={e => setScheduleYear(Number(e.target.value))}
+                style={{
+                  flex: 1,
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              >
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setSchedulingDebt(null)}
+                style={{ flex: 1, background: 'var(--border-color)', border: 'none', color: 'var(--text-primary)', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveSchedule}
+                style={{ flex: 1, background: 'var(--accent)', border: 'none', color: 'white', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
+              >
+                Aceptar
+              </button>
+            </div>
           </div>
         </div>
       )}

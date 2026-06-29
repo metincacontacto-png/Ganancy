@@ -1111,11 +1111,21 @@ export default function App() {
     const total = totalOriginal * (1 + interes / 100);
     const tipo = debtData.tipo || (debtData.cuotasTotales === 1 ? "pago_unico" : "fija");
 
-    // Automatically append [StartMonth: ...] metadata to details
+    // Automatically append [StartMonth: ...] and [StartDate: ...] metadata to details
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    const now = new Date();
-    const currentMonthLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
-    const detailsWithMeta = (debtData.details || "").trim() + `\n[StartMonth: ${currentMonthLabel}]`;
+    let startMonthLabel;
+    if (debtData.fechaInicio) {
+      const startDate = new Date(debtData.fechaInicio + "T00:00:00");
+      startMonthLabel = `${months[startDate.getMonth()]} ${startDate.getFullYear()}`;
+    } else {
+      const now = new Date();
+      startMonthLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
+    }
+    let detailsWithMeta = (debtData.details || "").trim();
+    detailsWithMeta += `\n[StartMonth: ${startMonthLabel}]`;
+    if (debtData.fechaInicio) {
+      detailsWithMeta += `\n[StartDate: ${debtData.fechaInicio}]`;
+    }
 
     if (currentUser && currentUser.provider === 'supabase') {
       try {
@@ -1164,6 +1174,7 @@ export default function App() {
         details: detailsWithMeta,
         tipo,
         fechaVencimiento: debtData.fechaVencimiento || "",
+        fechaInicio: debtData.fechaInicio || "",
         cuotas
       };
       return [...prev, newDebt];
@@ -1186,16 +1197,30 @@ export default function App() {
       }
     }
 
-    // Preserve existing [StartMonth: ...] metadata or append new one
-    const existingMeta = currentDebtObj && currentDebtObj.details && currentDebtObj.details.match(/\[StartMonth:\s*[^\]]+\s*\d+\]/);
+    // Preserve or update [StartMonth: ...] and [StartDate: ...] metadata
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     let finalDetails = (debtData.details || "").trim();
-    if (existingMeta) {
-      finalDetails += "\n" + existingMeta[0];
+    
+    let startMonthLabel;
+    if (debtData.fechaInicio) {
+      const startDate = new Date(debtData.fechaInicio + "T00:00:00");
+      startMonthLabel = `${months[startDate.getMonth()]} ${startDate.getFullYear()}`;
+      finalDetails += `\n[StartMonth: ${startMonthLabel}]`;
+      finalDetails += `\n[StartDate: ${debtData.fechaInicio}]`;
     } else {
-      const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-      const now = new Date();
-      const currentMonthLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
-      finalDetails += `\n[StartMonth: ${currentMonthLabel}]`;
+      const existingMeta = currentDebtObj && currentDebtObj.details && currentDebtObj.details.match(/\[StartMonth:\s*[^\]]+\s*\d+\]/);
+      if (existingMeta) {
+        finalDetails += "\n" + existingMeta[0];
+      } else {
+        const now = new Date();
+        startMonthLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
+        finalDetails += `\n[StartMonth: ${startMonthLabel}]`;
+      }
+      
+      const existingStartDateMeta = currentDebtObj && currentDebtObj.details && currentDebtObj.details.match(/\[StartDate:\s*[^\]]+\s*\]/);
+      if (existingStartDateMeta) {
+        finalDetails += "\n" + existingStartDateMeta[0];
+      }
     }
 
     if (currentUser && currentUser.provider === 'supabase') {
@@ -1244,6 +1269,7 @@ export default function App() {
             details: finalDetails,
             tipo,
             fechaVencimiento: debtData.fechaVencimiento || "",
+            fechaInicio: debtData.fechaInicio || "",
             cuotas: newCuotas
           };
         }
