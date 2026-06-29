@@ -2712,7 +2712,7 @@ export default function App() {
         }}>
           <button 
             onClick={() => {
-              setSubscriptionSubTab("perfil");
+              setSubscriptionSubTab("plan");
               setActiveTab("suscripcion");
             }} 
             style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: 'color 0.2s' }}
