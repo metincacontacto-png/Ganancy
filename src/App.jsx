@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, LayoutDashboard, Database, Calendar, CreditCard, TrendingUp, RotateCcw, Loader, ShieldCheck, Sparkles, Settings, User } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, Database, Calendar, CreditCard, TrendingUp, RotateCcw, Loader, ShieldCheck, Sparkles, Settings, User, Mail, X } from 'lucide-react';
 import { PASIVOS_DATA, ACTIVOS_DATA, INGRESOS_FIJOS, EGRESOS_FIJOS, HISTORICAL_FLOWS, MONTH_DETAILS } from './data/financialData';
 import DashboardView from './sections/DashboardView';
 import ActivosPasivosView from './sections/ActivosPasivosView';
@@ -76,6 +76,7 @@ export default function App() {
   // 7. Navigation Tab & Theme
   const [activeTab, setActiveTab] = useState("dashboard");
   const [subscriptionSubTab, setSubscriptionSubTab] = useState("perfil");
+  const [footerModalType, setFooterModalType] = useState(null); // 'faqs', 'privacidad', 'terminos', 'soporte'
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme');
     return saved || 'light';
@@ -2639,19 +2640,238 @@ export default function App() {
       </main>
 
       {/* Footer */}
+      {/* Footer */}
       <footer style={{ 
         display: 'flex',
-        justifyContent: 'center',
+        flexDirection: 'column',
         alignItems: 'center',
-        padding: '24px 0', 
+        gap: '16px',
+        padding: '32px 24px', 
         borderTop: '1px solid var(--border-color)', 
         fontSize: '12px', 
         color: 'var(--text-secondary)',
         marginTop: 'auto',
-        textAlign: 'center'
+        textAlign: 'center',
+        background: 'var(--bg-secondary, rgba(0,0,0,0.02))'
       }}>
-        <span>&copy; {new Date().getFullYear()} GANIMIDES. Todos los derechos reservados. Diseñado bajo estándares Apple.</span>
+        {/* Navigation Links */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          gap: '20px', 
+          flexWrap: 'wrap',
+          fontWeight: 500
+        }}>
+          <button 
+            onClick={() => {
+              setSubscriptionSubTab("perfil");
+              setActiveTab("suscripcion");
+            }} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: 'color 0.2s' }}
+          >
+            Suscripciones
+          </button>
+          <span style={{ color: 'var(--border-color)' }}>•</span>
+          <button 
+            onClick={() => setFooterModalType("faqs")} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: 'color 0.2s' }}
+          >
+            Preguntas Frecuentes
+          </button>
+          <span style={{ color: 'var(--border-color)' }}>•</span>
+          <button 
+            onClick={() => setFooterModalType("privacidad")} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: 'color 0.2s' }}
+          >
+            Políticas de Privacidad
+          </button>
+          <span style={{ color: 'var(--border-color)' }}>•</span>
+          <button 
+            onClick={() => setFooterModalType("terminos")} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: 'color 0.2s' }}
+          >
+            Términos y Condiciones
+          </button>
+          <span style={{ color: 'var(--border-color)' }}>•</span>
+          <button 
+            onClick={() => setFooterModalType("soporte")} 
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 500, transition: 'color 0.2s' }}
+          >
+            Servicio Técnico
+          </button>
+        </div>
+
+        {/* Social Media Links */}
+        <div style={{ display: 'flex', gap: '16px', margin: '4px 0' }}>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }} title="Instagram">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+          </a>
+          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }} title="Facebook">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+            </svg>
+          </a>
+          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }} title="Twitter / X">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+            </svg>
+          </a>
+          <a href="mailto:soporte@ganancy.cl" style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }} title="Email de Soporte"><Mail size={18} /></a>
+        </div>
+
+        <div>
+          <span>&copy; {new Date().getFullYear()} GANIMIDES. Todos los derechos reservados. Diseñado bajo estándares Apple.</span>
+        </div>
       </footer>
+
+      {/* Footer Modals */}
+      {footerModalType && (
+        <div className="modal-overlay" style={{ zIndex: 1200 }} onClick={() => setFooterModalType(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '90%', maxHeight: '80vh', overflowY: 'auto', padding: '24px', position: 'relative' }}>
+            <button className="close-btn" onClick={() => setFooterModalType(null)} style={{ position: 'absolute', right: '16px', top: '16px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <X size={16} />
+            </button>
+            
+            {footerModalType === 'faqs' && (
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                  ❓ Preguntas Frecuentes (FAQ)
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: 'var(--text-primary)' }}>¿Qué es GANANCY?</strong>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      Es una plataforma premium de control y proyección financiera diseñada para ordenar tus finanzas personales y de negocio en un solo lugar de manera simple y visual.
+                    </span>
+                  </div>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: 'var(--text-primary)' }}>¿Cómo se calculan las proyecciones?</strong>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      GANANCY analiza tus ingresos y egresos fijos registrados, sumados a las cuotas de deudas activas y proyecciones de meses futuros, para simular y proyectar tu flujo de caja neto.
+                    </span>
+                  </div>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: 'var(--text-primary)' }}>¿Mis datos están seguros?</strong>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      Sí, la seguridad es nuestra prioridad. Usamos Supabase con encriptación SSL y políticas de seguridad avanzadas para proteger toda tu información financiera.
+                    </span>
+                  </div>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '14px', marginBottom: '4px', color: 'var(--text-primary)' }}>¿Cómo puedo cancelar mi suscripción?</strong>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      Puedes gestionar o cancelar tu suscripción en cualquier momento desde la sección de "Suscripciones" en el menú lateral o contactando directamente a soporte técnico.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {footerModalType === 'privacidad' && (
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                  🛡️ Políticas de Privacidad
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left', fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  <p>
+                    En GANANCY, tu privacidad es de suma importancia. Los datos financieros y personales recopilados se utilizan únicamente para proveer las funcionalidades de la aplicación.
+                  </p>
+                  <p>
+                    <strong>¿Qué información recopilamos?</strong><br />
+                    - Información de cuenta: Tu correo electrónico, nombre de perfil y foto (si inicias sesión con Google).<br />
+                    - Datos financieros: Activos, pasivos, deudas y presupuestos mensuales que ingreses de manera voluntaria.
+                  </p>
+                  <p>
+                    <strong>Compromiso de No Divulgación:</strong><br />
+                    No vendemos, alquilamos ni compartimos tus datos personales o financieros con ninguna empresa, anunciante o tercero bajo ninguna circunstancia.
+                  </p>
+                  <p>
+                    Tienes derecho a exportar tu información o eliminar de forma permanente tu cuenta y todos los datos asociados desde la pestaña "Mi Cuenta".
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {footerModalType === 'terminos' && (
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                  📄 Términos y Condiciones de Uso
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left', fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  <p>
+                    Al acceder y utilizar GANANCY, aceptas cumplir con los presentes términos y condiciones de servicio.
+                  </p>
+                  <p>
+                    <strong>Responsabilidad del Usuario:</strong><br />
+                    La plataforma es una herramienta de orden y proyección financiera de carácter puramente informativo. GANANCY no ofrece asesoría de inversión, contable o tributaria profesional. El usuario es responsable exclusivo de sus decisiones financieras.
+                  </p>
+                  <p>
+                    <strong>Licencia de Uso:</strong><br />
+                    Se te otorga una licencia de uso personal, no transferible y revocable para acceder a la aplicación bajo el plan de suscripción contratado.
+                  </p>
+                  <p>
+                    Nos reservamos el derecho de modificar o actualizar estos términos en cualquier momento con el fin de adaptarlos a mejoras del servicio.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {footerModalType === 'soporte' && (
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                  🛠️ Contacto de Servicio Técnico
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left', fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  <p>
+                    ¿Tienes algún problema técnico, duda o sugerencia? Nuestro equipo está listo para ayudarte a resolver cualquier inconveniente.
+                  </p>
+                  
+                  <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '16px' }}>📧</span>
+                      <span><strong>Email de Soporte:</strong> <a href="mailto:soporte@ganancy.cl" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>soporte@ganancy.cl</a></span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '16px' }}>💬</span>
+                      <span><strong>WhatsApp Técnico:</strong> <a href="https://wa.me/56912345678" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>+56 9 1234 5678</a></span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '16px' }}>⏰</span>
+                      <span><strong>Horario de Atención:</strong> Lunes a Viernes de 09:00 a 18:00 hrs.</span>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                    * El tiempo promedio de respuesta para consultas por correo electrónico es de menos de 24 horas hábiles.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setFooterModalType(null)}
+                style={{
+                  background: 'var(--accent)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Traspaso de Pendientes */}
       {pendingMigration && (
