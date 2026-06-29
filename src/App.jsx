@@ -104,6 +104,8 @@ export default function App() {
   // 10. Public Landing / Context states
   const [showLogin, setShowLogin] = useState(false);
   const [currentContext, setCurrentContext] = useState('consolidado'); // 'consolidado', 'empresa', 'personal'
+  const [pendingMigration, setPendingMigration] = useState(null); // { previousMonth, newMonth, items: [...] }
+  const [migrationActions, setMigrationActions] = useState({});
   const migrateLandingData = (data) => {
     if (!data) return LANDING_PAGE_DEFAULTS;
     let modified = false;
@@ -672,6 +674,75 @@ export default function App() {
       setDebtsState(updatedDebts);
     }
   }, [debtsState, currentUser, parseMonthYear]);
+
+  // Automatic month creation and pending items migration detection
+  useEffect(() => {
+    if (isDataLoading) return;
+    if (!historicalFlowsState || historicalFlowsState.length === 0) return;
+
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const now = new Date();
+    const currentMonthLabel = `${months[now.getMonth()]} ${now.getFullYear()}`;
+
+    // Check if the current month exists in historicalFlowsState
+    const currentMonthExists = historicalFlowsState.some(f => f.month === currentMonthLabel);
+
+    if (!currentMonthExists) {
+      const parseMonthYearLocal = (str) => {
+        if (!str) return new Date(0);
+        const parts = str.split(' ');
+        const abbr = parts[0];
+        const yr = parseInt(parts[1], 10);
+        const monthMap = {
+          "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+          "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11
+        };
+        return new Date(yr, monthMap[abbr] !== undefined ? monthMap[abbr] : 0, 1);
+      };
+
+      const sortedFlows = [...historicalFlowsState].sort((a, b) => parseMonthYearLocal(b.month) - parseMonthYearLocal(a.month));
+      const previousMonthLabel = sortedFlows[0]?.month;
+
+      const autoCreateMonth = async () => {
+        // We import all active fixed incomes/expenses
+        const selectedIncomes = ingresosFijosState || [];
+        const selectedExpenses = egresosFijosState || [];
+        
+        await addHistoricalMonth(currentMonthLabel, selectedIncomes, selectedExpenses);
+
+        // Check if previous month has any unpaid/unreceived items
+        if (previousMonthLabel && monthlyDetailsState[previousMonthLabel]) {
+          const prevDetails = monthlyDetailsState[previousMonthLabel];
+          const unpaidIncomes = (prevDetails.ingresos || []).filter(it => !it.paid && !it.name.startsWith('__EXCLUDED__'));
+          const unpaidExpenses = (prevDetails.egresos || []).filter(it => !it.paid && !it.name.startsWith('__EXCLUDED__'));
+
+          if (unpaidIncomes.length > 0 || unpaidExpenses.length > 0) {
+            setPendingMigration({
+              previousMonth: previousMonthLabel,
+              newMonth: currentMonthLabel,
+              items: [
+                ...unpaidIncomes.map(it => ({ ...it, type: 'ingresos' })),
+                ...unpaidExpenses.map(it => ({ ...it, type: 'egresos' }))
+              ]
+            });
+          }
+        }
+      };
+
+      autoCreateMonth();
+    }
+  }, [isDataLoading, historicalFlowsState, monthlyDetailsState, ingresosFijosState, egresosFijosState]);
+
+  // Initialize migration actions when pendingMigration is populated
+  useEffect(() => {
+    if (pendingMigration) {
+      const initialActions = {};
+      pendingMigration.items.forEach(item => {
+        initialActions[item.id] = 'move';
+      });
+      setMigrationActions(initialActions);
+    }
+  }, [pendingMigration]);
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -1519,6 +1590,40 @@ export default function App() {
       }
     }
     setEgresosVariablesState(prev => prev.filter(item => String(item.id) !== String(id)));
+  };
+
+  const handleProcessMigration = async (actions) => {
+    if (!pendingMigration) return;
+
+    const previousMonth = pendingMigration.previousMonth;
+    const newMonth = pendingMigration.newMonth;
+
+    for (const item of pendingMigration.items) {
+      const action = actions[item.id] || 'ignore';
+
+      if (action === 'mark_paid') {
+        await updateMonthlyTransaction(previousMonth, item.type, 'edit', {
+          id: item.id,
+          item: {
+            ...item,
+            paid: true
+          }
+        });
+      } else if (action === 'move') {
+        const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
+        
+        await updateMonthlyTransaction(newMonth, item.type, 'add', {
+          name: `${cleanName} (Traspaso)`,
+          value: item.value,
+          paid: false,
+          isVariable: true,
+          dueDate: item.dueDate || "",
+          context: item.name.includes('[Personal]') ? 'personal' : 'empresa'
+        });
+      }
+    }
+
+    setPendingMigration(null);
   };
 
   const addHistoricalMonth = async (monthName, selectedIncomes = [], selectedExpenses = []) => {
@@ -2521,6 +2626,165 @@ export default function App() {
       }}>
         <span>&copy; {new Date().getFullYear()} GANIMIDES. Todos los derechos reservados. Diseñado bajo estándares Apple.</span>
       </footer>
+
+      {/* Modal de Traspaso de Pendientes */}
+      {pendingMigration && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '650px', width: '90%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <RefreshCw size={24} color="var(--accent)" className="animate-spin-slow" />
+              <h3 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>🔄 Traspaso de Pendientes a {pendingMigration.newMonth}</h3>
+            </div>
+            
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.5' }}>
+              El mes de <strong>{pendingMigration.newMonth}</strong> ha comenzado y se ha creado automáticamente. 
+              Detectamos que en <strong>{pendingMigration.previousMonth}</strong> quedaron los siguientes movimientos sin registrar como cobrados o pagados. 
+              ¿Cómo deseas gestionarlos?
+            </p>
+
+            <div style={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '12px', 
+              paddingRight: '4px',
+              marginBottom: '20px',
+              maxHeight: '45vh'
+            }}>
+              {pendingMigration.items.map(item => {
+                const isIncome = item.type === 'ingresos';
+                const cleanName = item.name.replace(' [Personal]', '').replace(' [Empresa]', '');
+                const isPersonal = item.name.includes('[Personal]');
+                
+                return (
+                  <div key={item.id} style={{ 
+                    background: 'var(--bg-primary)', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: '12px', 
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ 
+                          fontSize: '18px', 
+                          background: isIncome ? 'rgba(52, 199, 89, 0.15)' : 'rgba(255, 59, 48, 0.15)',
+                          color: isIncome ? 'var(--success)' : 'var(--danger)',
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {isIncome ? '💰' : '💸'}
+                        </span>
+                        <div>
+                          <strong style={{ fontSize: '14.5px', display: 'block', color: 'var(--text-primary)' }}>
+                            {cleanName}
+                          </strong>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                            {isPersonal ? '🏠 Personal' : '🏢 Negocio'} • {isIncome ? 'Ingreso' : 'Egreso'}
+                          </span>
+                        </div>
+                      </div>
+                      <span style={{ 
+                        fontSize: '16px', 
+                        fontWeight: 700, 
+                        color: isIncome ? 'var(--success)' : 'var(--danger)' 
+                      }}>
+                        {formatMoney(item.value)}
+                      </span>
+                    </div>
+
+                    {/* Action Selector */}
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(3, 1fr)', 
+                      gap: '8px',
+                      background: 'var(--bg-secondary)',
+                      padding: '4px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)'
+                    }}>
+                      {[
+                        { id: 'mark_paid', label: isIncome ? 'Recibido' : 'Pagado', desc: `Marcar como listo en ${pendingMigration.previousMonth}`, color: 'var(--success)' },
+                        { id: 'move', label: 'Traspasar', desc: `Mover a ${pendingMigration.newMonth} como pendiente`, color: 'var(--accent)' },
+                        { id: 'ignore', label: 'Mantener', desc: `Dejar pendiente en ${pendingMigration.previousMonth}`, color: 'var(--text-secondary)' }
+                      ].map(act => {
+                        const isSelected = (migrationActions[item.id] || 'move') === act.id;
+                        return (
+                          <button
+                            key={act.id}
+                            type="button"
+                            onClick={() => setMigrationActions(prev => ({ ...prev, [item.id]: act.id }))}
+                            title={act.desc}
+                            style={{
+                              border: 'none',
+                              background: isSelected ? act.color : 'transparent',
+                              color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+                              padding: '8px 6px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              textAlign: 'center'
+                            }}
+                          >
+                            {act.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setPendingMigration(null)}
+                style={{ 
+                  flex: 1, 
+                  background: 'var(--border-color)', 
+                  border: 'none', 
+                  color: 'var(--text-primary)', 
+                  padding: '12px', 
+                  borderRadius: '10px', 
+                  cursor: 'pointer', 
+                  fontSize: '14px', 
+                  fontWeight: 600 
+                }}
+              >
+                Omitir por ahora
+              </button>
+              <button
+                type="button"
+                onClick={() => handleProcessMigration(migrationActions)}
+                style={{ 
+                  flex: 2, 
+                  background: 'var(--accent)', 
+                  border: 'none', 
+                  color: 'white', 
+                  padding: '12px', 
+                  borderRadius: '10px', 
+                  cursor: 'pointer', 
+                  fontSize: '14px', 
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(var(--accent-rgb), 0.2)'
+                }}
+              >
+                Procesar Movimientos seleccionados
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
