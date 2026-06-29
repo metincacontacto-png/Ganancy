@@ -325,7 +325,9 @@ export default function App() {
   // Handle /super-admin routing
   useEffect(() => {
     const handleUrlCheck = () => {
-      const isSuperAdmin = window.location.pathname === '/super-admin' || window.location.hash === '#/super-admin';
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const isSuperAdmin = path.includes('super-admin') || hash.includes('super-admin');
       if (isSuperAdmin) {
         if (!currentUser) {
           setShowLogin(true);
