@@ -470,7 +470,7 @@ export default function DeudasView({
                                   transition: 'all 0.2s'
                                 }}
                               >
-                                {debt.fechaVencimiento ? 'Cambiar' : 'Programar'}
+                                {debt.fechaVencimiento ? 'Cambiar' : 'Programar pago'}
                               </button>
                             </div>
                           )}
