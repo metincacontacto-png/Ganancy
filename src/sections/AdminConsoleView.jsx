@@ -8,7 +8,9 @@ export default function AdminConsoleView({
   onSaveLanding, 
   onResetLanding,
   onNavigateBack,
-  theme
+  theme,
+  currentUser,
+  onUpdateCurrentUser
 }) {
   const [activeTab, setActiveTab] = useState("usuarios"); // "usuarios" or "landing"
   const [profiles, setProfiles] = useState([]);
@@ -56,6 +58,14 @@ export default function AdminConsoleView({
 
       // Update local state
       setProfiles(prev => prev.map(p => p.id === userId ? { ...p, subscription_status: newPlan } : p));
+
+      // If the user being updated is the logged-in user, update their local state too
+      if (currentUser && currentUser.id === userId && onUpdateCurrentUser) {
+        onUpdateCurrentUser({
+          ...currentUser,
+          subscription_status: newPlan
+        });
+      }
     } catch (err) {
       console.error("Error updating user plan:", err);
       alert("No se pudo actualizar el plan del usuario.");

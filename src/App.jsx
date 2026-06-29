@@ -175,6 +175,15 @@ export default function App() {
     localStorage.setItem('active_profile_id', activeProfileId);
   }, [activeProfileId]);
 
+  // Sync currentUser to localStorage automatically
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('currentUser');
+    }
+  }, [currentUser]);
+
   const [pendingMigration, setPendingMigration] = useState(null); // { previousMonth, newMonth, items: [...] }
   const [migrationActions, setMigrationActions] = useState({});
   const migrateLandingData = (data) => {
@@ -2472,6 +2481,8 @@ export default function App() {
             }}
             onNavigateBack={() => setActiveTab("dashboard")}
             theme={theme}
+            currentUser={currentUser}
+            onUpdateCurrentUser={setCurrentUser}
           />
         );
       default:
