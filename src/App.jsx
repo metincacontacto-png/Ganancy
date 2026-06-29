@@ -9,7 +9,7 @@ import ProyeccionView from './sections/ProyeccionView';
 import LoginView from './sections/LoginView';
 import SubscriptionView from './sections/SubscriptionView';
 import LandingPageView from './sections/LandingPageView';
-import LandingEditorView from './sections/LandingEditorView';
+import AdminConsoleView from './sections/AdminConsoleView';
 import { LANDING_PAGE_DEFAULTS } from './data/landingPageDefaults';
 
 import { supabase } from './lib/supabaseClient';
@@ -2405,9 +2405,9 @@ export default function App() {
         );
       case "editor_landing":
         return (
-          <LandingEditorView 
+          <AdminConsoleView 
             landingPageData={landingPageData} 
-            onSave={async (newData) => {
+            onSaveLanding={async (newData) => {
               setLandingPageData(newData);
               localStorage.setItem('landing_page_data', JSON.stringify(newData));
               if (isSupabaseConfigured) {
@@ -2421,7 +2421,7 @@ export default function App() {
                 }
               }
             }}
-            onReset={async () => {
+            onResetLanding={async () => {
               setLandingPageData(LANDING_PAGE_DEFAULTS);
               localStorage.removeItem('landing_page_data');
               if (isSupabaseConfigured) {
@@ -2435,6 +2435,8 @@ export default function App() {
                 }
               }
             }}
+            onNavigateBack={() => setActiveTab("dashboard")}
+            theme={theme}
           />
         );
       default:
