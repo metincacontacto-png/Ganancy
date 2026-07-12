@@ -1522,13 +1522,50 @@ td { font-size: 15.5px; }
   }
 }
 
+/* App Header Top Row (Logo vs Profile & Mode) - Stack layout on Mobile */
+@media (max-width: 768px) {
+  .header-top-row {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 14px !important;
+  }
+  .logo-container {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+  .logo-container h1 {
+    font-size: 19px !important;
+    text-align: center !important;
+  }
+  .logo-container .subtitle {
+    display: none !important; /* Hide subtitle to clean up mobile vertical height */
+  }
+  .header-controls {
+    justify-content: center !important;
+    width: 100% !important;
+    gap: 12px !important;
+  }
+}
+
 /* User Profile Pill responsive adjustment on mobile */
 @media (max-width: 500px) {
   .user-profile-pill {
-    padding: 6px !important;
+    padding: 4px 8px !important;
+    gap: 6px !important;
+  }
+  .user-avatar {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 10px !important;
   }
   .user-details {
     display: none !important; /* Hide name/email on tiny screens to avoid layout breaking */
+  }
+  .logout-btn {
+    padding: 6px 10px !important;
+    font-size: 10px !important;
   }
 }
 
@@ -1537,19 +1574,118 @@ td { font-size: 15.5px; }
   .header-bottom-row {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 10px !important;
+    gap: 12px !important;
   }
   .context-switcher-container {
     width: 100% !important;
+    display: flex !important;
     justify-content: space-between !important;
+    background: rgba(0,0,0,0.1) !important;
+    padding: 3px !important;
+    border-radius: 10px !important;
   }
   .context-switcher-btn {
     flex: 1 !important;
-    padding: 8px 6px !important;
-    font-size: 11px !important;
+    padding: 8px 4px !important;
+    font-size: 11.5px !important;
     text-align: center !important;
     justify-content: center !important;
     gap: 4px !important;
+    border-radius: 8px !important;
+  }
+}
+
+/* Tab Navigation styles (iOS segmented control style) - Responsive Horizontal Scrolling */
+@media (max-width: 768px) {
+  .nav-tabs {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    justify-content: flex-start !important;
+    padding: 4px 6px !important;
+    border-radius: 12px !important;
+    gap: 4px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1) !important;
+  }
+  .nav-tabs li {
+    flex: 0 0 auto !important;
+  }
+  .nav-tabs button {
+    font-size: 12.5px !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    width: auto !important;
+  }
+}
+
+/* Section Header (Flujo de Caja, Deudas, etc.) - Stack on Mobile to prevent collision */
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+    text-align: center !important;
+  }
+  .section-header h2 {
+    font-size: 20px !important;
+    text-align: center !important;
+  }
+  .section-header .subtitle {
+    text-align: center !important;
+  }
+  .section-header > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  /* Selector de Trimestre row flex centering */
+  .section-header div[style*="display: flex"] {
+    justify-content: center !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+}
+
+/* Active Month Card Footer (Balance vs Button) - Vertical Stack on Mobile */
+@media (max-width: 600px) {
+  .main-month-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+    text-align: center !important;
+  }
+  .main-month-footer > div {
+    text-align: center !important;
+    margin-bottom: 4px !important;
+  }
+  .main-month-footer button {
+    width: 100% !important;
+    padding: 12px 20px !important;
+  }
+}
+
+/* Projection / Simulator Metric Box Grid - Stack on Mobile to prevent squished layouts */
+@media (max-width: 600px) {
+  .metrics-row {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .metric-box {
+    padding: 12px 16px !important;
+    text-align: left !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-style: solid !important;
+  }
+  .metric-box label {
+    margin-bottom: 0 !important;
+    font-size: 12.5px !important;
+  }
+  .metric-box span {
+    font-size: 15.5px !important;
   }
 }
 

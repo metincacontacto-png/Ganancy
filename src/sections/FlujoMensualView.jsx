@@ -1360,7 +1360,7 @@ export default function FlujoMensualView({
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+            <div className="main-month-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
               <div>
                 <span style={{ fontSize: '14px', color: 'var(--text-secondary)', marginRight: '8px' }}>Balance del Mes:</span>
                 <strong style={{ fontSize: '20px' }} className={isNegative ? "num-negative" : "num-positive"}>

@@ -2609,7 +2609,7 @@ export default function App() {
         borderBottom: '1px solid var(--border-color)'
       }}>
         {/* Top Row: Logo & User Controls */}
-        <div style={{ 
+        <div className="header-top-row" style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
@@ -2685,9 +2685,9 @@ export default function App() {
               boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)'
             }}>
               {[
-                { id: 'empresa', label: '🏢 Negocio', desc: 'Muestra solo ingresos/egresos del negocio' },
-                { id: 'personal', label: '🏠 Personal', desc: 'Muestra solo tus gastos personales familiares' },
-                { id: 'consolidado', label: '📊 Vista Consolidada', desc: 'Integra y sobrepone ambos flujos en tiempo real' }
+                { id: 'empresa', label: 'Negocio', desc: 'Muestra solo ingresos/egresos del negocio' },
+                { id: 'personal', label: 'Personal', desc: 'Muestra solo tus gastos personales familiares' },
+                { id: 'consolidado', label: 'Consolidado', desc: 'Integra y sobrepone ambos flujos en tiempo real' }
               ].map(opt => (
                 <button
                   key={opt.id}
