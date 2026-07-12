@@ -6,6 +6,53 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
   const [activeFaq, setActiveFaq] = useState(null);
   const [activeLegalModal, setActiveLegalModal] = useState(null);
 
+  // PWA Install Prompt States
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showIosTip, setShowIosTip] = useState(false);
+
+  React.useEffect(() => {
+    // Check if iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIosDevice);
+
+    // If it's iOS and not already running in standalone mode, show install option
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isIosDevice && !isStandalone) {
+      setShowInstallBtn(true);
+    }
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    if (isIOS) {
+      setShowIosTip(!showIosTip);
+      return;
+    }
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('El usuario aceptó instalar la PWA');
+      }
+      setDeferredPrompt(null);
+      setShowInstallBtn(false);
+    });
+  };
+
   // Safely merge custom landing data with original defaults
   const data = {
     logoUrl: landingPageData?.logoUrl || LANDING_PAGE_DEFAULTS.logoUrl || null,
@@ -142,6 +189,62 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
               <a href="#pricing" className="landing-nav-link">Planes de Precios</a>
               <a href="#faqs" className="landing-nav-link">Preguntas Frecuentes</a>
             </nav>
+
+            {showInstallBtn && (
+              <div style={{ position: 'relative' }}>
+                <button 
+                  onClick={handleInstallClick}
+                  style={{
+                    background: 'linear-gradient(135deg, #0a84ff 0%, #0056b3 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(10, 132, 255, 0.3)',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Icons.Download size={14} />
+                  <span>Instalar App</span>
+                </button>
+                
+                {/* Popover instructivo exclusivo para iPhone/iOS */}
+                {showIosTip && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '45px',
+                    right: 0,
+                    background: '#ffffff',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    width: '260px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                    zIndex: 200,
+                    color: '#1d1d1f',
+                    textAlign: 'left'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '13px' }}>Instalar en iPhone</strong>
+                      <button onClick={() => setShowIosTip(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#86868b' }}>
+                        <Icons.X size={14} />
+                      </button>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', lineHeight: '1.4', color: '#515154' }}>
+                      1. Presiona el botón de <strong>Compartir</strong> <Icons.Share2 size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> en Safari.<br/>
+                      2. Selecciona la opción <strong>"Añadir a la pantalla de inicio"</strong>.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <button 
               onClick={onEnterLogin}
