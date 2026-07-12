@@ -1329,7 +1329,7 @@ He procesado tu consulta y analizado tus números integrados.
          ======================================================== */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isPersonalPlan ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))',
+        gridTemplateColumns: isPersonalPlan ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: '14px',
         alignItems: 'stretch',
         maxWidth: isPersonalPlan ? '640px' : '100%',
@@ -2310,10 +2310,10 @@ He procesado tu consulta y analizado tus números integrados.
       </div>
 
       {/* 2-Column layout: Historical Chart & CFO Conversational AI Copilot */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', alignItems: 'stretch' }}>
         
         {/* Left Column: Bar Chart */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', minWidth: '320px' }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', minWidth: '280px' }}>
           <h3 style={{ fontSize: '18px', fontWeight: 600 }}>Flujo de Caja Histórico</h3>
           <p className="subtitle" style={{ marginBottom: '16px' }}>Comparativa de ingresos y egresos mes a mes (Últimos 9 meses)</p>
           
@@ -2698,7 +2698,7 @@ He procesado tu consulta y analizado tus números integrados.
               )}
 
               {/* Emisor & RUT */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
+              <div className="responsive-grid-columns" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Emisor / Proveedor</label>
                   <input
@@ -2734,7 +2734,7 @@ He procesado tu consulta y analizado tus números integrados.
               </div>
 
               {/* Fecha y Año Selector */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
+              <div className="responsive-grid-columns" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Fecha de la Boleta</label>
                   <input
@@ -2878,7 +2878,7 @@ He procesado tu consulta y analizado tus números integrados.
               </div>
 
               {/* Pricing breakdown details (Neto, IVA, Total) */}
-              <div style={{ 
+              <div className="responsive-grid-3cols" style={{ 
                 display: 'grid', 
                 gridTemplateColumns: 'repeat(3, 1fr)', 
                 gap: '12px', 

@@ -2663,7 +2663,7 @@ export default function App() {
         </div>
 
         {/* Bottom Row: Context & Profile Switchers */}
-        <div style={{ 
+        <div className="header-bottom-row" style={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
@@ -2675,7 +2675,7 @@ export default function App() {
         }}>
           {/* Context Switcher */}
           {currentUser?.subscription_status !== 'plan_personal' ? (
-            <div style={{
+            <div className="context-switcher-container" style={{
               display: 'flex',
               background: 'rgba(255, 255, 255, 0.04)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -2693,6 +2693,7 @@ export default function App() {
                   key={opt.id}
                   onClick={() => setCurrentContext(opt.id)}
                   title={opt.desc}
+                  className="context-switcher-btn"
                   style={{
                     background: currentContext === opt.id ? 'var(--accent, #0a84ff)' : 'transparent',
                     color: currentContext === opt.id ? '#ffffff' : 'var(--text-secondary, #94a3b8)',

@@ -1397,7 +1397,7 @@ export default function FlujoMensualView({
             Otros Meses del Trimestre
           </h4>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             {otherMonths.map(item => {
               const isNegative = item.balance < 0;
               return (

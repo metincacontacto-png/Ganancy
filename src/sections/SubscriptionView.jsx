@@ -573,7 +573,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
           {/* Pricing Table Grid */}
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
             gap: '32px',
             alignItems: 'stretch',
             marginBottom: '64px'

@@ -167,13 +167,13 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
         background: 'rgba(15, 23, 42, 0.95)', // Clean, solid premium dark blue as requested
         padding: '16px 24px'
       }}>
-        <div style={{
+        <div className="landing-header-container" style={{
           maxWidth: '1200px',
           margin: '0 auto',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          gap: '64px'
+          gap: '24px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <img 
@@ -183,8 +183,8 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '48px' }}>
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+          <div className="landing-header-right" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <nav className="landing-nav" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
               <a href="#features" className="landing-nav-link">Características</a>
               <a href="#pricing" className="landing-nav-link">Planes de Precios</a>
               <a href="#faqs" className="landing-nav-link">Preguntas Frecuentes</a>
