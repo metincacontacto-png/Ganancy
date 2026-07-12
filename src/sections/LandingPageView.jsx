@@ -25,6 +25,8 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
     }
 
     const handleBeforeInstallPrompt = (e) => {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      if (isStandaloneMode) return;
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstallBtn(true);

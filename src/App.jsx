@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { Sun, Moon, LayoutDashboard, Database, Calendar, CreditCard, TrendingUp, RotateCcw, Loader, ShieldCheck, Sparkles, Settings, User, Mail, X, RefreshCw } from 'lucide-react';
+import { Sun, Moon, LayoutDashboard, Database, Calendar, CreditCard, TrendingUp, RotateCcw, Loader, ShieldCheck, Sparkles, Settings, User, Mail, X, RefreshCw, Download, Share2 } from 'lucide-react';
 import { PASIVOS_DATA, ACTIVOS_DATA, INGRESOS_FIJOS, EGRESOS_FIJOS, HISTORICAL_FLOWS, MONTH_DETAILS, formatCLP } from './data/financialData';
 import LoginView from './sections/LoginView';
 import LandingPageView from './sections/LandingPageView';
@@ -66,6 +66,52 @@ function adjustDebtsPaidInstallments(debts) {
 }
 
 export default function App() {
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showIosTip, setShowIosTip] = useState(false);
+
+  useEffect(() => {
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIosDevice);
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isIosDevice && !isStandalone) {
+      setShowInstallBtn(true);
+    }
+
+    const handleBeforeInstallPrompt = (e) => {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      if (isStandaloneMode) return;
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    if (isIOS) {
+      setShowIosTip(!showIosTip);
+      return;
+    }
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('El usuario instaló la PWA');
+      }
+      setDeferredPrompt(null);
+      setShowInstallBtn(false);
+    });
+  };
+
   // 1. Assets State (Categorized + Total)
   const [assetsState, setAssetsState] = useState(() => {
     const saved = localStorage.getItem('assets_data');
@@ -2655,6 +2701,60 @@ export default function App() {
               </div>
             )}
 
+            {showInstallBtn && (
+              <div style={{ position: 'relative' }}>
+                <button 
+                  onClick={handleInstallClick}
+                  className="system-install-btn"
+                  style={{
+                    background: 'linear-gradient(135deg, #0a84ff 0%, #0056b3 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 2px 6px rgba(10, 132, 255, 0.3)',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Download size={13} />
+                  <span>Instalar App</span>
+                </button>
+                {showIosTip && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '38px',
+                    right: 0,
+                    background: '#ffffff',
+                    color: '#1d1d1f',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    width: '240px',
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+                    zIndex: 200,
+                    textAlign: 'left'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <strong style={{ fontSize: '12px' }}>Instalar en iPhone</strong>
+                      <button onClick={() => setShowIosTip(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#86868b' }}>
+                        <X size={12} />
+                      </button>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '10.5px', lineHeight: '1.4', color: '#515154' }}>
+                      1. Presiona <strong>Compartir</strong> <Share2 size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> en Safari.<br/>
+                      2. Elige <strong>"Añadir a pantalla de inicio"</strong>.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Theme Toggle Button */}
             <button onClick={toggleTheme} className="theme-btn" title="Alternar Modo Oscuro/Claro">
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
@@ -3014,7 +3114,7 @@ export default function App() {
       )}
 
       {/* Tab Navigation */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+      <div className="nav-tabs-wrapper">
         <ul className="nav-tabs">
           <li>
             <button 

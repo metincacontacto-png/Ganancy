@@ -1521,6 +1521,19 @@ td { font-size: 15.5px; }
     padding: 12px 16px !important;
   }
 }
+@media (max-width: 600px) {
+  .landing-header-container {
+    padding: 10px 12px !important;
+  }
+  .landing-header-right {
+    gap: 8px !important;
+  }
+  .landing-header-right button {
+    padding: 6px 10px !important;
+    font-size: 11.5px !important;
+    border-radius: 8px !important;
+  }
+}
 
 /* App Header Top Row (Logo vs Profile & Mode) - Stack layout on Mobile */
 @media (max-width: 768px) {
@@ -1596,12 +1609,34 @@ td { font-size: 15.5px; }
 }
 
 /* Tab Navigation styles (iOS segmented control style) - Responsive Horizontal Scrolling */
+.nav-tabs-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: center;
+}
 @media (max-width: 768px) {
+  .nav-tabs-wrapper {
+    justify-content: flex-start !important;
+  }
+  .nav-tabs-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 36px;
+    background: linear-gradient(to right, transparent, var(--bg-primary, #121214));
+    pointer-events: none;
+    z-index: 5;
+  }
   .nav-tabs {
     overflow-x: auto !important;
     white-space: nowrap !important;
     justify-content: flex-start !important;
-    padding: 4px 6px !important;
+    padding: 4px 36px 4px 6px !important;
     border-radius: 12px !important;
     gap: 4px !important;
     width: 100% !important;

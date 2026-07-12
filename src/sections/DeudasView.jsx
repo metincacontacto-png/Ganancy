@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, Calendar, RefreshCw, CheckSquare, ShieldAlert, Sparkles, Edit2, Trash2, Plus, X } from 'lucide-react';
+import { CreditCard, Calendar, RefreshCw, CheckSquare, ShieldAlert, Sparkles, Edit2, Trash2, Plus, X, CheckCircle } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
 export default function DeudasView({ 
@@ -248,6 +248,28 @@ export default function DeudasView({
     }
   };
 
+  const handleQuickPayCuota = (debt) => {
+    if (debt.completed) return;
+    
+    if (debt.tipo === 'pago_unico' || debt.cuotasTotales <= 1) {
+      toggleCuota(debt.id, 0);
+    } else {
+      const cuotasArray = Array.isArray(debt.cuotas) ? debt.cuotas : [];
+      let firstUnpaidIndex = 0;
+      let found = false;
+      for (let i = 0; i < debt.cuotasTotales; i++) {
+        if (!cuotasArray[i]) {
+          firstUnpaidIndex = i;
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        toggleCuota(debt.id, firstUnpaidIndex);
+      }
+    }
+  };
+
   const handleOpenScheduleMonthModal = (debt) => {
     setSchedulingDebt(debt);
     if (debt.fechaVencimiento) {
@@ -310,15 +332,57 @@ export default function DeudasView({
             <ShieldAlert size={20} />
           </div>
           <div style={{ flex: 1 }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px', marginTop: 0 }}>
+            <h4 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px', marginTop: 0 }}>
               Recordatorio de Vencimientos de Pago
             </h4>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+            <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', margin: '0 0 8px 0' }}>
               Tienes {upcomingOverdueDebts.length} {upcomingOverdueDebts.length === 1 ? 'deuda' : 'deudas'} con vencimiento inminente (menos de 48 horas) o atrasado:
-              <strong style={{ marginLeft: '6px', color: 'var(--text-primary)' }}>
-                {upcomingOverdueDebts.map(d => `${d.name} (${formatMoney(d.tipo === 'pago_unico' ? d.total : d.montoMensual)})`).join(', ')}
-              </strong>
             </p>
+            <ul style={{ 
+              margin: 0, 
+              paddingLeft: '18px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '6px',
+              fontSize: '13px'
+            }}>
+              {upcomingOverdueDebts.map(d => {
+                const contextBadge = d.context === 'personal' ? '🏠 Personal' : '🏢 Negocio';
+                const dueStatus = getDueStatus(d.fechaVencimiento, d.completed);
+                const isOverdue = dueStatus?.status === 'overdue';
+                return (
+                  <li key={d.id} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', color: 'var(--text-secondary)' }}>
+                    <strong style={{ color: 'var(--text-primary)' }}>{d.name}</strong>
+                    <span style={{ 
+                      fontSize: '10px', 
+                      background: 'rgba(255,255,255,0.06)', 
+                      border: '1px solid var(--border-color)', 
+                      padding: '1px 5px', 
+                      borderRadius: '4px',
+                      color: 'var(--text-secondary)',
+                      fontWeight: 500
+                    }}>
+                      {contextBadge}
+                    </span>
+                    <span style={{ fontWeight: 600, color: 'var(--danger)' }}>
+                      {formatMoney(d.tipo === 'pago_unico' ? d.total : d.montoMensual)}
+                    </span>
+                    {isOverdue && (
+                      <span style={{ 
+                        fontSize: '10px', 
+                        background: 'rgba(255, 69, 58, 0.15)', 
+                        color: 'var(--danger)', 
+                        padding: '1px 5px', 
+                        borderRadius: '4px', 
+                        fontWeight: 600 
+                      }}>
+                        Atrasado
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         </div>
       )}
@@ -548,7 +612,34 @@ export default function DeudasView({
                       </div>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                        {!debt.completed && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuickPayCuota(debt);
+                            }}
+                            className="btn-quick-pay"
+                            style={{
+                              background: 'rgba(52, 199, 89, 0.1)',
+                              border: '1px solid rgba(52, 199, 89, 0.3)',
+                              color: 'var(--success)',
+                              padding: '4px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              transition: 'all 0.2s'
+                            }}
+                            title={isSingle ? "Marcar como Saldada" : "Registrar Pago de Siguiente Cuota"}
+                          >
+                            <CheckCircle size={11} />
+                            <span>Pagar</span>
+                          </button>
+                        )}
                         <button onClick={() => openEditDebt(debt)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }} title="Editar">
                           <Edit2 size={12} />
                         </button>
