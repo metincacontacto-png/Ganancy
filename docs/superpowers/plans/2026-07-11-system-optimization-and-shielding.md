@@ -415,12 +415,13 @@ Modify: `src/sections/DashboardView.jsx`
 *   Importar `DashboardCharts` y `ExcelUploader` en la cabecera.
 *   Reemplazar la llamada inline de Recharts con `<DashboardCharts historicalFlowsState={historicalFlowsState} />`.
 *   Reemplazar el cargador de archivos nativo con el nuevo `ExcelUploader`.
+*   Añadir el enlace para descargar la plantilla modelo de Excel (`/ganancy_plantilla_modelo.xlsx`) al costado del texto informativo de subida.
 *   Asegurar que se reduzca la complejidad del archivo principal eliminando imports innecesarios de `recharts`.
 
 - [ ] **Step 4: Commit**
 ```bash
 git add src/sections/dashboard/DashboardCharts.jsx src/sections/dashboard/ExcelUploader.jsx src/sections/DashboardView.jsx
-git commit -m "refactor: modularize charts and excel uploader in dashboard, implement prototype sanitization"
+git commit -m "refactor: modularize charts and excel uploader in dashboard, implement prototype sanitization and template download"
 ```
 
 ---

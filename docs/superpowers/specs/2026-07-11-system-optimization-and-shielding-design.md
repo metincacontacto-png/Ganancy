@@ -7,6 +7,7 @@ Este documento detalla el plan de diseño para estructurar, acelerar, asegurar (
 ## 1. Objetivos del Sistema
 
 1.  **Modularización y Limpieza (Orden):** Reducir el tamaño de `App.jsx` (~3.8k líneas) y `DashboardView.jsx` (~3.5k líneas) separando responsabilidades en subcomponentes lógicos y reutilizables.
+    *   Proporcionar una plantilla Excel de ejemplo en `/ganancy_plantilla_modelo.xlsx` para descarga directa desde el frontend, facilitando la subida correcta de activos, deudas e ingresos/egresos.
 2.  **Seguridad Integral (Blindaje):**
     *   Prevenir inyección de código (XSS) eliminando el uso inseguro de `dangerouslySetInnerHTML` en notificaciones (*toasts*).
     *   Definir una Política de Seguridad de Contenido (**CSP**) en `index.html` para bloquear la ejecución de scripts no autorizados.
@@ -35,6 +36,7 @@ Para resolver el tamaño masivo de los archivos lógicos, extraeremos subcompone
 3.  **Extracciones de `DashboardView.jsx`:**
     *   `src/sections/dashboard/DashboardCharts.jsx` [NUEVO]: Extraer el bloque que renderiza los gráficos de ingresos/egresos usando `recharts` para liberar ~500 líneas de código de presentación.
     *   `src/sections/dashboard/ExcelUploader.jsx` [NUEVO]: Extraer el subcomponente que maneja la lógica de subida y procesamiento del archivo de Excel (incluyendo la sanitización de Prototype Pollution) para aislar el peso de la librería `xlsx`.
+    *   `public/ganancy_plantilla_modelo.xlsx` [NUEVO]: Archivo de plantilla Excel pre-generado con hojas dedicadas para "Activos", "Deudas" y "Flujos" respetando la nomenclatura del analizador sintáctico de la app. Ofrecer un botón "Descargar Plantilla Excel" al costado del botón de carga de planilla.
 
 ### 2.2. Blindaje de Seguridad ("Antivirus")
 
