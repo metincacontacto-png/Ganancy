@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
   TrendingUp, TrendingDown, DollarSign, Activity, Percent, ArrowUpRight, ArrowDownRight, 
   Edit2, Trash2, Plus, X, BrainCircuit, MessageSquare, Send, Sparkles, 
@@ -8,7 +7,8 @@ import {
 import { formatCLP, HISTORICAL_FLOWS } from '../data/financialData';
 import { compressImage } from '../lib/imageCompressor';
 import Tesseract from 'tesseract.js';
-import * as XLSX from 'xlsx';
+import DashboardCharts from './dashboard/DashboardCharts';
+import ExcelUploader from './dashboard/ExcelUploader';
 
 export default function DashboardView({ 
   currentUser,
@@ -145,49 +145,7 @@ export default function DashboardView({
   // Format Helper
   const formatMoney = (val) => formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL');
 
-  // Safe Custom Tooltip for Flujo de Caja Histórico BarChart
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const ingresos = payload.find(p => p.dataKey === 'ingresos')?.value || 0;
-      const egresos = payload.find(p => p.dataKey === 'egresos')?.value || 0;
-      const balance = ingresos - egresos;
-      const month = payload[0]?.payload?.month || '';
 
-      return (
-        <div style={{
-          backgroundColor: 'rgba(30, 41, 59, 0.95)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          padding: '12px 16px',
-          borderRadius: '12px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          pointerEvents: 'none'
-        }}>
-          <p style={{ fontWeight: 600, fontSize: '13px', color: '#f8fafc', marginBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px' }}>
-            {month}
-          </p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', fontSize: '12px' }}>
-            <span style={{ color: '#94a3b8' }}>Ingresos:</span>
-            <strong style={{ color: 'var(--success)' }}>{formatMoney(ingresos)}</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', fontSize: '12px' }}>
-            <span style={{ color: '#94a3b8' }}>Egresos:</span>
-            <strong style={{ color: 'var(--danger)' }}>{formatMoney(egresos)}</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', fontSize: '12px', marginTop: '4px', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '4px' }}>
-            <span style={{ color: '#f1f5f9', fontWeight: 500 }}>Neto:</span>
-            <strong style={{ color: balance >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-              {balance >= 0 ? '+' : ''}{formatMoney(balance)}
-            </strong>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   // Excel/PDF Upload States
   const [isUploading, setIsUploading] = useState(false);
@@ -621,7 +579,7 @@ export default function DashboardView({
         // Step 1: Initialize (Tesseract is imported locally, so it starts immediately)
         setScanProgress(30);
         
-        const result = await Tesseract.recognize(compressedBase64, 'eng', {
+        const result = await Tesseract.recognize(compressedBase64, 'eng+spa', {
           logger: m => {
             if (m.status === 'recognizing text') {
               // Tesseract recognizing progress maps to 30% - 90% in progress bar
@@ -833,485 +791,115 @@ Para realizar un diagnóstico preciso e inmediato, por favor respóndeme estas *
     }
   }, [chatMessages, isAiLoading]);
 
-  // Handles real Excel sheet parsing & simulated PDF upload
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  // Handles real Excel sheet parsing & simulated PDF upload via ExcelUploader callbacks
+  const handleExcelSuccess = async (parsedData, uploadedFileName) => {
+    setUploadProgress(85);
+    let count = 0;
+    
+    // Process ingresosFijos
+    if (parsedData.ingresosFijos && parsedData.ingresosFijos.length > 0 && addIncome) {
+      for (const item of parsedData.ingresosFijos) {
+        await addIncome(item.name, item.value, currentContext);
+        count++;
+      }
+    }
+    // Process egresosFijos
+    if (parsedData.egresosFijos && parsedData.egresosFijos.length > 0 && addExpense) {
+      for (const item of parsedData.egresosFijos) {
+        await addExpense(item.name, item.value, currentContext);
+        count++;
+      }
+    }
+    // Process ingresosVariables
+    if (parsedData.ingresosVariables && parsedData.ingresosVariables.length > 0 && addVariableIncome) {
+      for (const item of parsedData.ingresosVariables) {
+        await addVariableIncome(item.name, item.value, currentContext);
+        count++;
+      }
+    }
+    // Process egresosVariables
+    if (parsedData.egresosVariables && parsedData.egresosVariables.length > 0 && addVariableExpense) {
+      for (const item of parsedData.egresosVariables) {
+        await addVariableExpense(item.name, item.value, currentContext);
+        count++;
+      }
+    }
+    // Process assets
+    if (parsedData.assets && parsedData.assets.length > 0 && addAsset) {
+      for (const item of parsedData.assets) {
+        let catId = 'otros';
+        const nameLower = item.name.toLowerCase();
+        if (nameLower.includes('comput') || nameLower.includes('tech') || nameLower.includes('pc') || nameLower.includes('software')) catId = 'equipos';
+        else if (nameLower.includes('camara') || nameLower.includes('audio') || nameLower.includes('lente') || nameLower.includes('microfono')) catId = 'audiovisual';
+        else if (nameLower.includes('luz') || nameLower.includes('iluminacion') || nameLower.includes('foco')) catId = 'iluminacion';
+        else if (nameLower.includes('silla') || nameLower.includes('mesa') || nameLower.includes('mueble') || nameLower.includes('sillon')) catId = 'muebles';
+        
+        await addAsset(catId, item.name, item.value, currentContext);
+        count++;
+      }
+    }
+    // Process debts
+    if (parsedData.debts && parsedData.debts.length > 0 && addDebt) {
+      for (const item of parsedData.debts) {
+        let cuotasTotales = 1;
+        let cuotaActual = 0;
+        const match = item.name.match(/(\d+)\s*cuotas?/i);
+        if (match) {
+          cuotasTotales = parseInt(match[1]);
+        }
+        const rateMatch = item.name.match(/(\d+)\s*\/\s*(\d+)/);
+        if (rateMatch) {
+          cuotaActual = parseInt(rateMatch[1]);
+          cuotasTotales = parseInt(rateMatch[2]);
+        }
+        
+        const debtData = {
+          name: item.name,
+          totalOriginal: item.value,
+          cuotaActual,
+          cuotasTotales,
+          montoMensual: cuotasTotales > 0 ? Math.round(item.value / cuotasTotales) : item.value,
+          context: currentContext
+        };
+        await addDebt(debtData);
+        count++;
+      }
+    }
 
-    setFileName(file.name);
-    setIsUploading(true);
-    setUploadProgress(10);
-    setUploadSuccess(false);
+    setUploadProgress(100);
+    setIsUploading(false);
+    setUploadSuccess(true);
 
-    const type = file.name.endsWith('.pdf') ? 'pdf' : 'excel';
-    setFileType(type);
-
-    if (type === 'pdf') {
-      const interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setIsUploading(false);
-            setUploadSuccess(true);
-            
-            setIsAiLoading(true);
-            setTimeout(() => {
-              const auditReport = `📑 **Auditoría de Cartola Bancaria (PDF) - "${file.name}" completada.**
-
-Tras escanear el documento, he extraído los siguientes indicadores clave para contrastar con tu balance:
-*   **Entidad:** Banco Estado de Chile
-*   **Saldo Final Identificado:** ${formatMoney(assetsTotal || 7137698)}
-*   **Transacciones conciliadas:** 42 movimientos detectados
-
-**Hallazgos Estratégicos:**
-1. **Cobros recurrentes:** Se registraron cargos automáticos de deudas por **${formatMoney(119000)}** (Crédito Consumo BE).
-2. **Desvío no presupuestado:** Identifiqué comisiones de mantención de cuenta y seguros asociados por **$18.400** que no figuran en tu tabla de Egresos Fijos. Recomiendo auditarlos de inmediato.
-3. **Flujo de entrada:** Se confirman transferencias de clientes por **$1.800.000** (King Wok) y **$500.000** (Lumine).`;
-
-              setChatMessages(prev => [
-                ...prev,
-                { sender: 'ai', text: auditReport }
-              ]);
-              setIsAiLoading(false);
-            }, 1000);
-
-            return 100;
-          }
-          return prev + 10;
-        });
-      }, 150);
-    } else {
-      // Real client-side Excel Parsing using the installed xlsx package
-      const reader = new FileReader();
-      reader.onload = async (evt) => {
-        try {
-          setUploadProgress(35);
-          const binaryData = evt.target.result;
-          const workbook = XLSX.read(binaryData, { type: 'binary' });
-          setUploadProgress(60);
-          
-          let parsedIngresosFijos = [];
-          let parsedEgresosFijos = [];
-          let parsedIngresosVars = [];
-          let parsedEgresosVars = [];
-          let parsedAssets = [];
-          let parsedDebts = [];
-          
-          workbook.SheetNames.forEach(sheetName => {
-            const sheet = workbook.Sheets[sheetName];
-            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-            
-            // 1. Initialize active category context based on Sheet Name
-            let currentSection = 'default';
-            const lowerSheet = sheetName.toLowerCase();
-            if (
-              lowerSheet.includes('activo') || 
-              lowerSheet.includes('bien') || 
-              lowerSheet.includes('patrimonio') || 
-              lowerSheet.includes('inventario') ||
-              lowerSheet.includes('equipo') ||
-              lowerSheet.includes('mueble') ||
-              lowerSheet.includes('propiedad') ||
-              lowerSheet.includes('maquina') ||
-              lowerSheet.includes('máquina') ||
-              lowerSheet.includes('capital') ||
-              lowerSheet.includes('inversion') ||
-              lowerSheet.includes('inversión') ||
-              lowerSheet.includes('herramienta') ||
-              lowerSheet.includes('auto') ||
-              lowerSheet.includes('vehiculo') ||
-              lowerSheet.includes('vehículo')
-            ) {
-              currentSection = 'assets';
-            } else if (
-              lowerSheet.includes('pasivo') || 
-              lowerSheet.includes('deuda') || 
-              lowerSheet.includes('acreedor') || 
-              lowerSheet.includes('credito') ||
-              lowerSheet.includes('crédito') ||
-              lowerSheet.includes('prestamo') ||
-              lowerSheet.includes('préstamo') ||
-              lowerSheet.includes('obligac') ||
-              lowerSheet.includes('compromiso')
-            ) {
-              currentSection = 'debts';
-            } else if (lowerSheet.includes('ingreso') || lowerSheet.includes('venta') || lowerSheet.includes('entrada')) {
-              if (lowerSheet.includes('variable')) {
-                currentSection = 'ingresos_variables';
-              } else {
-                currentSection = 'ingresos_fijos';
-              }
-            } else if (lowerSheet.includes('egreso') || lowerSheet.includes('gasto') || lowerSheet.includes('costo')) {
-              if (lowerSheet.includes('variable')) {
-                currentSection = 'egresos_variables';
-              } else {
-                currentSection = 'egresos_fijos';
-              }
-            }
-            
-            rows.forEach(row => {
-              if (!row || row.length === 0) return;
-              
-              let textCell = "";
-              let numCell = null;
-              let stringCellsCount = 0;
-              let numberCellsCount = 0;
-              
-              row.forEach(cell => {
-                if (cell === null || cell === undefined) return;
-                
-                if (typeof cell === 'number') {
-                  if (cell > 0) {
-                    numCell = cell;
-                    numberCellsCount++;
-                  }
-                } else if (typeof cell === 'string') {
-                  const cleanStr = cell.trim();
-                  if (!cleanStr) return;
-                  
-                  // Check if this string is a formatted numeric value (e.g. "$450.000" or "1.200.000")
-                  const numericClean = cleanStr.replace(/\$/g, '').replace(/\./g, '').replace(/,/g, '').trim();
-                  const parsedNum = Number(numericClean);
-                  
-                  if (!isNaN(parsedNum) && parsedNum > 0) {
-                    numCell = parsedNum;
-                    numberCellsCount++;
-                  } else if (cleanStr.length > 2) {
-                    textCell = cleanStr;
-                    stringCellsCount++;
-                  }
-                }
-              });
-              
-              // 2. Identify if this is a Category Transition Header (contains text but no numbers)
-              if (numberCellsCount === 0 && textCell) {
-                const lowerText = textCell.toLowerCase().trim();
-                
-                // Asset transition headers
-                if (
-                  lowerText.includes('activo') || 
-                  lowerText.includes('bien') || 
-                  lowerText.includes('inventario') ||
-                  lowerText.includes('equipo') ||
-                  lowerText.includes('mueble') ||
-                  lowerText.includes('propiedad') ||
-                  lowerText.includes('maquina') ||
-                  lowerText.includes('máquina') ||
-                  lowerText.includes('capital') ||
-                  lowerText.includes('inversion') ||
-                  lowerText.includes('inversión') ||
-                  lowerText.includes('herramienta') ||
-                  lowerText.includes('vehiculo') ||
-                  lowerText.includes('vehículo') ||
-                  lowerText === 'patrimonio'
-                ) {
-                  if (!lowerText.includes('ingreso') && !lowerText.includes('egreso') && !lowerText.includes('gasto') && !lowerText.includes('costo')) {
-                    currentSection = 'assets';
-                    return;
-                  }
-                }
-                
-                // Debt transition headers
-                if (
-                  lowerText.includes('pasivo') || 
-                  lowerText.includes('deuda') || 
-                  lowerText.includes('credito') ||
-                  lowerText.includes('crédito') ||
-                  lowerText.includes('prestamo') ||
-                  lowerText.includes('préstamo') ||
-                  lowerText.includes('obligac') ||
-                  lowerText.includes('acreedor') ||
-                  lowerText.includes('compromiso')
-                ) {
-                  currentSection = 'debts';
-                  return;
-                }
-                
-                if (lowerText.includes('ingreso') && (lowerText.includes('fijo') || lowerText.includes('mensual') || lowerText.includes('recurrente'))) {
-                  currentSection = 'ingresos_fijos';
-                  return;
-                }
-                if (lowerText.includes('egreso') || lowerText.includes('gasto') || lowerText.includes('costo')) {
-                  if (lowerText.includes('fijo') || lowerText.includes('mensual') || lowerText.includes('recurrente')) {
-                    currentSection = 'egresos_fijos';
-                    return;
-                  }
-                }
-                if (lowerText.includes('ingreso') && lowerText.includes('variable')) {
-                  currentSection = 'ingresos_variables';
-                  return;
-                }
-                if ((lowerText.includes('egreso') || lowerText.includes('gasto') || lowerText.includes('costo')) && lowerText.includes('variable')) {
-                  currentSection = 'egresos_variables';
-                  return;
-                }
-                
-                // Common plain headers
-                if (lowerText === 'ingresos fijos' || lowerText === 'ingresos mensuales') {
-                  currentSection = 'ingresos_fijos';
-                  return;
-                }
-                if (lowerText === 'egresos fijos' || lowerText === 'gastos fijos' || lowerText === 'costos fijos' || lowerText === 'estructura de costos') {
-                  currentSection = 'egresos_fijos';
-                  return;
-                }
-                if (lowerText === 'ingresos variables') {
-                  currentSection = 'ingresos_variables';
-                  return;
-                }
-                if (lowerText === 'egresos variables' || lowerText === 'gastos variables') {
-                  currentSection = 'egresos_variables';
-                  return;
-                }
-              }
-              
-              // 3. Process text-number pairs under the active currentSection
-              if (textCell && numCell) {
-                const lowerText = textCell.toLowerCase();
-                
-                // Skip header tags and common aggregate rows
-                const skipKeywords = [
-                  'total', 'subtotal', 'iva', 'neto', 'resumen', 'balance', 'margen', 
-                  'año', 'mes', 'dia', 'fecha', 'rut', 'id', 'item', 'codigo', 'nro', 'numero'
-                ];
-                if (skipKeywords.some(kw => lowerText.includes(kw))) {
-                  return;
-                }
-                
-                let resolvedSection = currentSection;
-                
-                // Fallback to row-level keyword matching if section is unassigned
-                if (resolvedSection === 'default') {
-                  const isExpense = 
-                    lowerText.includes('egreso') || 
-                    lowerText.includes('gasto') || 
-                    lowerText.includes('costo') || 
-                    lowerText.includes('pago') || 
-                    lowerText.includes('arriendo') || 
-                    lowerText.includes('sueldo') || 
-                    lowerText.includes('luz') || 
-                    lowerText.includes('agua') || 
-                    lowerText.includes('internet') || 
-                    lowerText.includes('comision') || 
-                    lowerText.includes('seguro') || 
-                    lowerText.includes('saas') || 
-                    lowerText.includes('suscripcion');
-                    
-                  const isIncome = 
-                    lowerText.includes('ingreso') || 
-                    lowerText.includes('venta') || 
-                    lowerText.includes('factura') || 
-                    lowerText.includes('cobro') || 
-                    lowerText.includes('honorario');
-                    
-                  const isVariable = 
-                    lowerText.includes('variable') || 
-                    lowerText.includes('comision') || 
-                    lowerText.includes('boleta') || 
-                    lowerText.includes('combustible') || 
-                    lowerText.includes('cliente') || 
-                    lowerText.includes('reunion') || 
-                    lowerText.includes('puntual');
-                    
-                  const isAsset = 
-                    lowerText.includes('activo') || 
-                    lowerText.includes('maquinaria') || 
-                    lowerText.includes('computador') || 
-                    lowerText.includes('laptop') || 
-                    lowerText.includes('macbook') || 
-                    lowerText.includes('notebook') || 
-                    lowerText.includes('tablet') || 
-                    lowerText.includes('ipad') || 
-                    lowerText.includes('pantalla') || 
-                    lowerText.includes('monitor') || 
-                    lowerText.includes('camara') || 
-                    lowerText.includes('cámara') || 
-                    lowerText.includes('lente') || 
-                    lowerText.includes('audio') || 
-                    lowerText.includes('parlante') || 
-                    lowerText.includes('microfono') || 
-                    lowerText.includes('micrófono') || 
-                    lowerText.includes('iluminacion') || 
-                    lowerText.includes('iluminación') || 
-                    lowerText.includes('foco') || 
-                    lowerText.includes('led') || 
-                    lowerText.includes('oficina') || 
-                    lowerText.includes('mobiliario') || 
-                    lowerText.includes('mueble') || 
-                    lowerText.includes('silla') || 
-                    lowerText.includes('escritorio') || 
-                    lowerText.includes('mesa') || 
-                    lowerText.includes('vehiculo') || 
-                    lowerText.includes('vehículo') || 
-                    lowerText.includes('auto') || 
-                    lowerText.includes('camioneta') || 
-                    lowerText.includes('moto') || 
-                    lowerText.includes('furgon') || 
-                    lowerText.includes('furgón') || 
-                    lowerText.includes('herramienta') || 
-                    lowerText.includes('maquina') || 
-                    lowerText.includes('máquina') || 
-                    lowerText.includes('bodega') || 
-                    lowerText.includes('terreno') || 
-                    lowerText.includes('propiedad') || 
-                    lowerText.includes('local') || 
-                    lowerText.includes('inventario') || 
-                    lowerText.includes('mercaderia') || 
-                    lowerText.includes('mercadería') || 
-                    lowerText.includes('stock');
-                    
-                  const isDebt = 
-                    lowerText.includes('deuda') || 
-                    lowerText.includes('credito') || 
-                    lowerText.includes('crédito') || 
-                    lowerText.includes('pasivo') || 
-                    lowerText.includes('cuotas') || 
-                    lowerText.includes('prestamo') || 
-                    lowerText.includes('préstamo') || 
-                    lowerText.includes('hipoteca') || 
-                    lowerText.includes('hipotecario') || 
-                    lowerText.includes('leasing') || 
-                    lowerText.includes('financiamiento') || 
-                    lowerText.includes('cae') || 
-                    lowerText.includes('cmr') || 
-                    lowerText.includes('visa') || 
-                    lowerText.includes('mastercard') || 
-                    lowerText.includes('banco') || 
-                    lowerText.includes('mutual') || 
-                    lowerText.includes('cooperativa') || 
-                    lowerText.includes('pagar') || 
-                    lowerText.includes('tgr') || 
-                    lowerText.includes('sii');
-                    
-                  if (isExpense) {
-                    resolvedSection = isVariable ? 'egresos_variables' : 'egresos_fijos';
-                  } else if (isIncome) {
-                    resolvedSection = isVariable ? 'ingresos_variables' : 'ingresos_fijos';
-                  } else if (isAsset) {
-                    resolvedSection = 'assets';
-                  } else if (isDebt) {
-                    resolvedSection = 'debts';
-                  } else {
-                    resolvedSection = 'egresos_variables';
-                  }
-                }
-                
-                if (resolvedSection === 'assets') {
-                  parsedAssets.push({ name: textCell, value: numCell });
-                } else if (resolvedSection === 'debts') {
-                  parsedDebts.push({ name: textCell, value: numCell });
-                } else if (resolvedSection === 'ingresos_fijos') {
-                  parsedIngresosFijos.push({ name: textCell, value: numCell });
-                } else if (resolvedSection === 'egresos_fijos') {
-                  parsedEgresosFijos.push({ name: textCell, value: numCell });
-                } else if (resolvedSection === 'ingresos_variables') {
-                  parsedIngresosVars.push({ name: textCell, value: numCell });
-                } else if (resolvedSection === 'egresos_variables') {
-                  parsedEgresosVars.push({ name: textCell, value: numCell });
-                }
-              }
-            });
-          });
-          
-          setUploadProgress(85);
-          
-          // Populate the React States via passed CRUD callback props under current context
-          let count = 0;
-          if (parsedIngresosFijos.length > 0 && addIncome) {
-            for (const item of parsedIngresosFijos) {
-              await addIncome(item.name, item.value, currentContext);
-              count++;
-            }
-          }
-          if (parsedEgresosFijos.length > 0 && addExpense) {
-            for (const item of parsedEgresosFijos) {
-              await addExpense(item.name, item.value, currentContext);
-              count++;
-            }
-          }
-          if (parsedIngresosVars.length > 0 && addVariableIncome) {
-            for (const item of parsedIngresosVars) {
-              await addVariableIncome(item.name, item.value, currentContext);
-              count++;
-            }
-          }
-          if (parsedEgresosVars.length > 0 && addVariableExpense) {
-            for (const item of parsedEgresosVars) {
-              await addVariableExpense(item.name, item.value, currentContext);
-              count++;
-            }
-          }
-          if (parsedAssets.length > 0 && addAsset) {
-            for (const item of parsedAssets) {
-              let catId = 'otros';
-              const nameLower = item.name.toLowerCase();
-              if (nameLower.includes('comput') || nameLower.includes('tech') || nameLower.includes('pc') || nameLower.includes('software')) catId = 'equipos';
-              else if (nameLower.includes('camara') || nameLower.includes('audio') || nameLower.includes('lente') || nameLower.includes('microfono')) catId = 'audiovisual';
-              else if (nameLower.includes('luz') || nameLower.includes('iluminacion') || nameLower.includes('foco')) catId = 'iluminacion';
-              else if (nameLower.includes('silla') || nameLower.includes('mesa') || nameLower.includes('mueble') || nameLower.includes('sillon')) catId = 'muebles';
-              
-              await addAsset(catId, item.name, item.value, currentContext);
-              count++;
-            }
-          }
-          if (parsedDebts.length > 0 && addDebt) {
-            for (const item of parsedDebts) {
-              let cuotasTotales = 1;
-              let cuotaActual = 0;
-              const match = item.name.match(/(\d+)\s*cuotas?/i);
-              if (match) {
-                cuotasTotales = parseInt(match[1]);
-              }
-              const rateMatch = item.name.match(/(\d+)\s*\/\s*(\d+)/);
-              if (rateMatch) {
-                cuotaActual = parseInt(rateMatch[1]);
-                cuotasTotales = parseInt(rateMatch[2]);
-              }
-              
-              const debtData = {
-                name: item.name,
-                totalOriginal: item.value,
-                cuotaActual,
-                cuotasTotales,
-                montoMensual: cuotasTotales > 0 ? Math.round(item.value / cuotasTotales) : item.value,
-                context: currentContext
-              };
-              await addDebt(debtData);
-              count++;
-            }
-          }
-          
-          setUploadProgress(100);
-          setIsUploading(false);
-          setUploadSuccess(true);
-          
-          // Generate customized audit message and inject directly in the Chat interface!
-          setIsAiLoading(true);
-          setTimeout(() => {
-            const auditReport = `📊 **Consolidación de Planilla de Presupuesto (Excel) - "${file.name}" completada.**
+    setIsAiLoading(true);
+    setTimeout(() => {
+      const auditReport = `📊 **Consolidación de Planilla de Presupuesto (Excel) - "${uploadedFileName}" completada.**
 
 He analizado los libros del archivo e integrado **${count} ítems** directamente en tu panel contable:
 *   **Contexto de Importación:** Asignado automáticamente al flujo de **${currentContext === 'personal' ? 'Finanzas Personales' : currentContext === 'empresa' ? 'Negocio' : 'Consolidado'}**.
 
 **Resumen de Items Mapeados:**
-${parsedIngresosFijos.length > 0 ? `*   **Ingresos Fijos:** ${parsedIngresosFijos.length} Conceptos (${formatMoney(parsedIngresosFijos.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedEgresosFijos.length > 0 ? `*   **Egresos Fijos:** ${parsedEgresosFijos.length} Conceptos (${formatMoney(parsedEgresosFijos.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedIngresosVars.length > 0 ? `*   **Ingresos Variables:** ${parsedIngresosVars.length} Conceptos (${formatMoney(parsedIngresosVars.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedEgresosVars.length > 0 ? `*   **Egresos Variables:** ${parsedEgresosVars.length} Conceptos (${formatMoney(parsedEgresosVars.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedAssets.length > 0 ? `*   **Activos Mapeados:** ${parsedAssets.length} Bienes (${formatMoney(parsedAssets.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedDebts.length > 0 ? `*   **Deudas/Pasivos Mapeados:** ${parsedDebts.length} Obligaciones (${formatMoney(parsedDebts.reduce((s, i) => s + i.value, 0))})\n` : ''}
+${parsedData.ingresosFijos.length > 0 ? `*   **Ingresos Fijos:** ${parsedData.ingresosFijos.length} Conceptos (${formatMoney(parsedData.ingresosFijos.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedData.egresosFijos.length > 0 ? `*   **Egresos Fijos:** ${parsedData.egresosFijos.length} Conceptos (${formatMoney(parsedData.egresosFijos.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedData.ingresosVariables.length > 0 ? `*   **Ingresos Variables:** ${parsedData.ingresosVariables.length} Conceptos (${formatMoney(parsedData.ingresosVariables.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedData.egresosVariables.length > 0 ? `*   **Egresos Variables:** ${parsedData.egresosVariables.length} Conceptos (${formatMoney(parsedData.egresosVariables.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedData.assets.length > 0 ? `*   **Activos Mapeados:** ${parsedData.assets.length} Bienes (${formatMoney(parsedData.assets.reduce((s, i) => s + i.value, 0))})\n` : ''}${parsedData.debts.length > 0 ? `*   **Deudas/Pasivos Mapeados:** ${parsedData.debts.length} Obligaciones (${formatMoney(parsedData.debts.reduce((s, i) => s + i.value, 0))})\n` : ''}
 Los balances de caja de tu panel y las proyecciones de flujo se han reajustado exitosamente. ¡Tus tablas de ingresos y egresos ahora se encuentran completamente consolidadas!`;
 
-            setChatMessages(prev => [
-              ...prev,
-              { sender: 'ai', text: auditReport }
-            ]);
-            setIsAiLoading(false);
-          }, 1000);
-          
-        } catch (err) {
-          console.error("Excel import failed:", err);
-          setIsUploading(false);
-          alert("No se pudo parsear el archivo Excel. Asegúrese de que es un archivo .xlsx o .xls válido.");
-        }
-      };
-      reader.readAsBinaryString(file);
-    }
+      setChatMessages(prev => [
+        ...prev,
+        { sender: 'ai', text: auditReport }
+      ]);
+      setIsAiLoading(false);
+    }, 1000);
+  };
+
+  const handlePdfSuccess = (uploadedFileName, auditReport) => {
+    setIsUploading(false);
+    setUploadSuccess(true);
+    setIsAiLoading(true);
+    setTimeout(() => {
+      setChatMessages(prev => [
+        ...prev,
+        { sender: 'ai', text: auditReport }
+      ]);
+      setIsAiLoading(false);
+    }, 1000);
   };
 
   // Chat Submission Handler
@@ -2008,7 +1596,12 @@ He procesado tu consulta y analizado tus números integrados.
                 </div>
                 <div>
                   <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0 }}>Importar Estados Financieros</h4>
-                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Sube tu planilla Excel (.xlsx, .xls) o cartola en PDF</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                    Sube tu planilla Excel (.xlsx, .xls) o cartola en PDF.
+                    <a href="/ganancy_plantilla_modelo.xlsx" download style={{ marginLeft: '6px', color: 'var(--accent)', fontWeight: 600, textDecoration: 'underline' }}>
+                      Descargar plantilla modelo
+                    </a>
+                  </p>
                 </div>
               </div>
 
@@ -2022,20 +1615,26 @@ He procesado tu consulta y analizado tus números integrados.
                 cursor: 'pointer',
                 position: 'relative'
               }}>
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.pdf"
-                  onChange={handleFileUpload}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
-                    cursor: 'pointer'
+                <ExcelUploader
+                  onUploadStart={(name, type) => {
+                    setFileName(name);
+                    setIsUploading(true);
+                    setUploadProgress(10);
+                    setUploadSuccess(false);
+                    setFileType(type);
                   }}
-                  disabled={isUploading}
+                  onProgress={(progress) => {
+                    setUploadProgress(progress);
+                  }}
+                  onExcelSuccess={handleExcelSuccess}
+                  onPdfSuccess={handlePdfSuccess}
+                  onError={(err) => {
+                    setIsUploading(false);
+                    alert(err);
+                  }}
+                  isUploading={isUploading}
+                  assetsTotal={assetsTotal}
+                  formatMoney={formatMoney}
                 />
                 {isUploading ? (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -2726,39 +2325,7 @@ He procesado tu consulta y analizado tus números integrados.
                 <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Los gráficos se generarán automáticamente a medida que completes meses.</span>
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%" minHeight={300}>
-                <BarChart
-                  data={historicalFlowsState}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
-                  barGap={6}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
-                  <XAxis 
-                    dataKey="month" 
-                    stroke="var(--text-secondary)" 
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    stroke="var(--text-secondary)" 
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(var(--accent-rgb), 0.03)' }} />
-                  <Legend 
-                    verticalAlign="top" 
-                    height={36} 
-                    iconType="circle"
-                    iconSize={8}
-                    formatter={(value) => <span style={{ color: 'var(--text-primary)', fontSize: '13px' }}>{value}</span>}
-                  />
-                  <Bar dataKey="ingresos" name="Ingresos" fill="var(--success)" radius={[4, 4, 0, 0]} maxBarSize={25} />
-                  <Bar dataKey="egresos" name="Egresos" fill="var(--danger)" radius={[4, 4, 0, 0]} maxBarSize={25} />
-                </BarChart>
-              </ResponsiveContainer>
+              <DashboardCharts historicalFlowsState={historicalFlowsState} />
             )}
           </div>
         </div>

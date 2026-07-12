@@ -1,19 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Sun, Moon, LayoutDashboard, Database, Calendar, CreditCard, TrendingUp, RotateCcw, Loader, ShieldCheck, Sparkles, Settings, User, Mail, X } from 'lucide-react';
-import { PASIVOS_DATA, ACTIVOS_DATA, INGRESOS_FIJOS, EGRESOS_FIJOS, HISTORICAL_FLOWS, MONTH_DETAILS } from './data/financialData';
-import DashboardView from './sections/DashboardView';
-import ActivosPasivosView from './sections/ActivosPasivosView';
-import FlujoMensualView from './sections/FlujoMensualView';
-import DeudasView from './sections/DeudasView';
-import ProyeccionView from './sections/ProyeccionView';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Sun, Moon, LayoutDashboard, Database, Calendar, CreditCard, TrendingUp, RotateCcw, Loader, ShieldCheck, Sparkles, Settings, User, Mail, X, RefreshCw } from 'lucide-react';
+import { PASIVOS_DATA, ACTIVOS_DATA, INGRESOS_FIJOS, EGRESOS_FIJOS, HISTORICAL_FLOWS, MONTH_DETAILS, formatCLP } from './data/financialData';
 import LoginView from './sections/LoginView';
-import SubscriptionView from './sections/SubscriptionView';
 import LandingPageView from './sections/LandingPageView';
-import AdminConsoleView from './sections/AdminConsoleView';
+const DashboardView = lazy(() => import('./sections/DashboardView'));
+const ActivosPasivosView = lazy(() => import('./sections/ActivosPasivosView'));
+const FlujoMensualView = lazy(() => import('./sections/FlujoMensualView'));
+const DeudasView = lazy(() => import('./sections/DeudasView'));
+const ProyeccionView = lazy(() => import('./sections/ProyeccionView'));
+const SubscriptionView = lazy(() => import('./sections/SubscriptionView'));
+const AdminConsoleView = lazy(() => import('./sections/AdminConsoleView'));
 import { LANDING_PAGE_DEFAULTS } from './data/landingPageDefaults';
 
 import { supabase } from './lib/supabaseClient';
 import { fetchAllUserData, initializeDefaultUserData } from './lib/financialService';
+import ErrorBoundary from './components/ErrorBoundary';
+
+const formatMoney = (val) => formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL');
 
 // Helper to automatically mark past installments as paid based on elapsed months since start date
 function adjustDebtsPaidInstallments(debts) {
@@ -2593,7 +2596,8 @@ export default function App() {
   }
 
   return (
-    <div className="app-container">
+    <ErrorBoundary>
+      <div className="app-container">
       {/* Header (Cleaned up: No Reset button) */}
       {/* Header (Cleaned up: No Reset button) */}
       <header style={{ 
@@ -3079,7 +3083,13 @@ export default function App() {
 
       {/* Active Section Content */}
       <main style={{ flex: 1, paddingBottom: '40px' }}>
-        {renderContent()}
+        <Suspense fallback={
+          <div style={{ display: 'flex', flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', padding: '100px 0' }}>
+            <Loader size={32} style={{ color: 'var(--accent, #0a84ff)', animation: 'spin 1s linear infinite' }} />
+          </div>
+        }>
+          {renderContent()}
+        </Suspense>
       </main>
 
       {/* Footer */}
@@ -3514,7 +3524,8 @@ export default function App() {
           }}
         />
       )}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
 

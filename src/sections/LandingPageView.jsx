@@ -4,6 +4,7 @@ import { LANDING_PAGE_DEFAULTS } from '../data/landingPageDefaults';
 
 export default function LandingPageView({ onEnterLogin, landingPageData }) {
   const [activeFaq, setActiveFaq] = useState(null);
+  const [activeLegalModal, setActiveLegalModal] = useState(null);
 
   // Safely merge custom landing data with original defaults
   const data = {
@@ -635,8 +636,116 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
           <div>
             {footer.copyright}
           </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', marginTop: '8px' }}>
+            <button onClick={() => setActiveLegalModal('terms')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 600 }}>Términos de Servicio</button>
+            <button onClick={() => setActiveLegalModal('privacy')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 600 }}>Política de Privacidad</button>
+            <button onClick={() => setActiveLegalModal('refunds')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 600 }}>Política de Reembolsos</button>
+            <button onClick={() => setActiveLegalModal('contact')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 600 }}>Contacto y Soporte</button>
+          </div>
         </div>
       </footer>
+
+      {/* LEGAL MODALS FOR PADDLE COMPLIANCE */}
+      {activeLegalModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+          padding: '24px'
+        }} onClick={() => setActiveLegalModal(null)}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '600px',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid rgba(0, 0, 0, 0.05)',
+            padding: '32px',
+            position: 'relative',
+            textAlign: 'left'
+          }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setActiveLegalModal(null)} style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: '#f5f5f7',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#1d1d1f'
+            }}>
+              <Icons.X size={16} />
+            </button>
+            
+            <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1d1d1f', marginBottom: '20px', marginTop: 0 }}>
+              {activeLegalModal === 'terms' && "Términos de Servicio"}
+              {activeLegalModal === 'privacy' && "Política de Privacidad"}
+              {activeLegalModal === 'refunds' && "Política de Reembolsos"}
+              {activeLegalModal === 'contact' && "Contacto y Soporte"}
+            </h3>
+            
+            <div style={{ color: '#515154', fontSize: '13px', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {activeLegalModal === 'terms' && (
+                <>
+                  <p><strong>1. Aceptación de los Términos</strong></p>
+                  <p>Al acceder y utilizar la plataforma Ganancy, usted acepta estar sujeto a estos Términos de Servicio. Si no está de acuerdo con alguna parte de estos términos, no debe utilizar nuestra aplicación.</p>
+                  <p><strong>2. Descripción del Servicio</strong></p>
+                  <p>Ganancy es una plataforma de software como servicio (SaaS) que permite a los usuarios organizar sus finanzas personales, flujos de caja y pasivos. La plataforma incluye simuladores con Inteligencia Artificial local y herramientas de escaneo de boletas.</p>
+                  <p><strong>3. Cuentas y Registro</strong></p>
+                  <p>Para utilizar ciertas funciones de la aplicación, deberá registrarse y mantener una cuenta activa. Usted es responsable de la confidencialidad de su cuenta y contraseña, así como de todas las actividades que ocurran bajo su cuenta.</p>
+                  <p><strong>4. Pagos y Suscripciones</strong></p>
+                  <p>Nuestros servicios de facturación, cobros de suscripciones y reventas son procesados por <strong>Paddle.com</strong> (nuestro Merchant of Record). Al realizar una compra, usted acepta los términos y condiciones de pago de Paddle.</p>
+                </>
+              )}
+              {activeLegalModal === 'privacy' && (
+                <>
+                  <p><strong>1. Recolección de Información</strong></p>
+                  <p>Recopilamos información necesaria para la autenticación y prestación del servicio (nombre, dirección de correo electrónico y datos financieros que usted decida ingresar voluntariamente en sus tablas de presupuesto).</p>
+                  <p><strong>2. Uso de los Datos</strong></p>
+                  <p>Los datos financieros ingresados en Ganancy se procesan localmente en su dispositivo y se almacenan de forma encriptada en la base de datos de la plataforma. No comercializamos ni transferimos sus datos a terceros.</p>
+                  <p><strong>3. Seguridad de los Datos</strong></p>
+                  <p>Implementamos medidas de seguridad técnicas (encriptación SSL, políticas de seguridad CSP) para resguardar su información contra acceso no autorizado.</p>
+                </>
+              )}
+              {activeLegalModal === 'refunds' && (
+                <>
+                  <p><strong>1. Garantía de Satisfacción de 14 Días</strong></p>
+                  <p>Queremos que esté completamente satisfecho con Ganancy. Si por cualquier motivo siente que la plataforma no cumple con sus expectativas, tiene derecho a solicitar un reembolso completo dentro de los primeros 14 días contados desde la compra de su suscripción original.</p>
+                  <p><strong>2. Proceso de Solicitud</strong></p>
+                  <p>Para solicitar un reembolso, puede ponerse en contacto con nuestro equipo de soporte enviando un correo a <strong>contacto@ganancy.cl</strong> indicando su correo de registro y el ID de transacción provisto por nuestro vendedor autorizado <strong>Paddle</strong>.</p>
+                  <p><strong>3. Tiempo de Procesamiento</strong></p>
+                  <p>Una vez aprobada la solicitud, el reembolso se procesará de inmediato a través del sistema de Paddle y el dinero se devolverá al mismo medio de pago utilizado para la compra en un plazo de 3 a 10 días hábiles bancarios.</p>
+                </>
+              )}
+              {activeLegalModal === 'contact' && (
+                <>
+                  <p>Para cualquier duda legal, soporte técnico, consultas sobre facturación o solicitudes de reembolso, puede comunicarse directamente con nuestro equipo de atención comercial:</p>
+                  <p style={{ marginTop: '8px' }}><strong>Correo Electrónico de Soporte:</strong></p>
+                  <p><a href="mailto:contacto@ganancy.cl" style={{ color: '#0071e3', fontWeight: 600, textDecoration: 'underline' }}>contacto@ganancy.cl</a></p>
+                  <p style={{ marginTop: '8px' }}><strong>Dirección Comercial y Representación Legal:</strong></p>
+                  <p>Metinca SpA / Ganancy</p>
+                  <p>Santiago de Chile, Chile</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,13 +1,67 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/ganancy_logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- PWA Manifest & App configuration -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/ganancy_pwa_icon.png" />
+    
+    <!-- SEO Básico -->
     <title>GANANCY - Planificación Contable y CFO Inteligente</title>
+    <meta name="description" content="Planificación contable avanzada, automatización de flujos de caja y CFO inteligente para optimizar tus finanzas personales y empresariales de manera veloz y segura." />
+    <meta name="keywords" content="planificación contable, cfo inteligente, finanzas personales, flujo de caja, control financiero, finanzas chile, contabilidad" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Blindaje de Seguridad: Content Security Policy (CSP) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; script-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com;" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ganancy.cl/" />
+    <meta property="og:title" content="GANANCY - Planificación Contable y CFO Inteligente" />
+    <meta property="og:description" content="Planificación contable avanzada, automatización de flujos de caja y CFO inteligente para optimizar tus finanzas personales y empresariales de manera veloz y segura." />
+    <meta property="og:image" content="https://ganancy.cl/ganancy_concept.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://ganancy.cl/" />
+    <meta property="twitter:title" content="GANANCY - Planificación Contable y CFO Inteligente" />
+    <meta property="twitter:description" content="Planificación contable avanzada, automatización de flujos de caja y CFO inteligente para optimizar tus finanzas personales y empresariales de manera veloz y segura." />
+    <meta property="twitter:image" content="https://ganancy.cl/ganancy_concept.png" />
+
+    <!-- Schema.org Datos Estructurados JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "GANANCY",
+      "operatingSystem": "All",
+      "applicationCategory": "BusinessApplication",
+      "description": "Planificación contable avanzada, automatización de flujos de caja y CFO inteligente para optimizar tus finanzas personales y empresariales.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "CLP"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('PWA Service Worker registrado con éxito', reg))
+            .catch(err => console.error('Error al registrar Service Worker', err));
+        });
+      }
+    </script>
   </body>
 </html>

@@ -2,6 +2,26 @@ import React, { useState } from 'react';
 import { Calendar, X, Plus, Trash2, Edit2, Bell, Check, Send, Paperclip, FileText } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
+function renderFormattedToastMessage(message) {
+  if (!message) return null;
+  // Escapar caracteres html inseguros para evitar inyección XSS
+  const escaped = message
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+  // Dividir buscando bloques de negritas markdown **texto**
+  const parts = escaped.split(/\*\*([^*]+)\*\*/g);
+  return parts.map((part, index) => {
+    if (index % 2 === 1) {
+      return <strong key={index}>{part}</strong>;
+    }
+    return part;
+  });
+}
+
 const parseMonthYear = (str) => {
   if (!str) return new Date();
   const parts = str.split(' ');
@@ -873,7 +893,7 @@ export default function FlujoMensualView({
           animation: 'slideDown 0.3s cubic-bezier(0.1, 0.8, 0.2, 1)'
         }}>
           <Bell size={18} style={{ animation: 'bounce 1s infinite' }} />
-          <div dangerouslySetInnerHTML={{ __html: toastMessage }}></div>
+          <div>{renderFormattedToastMessage(toastMessage)}</div>
           <button 
             onClick={() => setToastMessage(null)}
             style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
