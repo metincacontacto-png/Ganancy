@@ -149,9 +149,7 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
 
   const formatMoney = (val) => {
     if (val === null) return 'Cotizar';
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
+    return 'US$' + new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0
     }).format(val);
   };

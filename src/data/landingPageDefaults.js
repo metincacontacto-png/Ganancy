@@ -58,8 +58,8 @@ export const LANDING_PAGE_DEFAULTS = {
     {
       id: "plan_personal",
       name: "Plan Personal",
-      price: 6990,
-      originalPrice: 13990,
+      price: 7,
+      originalPrice: 14,
       period: "mes",
       iconName: "User",
       color: "#0071e3",
@@ -75,8 +75,8 @@ export const LANDING_PAGE_DEFAULTS = {
     {
       id: "plan_completo",
       name: "Plan Completo (Empresa + Personal)",
-      price: 9990,
-      originalPrice: 24990,
+      price: 10,
+      originalPrice: 25,
       period: "mes",
       iconName: "Briefcase",
       color: "#0a84ff",
@@ -96,8 +96,8 @@ export const LANDING_PAGE_DEFAULTS = {
     {
       id: "plan_familiar",
       name: "Plan Familiar (Multi-Perfil)",
-      price: 14990,
-      originalPrice: 29990,
+      price: 15,
+      originalPrice: 30,
       period: "mes",
       iconName: "Users",
       color: "#ff9500",
