@@ -3,6 +3,7 @@ import { Sun, Moon, LayoutDashboard, Database, Calendar, CreditCard, TrendingUp,
 import { PASIVOS_DATA, ACTIVOS_DATA, INGRESOS_FIJOS, EGRESOS_FIJOS, HISTORICAL_FLOWS, MONTH_DETAILS, formatCLP } from './data/financialData';
 import LoginView from './sections/LoginView';
 import LandingPageView from './sections/LandingPageView';
+import LegalPageView from './sections/LegalPageView';
 const DashboardView = lazy(() => import('./sections/DashboardView'));
 const ActivosPasivosView = lazy(() => import('./sections/ActivosPasivosView'));
 const FlujoMensualView = lazy(() => import('./sections/FlujoMensualView'));
@@ -2535,6 +2536,13 @@ export default function App() {
         return <DashboardView debtsState={filteredDebtsState} assetsTotal={filteredAssetsState.total} />;
     }
   };
+
+  // Páginas legales con URL propia (para que Paddle pueda visitarlas directamente
+  // durante la aprobación de dominio) — se sirven sin esperar la sesión de Supabase.
+  const legalRouteMatch = window.location.pathname.match(/^\/(terminos|privacidad|reembolsos)\/?$/i);
+  if (legalRouteMatch) {
+    return <LegalPageView page={legalRouteMatch[1].toLowerCase()} />;
+  }
 
   // Render Auth Loader Screen
   if (isDataLoading) {

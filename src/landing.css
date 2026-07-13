@@ -1270,7 +1270,8 @@
   flex-wrap: wrap;
 }
 
-.gy-footer-links button {
+.gy-footer-links button,
+.gy-footer-links a {
   background: none;
   border: none;
   color: var(--gy-text-soft);
@@ -1278,10 +1279,12 @@
   font-size: 12px;
   font-weight: 600;
   padding: 0;
+  text-decoration: none;
   transition: color 0.2s var(--gy-ease);
 }
 
-.gy-footer-links button:hover {
+.gy-footer-links button:hover,
+.gy-footer-links a:hover {
   color: var(--gy-blue);
 }
 
