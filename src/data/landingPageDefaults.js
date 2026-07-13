@@ -1,41 +1,53 @@
 // Default Template Data for GANANCY Landing Page
 export const LANDING_PAGE_DEFAULTS = {
   hero: {
-    badge: "Nueva Tecnología de Aislamiento Fiscal SII",
-    title: "Ganancy Organiza y controla tus finanzas.",
-    desc: "Separar de forma estricta tus finanzas personales de las de tu empresa es vital para evitar multas del SII. GANANCY (un producto de GANIMIDES) te entrega control absoluto: aísla tus cuentas contables a un click, procesa boletas con IA y planifica con un CFO virtual de élite.",
+    badge: "Dashboard Financiero · Negocio + Personal",
+    title: "Tu dinero, finalmente bajo control con Ganancy",
+    desc: "Ganancy es la plataforma que te permite ver, entender y decidir sobre tus finanzas — personales y de tu negocio — en un solo lugar, sin hojas de cálculo ni desorden.",
     ctaPrimary: "Probar Demo Gratis",
     ctaSecondary: "Ver Planes",
     imageUrl: "/ganancy_concept.png"
   },
   featuresHeader: {
-    title: "Una estructura financiera diseñada para crecer",
-    subtitle: "Evita el desorden tributario y la mezcla de gastos del fundador con los del negocio"
+    title: "Todo lo que necesitas para tomar mejores decisiones",
+    subtitle: "Desde registrar una boleta hasta proyectar tu flujo, Ganancy lo hace simple."
   },
   features: [
     {
       id: "feat_1",
-      title: "Aislamiento Contable 1-Click",
-      desc: "Alterna instantáneamente entre tus finanzas personales y las de la empresa. Ideal para mantener contabilidades completamente independientes.",
-      iconName: "Layers"
+      title: "Dashboard en tiempo real",
+      desc: "Ve tus activos, pasivos, ingresos y egresos actualizados en un solo panel.",
+      iconName: "LayoutDashboard"
     },
     {
       id: "feat_2",
-      title: "Escáner IA de Boletas y Facturas",
-      desc: "Sube tus tickets de gastos y deja que nuestra IA extraiga el RUT, el emisor, los montos y el desglose de IVA (19%) en segundos.",
-      iconName: "Sparkles"
+      title: "Escáner IA de boletas",
+      desc: "Sube una foto de tu boleta o factura y la IA la registra automáticamente.",
+      iconName: "ScanLine"
     },
     {
       id: "feat_3",
-      title: "Respaldo Tributario SII",
-      desc: "Almacena digitalmente cada boleta física linkeada al gasto. Visualiza tus documentos en un visor a pantalla completa para auditorías del SII.",
-      iconName: "ShieldCheck"
+      title: "Flujo mensual y proyecciones",
+      desc: "Anticipa cuánto tendrás disponible el próximo mes antes de gastar.",
+      iconName: "TrendingUp"
     },
     {
       id: "feat_4",
-      title: "Planificación CFO IA de Élite",
-      desc: "Chatea con un consultor financiero inteligente que analiza tu balance, deudas y calcula puntos de equilibrio y escenarios con total precisión.",
-      iconName: "LineChart"
+      title: "Importa tus Excel y PDF",
+      desc: "Sube tus estados financieros o cartola bancaria y Ganancy los procesa.",
+      iconName: "FileSpreadsheet"
+    },
+    {
+      id: "feat_5",
+      title: "Control de deudas",
+      desc: "Registra cuotas, tasas e instituciones. Sabe exactamente cuánto debes y a quién.",
+      iconName: "CreditCard"
+    },
+    {
+      id: "feat_6",
+      title: "Negocio y personal separados",
+      desc: "Mantén tus finanzas laborales y personales en vistas distintas pero conectadas.",
+      iconName: "Layers"
     }
   ],
   pricingHeader: {
@@ -44,8 +56,25 @@ export const LANDING_PAGE_DEFAULTS = {
   },
   plans: [
     {
+      id: "plan_personal",
+      name: "Plan Personal",
+      price: 6990,
+      originalPrice: 13990,
+      period: "mes",
+      iconName: "User",
+      color: "#0071e3",
+      desc: "Controla tus gastos, ingresos y deudas personales con IA. Ideal si todavía no necesitas separar tu negocio.",
+      features: [
+        "Dashboard financiero personal en tiempo real",
+        "Escáner IA de boletas y facturas",
+        "Flujo mensual y proyecciones de gasto",
+        "Control de deudas y tarjetas",
+        "Asesor IA básico de finanzas personales"
+      ]
+    },
+    {
       id: "plan_completo",
-      name: "Plan Único (Personal + Negocio)",
+      name: "Plan Completo (Empresa + Personal)",
       price: 9990,
       originalPrice: 24990,
       period: "mes",
@@ -53,15 +82,12 @@ export const LANDING_PAGE_DEFAULTS = {
       color: "#0a84ff",
       desc: "La solución total para separar de verdad tu vida de tu negocio. Controla tu caja, IA y auditoría tributaria en vivo.",
       features: [
-        "Control de ingresos y egresos personales",
-        "Gestión de deudas y cuotas individuales",
-        "Bloqueo absoluto de vistas de Negocio",
         "Separación Contable 1-Click (Vistas Negocio/Personal)",
         "Vista Consolidada Unificada en Tiempo Real",
-        "📷 Escáner Inteligente OCR de boletas y facturas",
-        "📦 Visor Tributario y almacenamiento para el SII",
-        "🛠️ Gestor de Activos y Categorías con drag-and-drop",
-        "🤖 Asesor Contable y CFO Inteligente IA de Élite completo",
+        "Escáner Inteligente OCR de boletas y facturas",
+        "Visor Tributario y almacenamiento para el SII",
+        "Gestor de Activos y Categorías con drag-and-drop",
+        "Asesor Contable y CFO Inteligente IA de Élite completo",
         "Simulador de punto de equilibrio y márgenes"
       ],
       popular: true,
@@ -78,10 +104,10 @@ export const LANDING_PAGE_DEFAULTS = {
       desc: "Administra las finanzas de tu hogar de forma colaborativa. Crea perfiles independientes para cada miembro y visualiza el presupuesto familiar consolidado.",
       features: [
         "Todo lo del Plan Único",
-        "👥 Hasta 4 perfiles familiares independientes",
-        "🔄 Switcher rápido de perfiles en la cabecera",
-        "📊 Vista consolidada familiar en tiempo real",
-        "🔒 Privacidad y separación de cuentas entre miembros"
+        "Hasta 4 perfiles familiares independientes",
+        "Switcher rápido de perfiles en la cabecera",
+        "Vista consolidada familiar en tiempo real",
+        "Privacidad y separación de cuentas entre miembros"
       ],
       popular: false,
       tag: "Parejas y Familias"

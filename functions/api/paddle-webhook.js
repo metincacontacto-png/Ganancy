@@ -121,6 +121,7 @@ async function processEvent(event, env) {
 }
 
 function priceIdToTier(priceId, env) {
+  if (priceId === env.PADDLE_PRICE_ID_PLAN_PERSONAL) return "plan_personal";
   if (priceId === env.PADDLE_PRICE_ID_PLAN_COMPLETO) return "plan_completo";
   if (priceId === env.PADDLE_PRICE_ID_PLAN_FAMILIAR) return "plan_familiar";
   return undefined;

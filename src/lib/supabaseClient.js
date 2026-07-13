@@ -13,7 +13,7 @@ const isMissingCredentials =
 if (isMissingCredentials) {
   console.warn(
     "⚠️ [Supabase] Faltan las credenciales reales en tu archivo `.env`. " +
-    "Por favor edita el archivo `/Users/dekgiovannirepetto/Documents/DEVELOPER/FINANCY GAME/.env` " +
+    "Por favor edita el archivo `/Users/dekgiovannirepetto/Documents/DEVELOPER/GANANCY/.env` " +
     "con tu URL y anon key de la consola de Supabase."
   );
 }

@@ -1,10 +1,90 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { LANDING_PAGE_DEFAULTS } from '../data/landingPageDefaults';
+import '../landing.css';
+
+function Reveal({ children, className = '', as: Tag = 'div', delay = 0, ...rest }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <Tag
+      ref={ref}
+      className={`gy-reveal ${visible ? 'is-visible' : ''} ${className}`}
+      style={{ transitionDelay: visible ? `${delay}ms` : '0ms' }}
+      {...rest}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+const PLAN_FEATURE_ICON_RULES = [
+  [/escáner|ocr/i, 'Camera'],
+  [/flujo|vista consolidada/i, 'BarChart3'],
+  [/deudas|tarjetas/i, 'CreditCard'],
+  [/asesor|cfo/i, 'Bot'],
+  [/visor tributario/i, 'Package'],
+  [/gestor de activos/i, 'Wrench'],
+  [/perfiles familiares/i, 'Users'],
+  [/switcher/i, 'RefreshCw'],
+  [/privacidad/i, 'Lock']
+];
+
+const getPlanFeatureIcon = (text) => {
+  const match = PLAN_FEATURE_ICON_RULES.find(([pattern]) => pattern.test(text));
+  return match ? match[1] : null;
+};
+
+const STEPS = [
+  {
+    num: '01',
+    iconName: 'ScanLine',
+    title: 'Registra en segundos',
+    desc: 'Escanea una boleta con la IA o importa tu cartola y Excel. Ganancy hace el trabajo pesado por ti.'
+  },
+  {
+    num: '02',
+    iconName: 'Layers',
+    title: 'Ganancy lo organiza',
+    desc: 'Separa automáticamente lo personal de lo del negocio, calcula IVA y categoriza cada movimiento.'
+  },
+  {
+    num: '03',
+    iconName: 'LineChart',
+    title: 'Decide con datos reales',
+    desc: 'Consulta a tu CFO con IA, revisa tu flujo proyectado y toma decisiones antes de que el dinero se vaya.'
+  }
+];
 
 export default function LandingPageView({ onEnterLogin, landingPageData }) {
   const [activeFaq, setActiveFaq] = useState(null);
   const [activeLegalModal, setActiveLegalModal] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // PWA Install Prompt States
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -13,30 +93,23 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
   const [showIosTip, setShowIosTip] = useState(false);
 
   React.useEffect(() => {
-    // Check if iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(isIosDevice);
 
-    // If it's iOS and not already running in standalone mode, show install option
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
     if (isIosDevice && !isStandalone) {
       setShowInstallBtn(true);
     }
 
     const handleBeforeInstallPrompt = (e) => {
-      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-      if (isStandaloneMode) return;
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstallBtn(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
   const handleInstallClick = () => {
@@ -55,7 +128,6 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
     });
   };
 
-  // Safely merge custom landing data with original defaults
   const data = {
     logoUrl: landingPageData?.logoUrl || LANDING_PAGE_DEFAULTS.logoUrl || null,
     hero: { ...LANDING_PAGE_DEFAULTS.hero, ...(landingPageData?.hero || {}) },
@@ -70,13 +142,13 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
 
   const { logoUrl, hero, featuresHeader, features, pricingHeader, plans, faqsHeader, faqs, footer } = data;
 
-  const getIcon = (name, size = 20, color = "currentColor", extraProps = {}) => {
+  const getIcon = (name, size = 20, color = 'currentColor', extraProps = {}) => {
     const IconComponent = Icons[name] || Icons.HelpCircle;
     return <IconComponent size={size} color={color} {...extraProps} />;
   };
 
   const formatMoney = (val) => {
-    if (val === null) return "Cotizar";
+    if (val === null) return 'Cotizar';
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
       currency: 'CLP',
@@ -84,727 +156,375 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
     }).format(val);
   };
 
-  const isVideoUrl = (url) => {
-    if (!url) return false;
-    const lowerUrl = url.toLowerCase().trim();
+  const closeMenuAnd = (fn) => (...args) => {
+    setMenuOpen(false);
+    if (fn) fn(...args);
+  };
+
+  const bentoSpan = (idx) => ([0, 5].includes(idx) ? '' : 'gy-span-1');
+
+  const bentoVariant = (idx) => {
+    if (idx === 0) return 'gy-bento-featured-blue';
+    if (idx === 5) return 'gy-bento-featured-dark';
+    if (idx === 2) return 'gy-bento-featured-amber';
+    return '';
+  };
+
+  const bentoIconColor = (idx) => {
+    if (idx === 2) return 'var(--gy-ink)';
+    if (idx === 0 || idx === 5) return '#fff';
+    return 'var(--gy-blue)';
+  };
+
+  // Envuelve una frase dentro de un texto en <em> serif itálica para el
+  // acento editorial del hero. Si la frase no aparece (ej. copy editado
+  // desde el admin), devuelve el texto plano sin romper nada.
+  const emphasize = (text, phrase) => {
+    if (!text || !phrase) return text;
+    const idx = text.toLowerCase().indexOf(phrase.toLowerCase());
+    if (idx === -1) return text;
     return (
-      lowerUrl.endsWith('.mp4') || 
-      lowerUrl.endsWith('.webm') || 
-      lowerUrl.endsWith('.ogg') ||
-      lowerUrl.includes('youtube.com') ||
-      lowerUrl.includes('youtu.be') ||
-      lowerUrl.includes('vimeo.com')
+      <>
+        {text.slice(0, idx)}
+        <em className="gy-em">{text.slice(idx, idx + phrase.length)}</em>
+        {text.slice(idx + phrase.length)}
+      </>
     );
   };
 
-  const getEmbedUrl = (url) => {
-    if (!url) return '';
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      let videoId = '';
-      if (url.includes('youtube.com/watch')) {
-        try {
-          const urlParams = new URLSearchParams(new URL(url).search);
-          videoId = urlParams.get('v') || '';
-        } catch (e) {
-          const splitWatch = url.split('v=');
-          if (splitWatch[1]) videoId = splitWatch[1].split('&')[0];
-        }
-      } else if (url.includes('youtu.be/')) {
-        videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
-      } else if (url.includes('youtube.com/embed/')) {
-        videoId = url.split('youtube.com/embed/')[1]?.split('?')[0] || '';
-      }
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1`;
-    }
-    if (url.includes('vimeo.com')) {
-      let vimeoId = '';
-      if (url.includes('player.vimeo.com/video/')) {
-        vimeoId = url.split('player.vimeo.com/video/')[1]?.split('?')[0] || '';
-      } else {
-        vimeoId = url.split('vimeo.com/')[1]?.split('?')[0] || '';
-      }
-      return `https://player.vimeo.com/video/${vimeoId}?autoplay=1&muted=1&loop=1&autopause=0&background=1`;
-    }
-    return url;
-  };
-
   return (
-    <div style={{
-      background: '#ffffff',
-      color: '#1d1d1f',
-      minHeight: '100vh',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      position: 'relative',
-      overflowX: 'hidden'
-    }}>
-      {/* Background glowing gradients */}
-      <div style={{
-        position: 'absolute',
-        top: '-10%',
-        left: '20%',
-        width: '50vw',
-        height: '50vw',
-        background: 'radial-gradient(circle, rgba(0, 113, 227, 0.04) 0%, transparent 70%)',
-        zIndex: 0,
-        pointerEvents: 'none'
-      }}></div>
-      <div style={{
-        position: 'absolute',
-        top: '40%',
-        right: '-10%',
-        width: '40vw',
-        height: '40vw',
-        background: 'radial-gradient(circle, rgba(245, 158, 11, 0.02) 0%, transparent 70%)',
-        zIndex: 0,
-        pointerEvents: 'none'
-      }}></div>
+    <div className="gy-landing">
+      {/* HEADER */}
+      <header className={`gy-header ${scrolled ? 'is-scrolled' : ''}`}>
+        <div className="gy-container gy-header-row">
+          <img src={logoUrl || (scrolled ? '/ganancy_logo_light.png' : '/ganancy_logo_dark.png')} alt="GANANCY" className="gy-logo" />
 
-      {/* STICKY HEADER */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backdropFilter: 'blur(16px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(15, 23, 42, 0.95)', // Clean, solid premium dark blue as requested
-        padding: '16px 24px'
-      }}>
-        <div className="landing-header-container" style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '24px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <img 
-              src={logoUrl || "/ganancy_logo_light.png"} 
-              alt="GANANCY" 
-              style={{ height: '32px', width: 'auto', display: 'block' }} 
-            />
-          </div>
-
-          <div className="landing-header-right" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <nav className="landing-nav" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-              <a href="#features" className="landing-nav-link">Características</a>
-              <a href="#pricing" className="landing-nav-link">Planes de Precios</a>
-              <a href="#faqs" className="landing-nav-link">Preguntas Frecuentes</a>
+          <div className="gy-header-right">
+            <nav className="gy-nav">
+              <a href="#features" className="gy-nav-link">Características</a>
+              <a href="#pricing" className="gy-nav-link">Planes de Precios</a>
+              <a href="#faqs" className="gy-nav-link">Preguntas Frecuentes</a>
             </nav>
 
             {showInstallBtn && (
               <div style={{ position: 'relative' }}>
-                <button 
-                  onClick={handleInstallClick}
-                  style={{
-                    background: 'linear-gradient(135deg, #0a84ff 0%, #0056b3 100%)',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 4px 12px rgba(10, 132, 255, 0.3)',
-                    transition: 'all 0.2s',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
+                <button onClick={handleInstallClick} className="gy-btn gy-btn-md gy-btn-ghost-dark gy-install-btn">
                   <Icons.Download size={14} />
-                  <span>Instalar App</span>
+                  <span className="gy-install-text">Instalar App</span>
                 </button>
-                
-                {/* Popover instructivo exclusivo para iPhone/iOS */}
+
                 {showIosTip && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '45px',
-                    right: 0,
-                    background: '#ffffff',
-                    border: '1px solid rgba(0,0,0,0.1)',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    width: '260px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-                    zIndex: 200,
-                    color: '#1d1d1f',
-                    textAlign: 'left'
-                  }}>
+                  <div className="gy-modal" style={{ position: 'absolute', top: '48px', right: 0, width: '260px', maxHeight: 'none', padding: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <strong style={{ fontSize: '13px' }}>Instalar en iPhone</strong>
-                      <button onClick={() => setShowIosTip(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#86868b' }}>
-                        <Icons.X size={14} />
+                      <button onClick={() => setShowIosTip(false)} className="gy-modal-close" style={{ position: 'static', width: '24px', height: '24px' }}>
+                        <Icons.X size={13} />
                       </button>
                     </div>
-                    <p style={{ margin: 0, fontSize: '11.5px', lineHeight: '1.4', color: '#515154' }}>
-                      1. Presiona el botón de <strong>Compartir</strong> <Icons.Share2 size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> en Safari.<br/>
-                      2. Selecciona la opción <strong>"Añadir a la pantalla de inicio"</strong>.
+                    <p style={{ margin: 0, fontSize: '11.5px', lineHeight: '1.4', color: 'var(--gy-text-soft)' }}>
+                      1. Presiona el botón de <strong>Compartir</strong> <Icons.Share2 size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> en Safari.<br />
+                      2. Selecciona <strong>&quot;Añadir a la pantalla de inicio&quot;</strong>.
                     </p>
                   </div>
                 )}
               </div>
             )}
 
-            <button 
-              onClick={onEnterLogin}
-              style={{
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.2)',
-                padding: '8px 18px',
-                borderRadius: '10px',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
+            <button onClick={onEnterLogin} className="gy-btn gy-btn-md gy-btn-dark-pill gy-header-desktop-cta">
+              <span>Acceso Cliente</span>
+              {getIcon('ArrowRight', 14)}
+            </button>
+
+            <button
+              className="gy-menu-toggle"
+              aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(!menuOpen)}
             >
-              Acceso Cliente
+              {menuOpen ? <Icons.X size={18} /> : <Icons.Menu size={18} />}
             </button>
           </div>
         </div>
+
+        <div className={`gy-mobile-panel ${menuOpen ? 'is-open' : ''}`}>
+          <a href="#features" onClick={closeMenuAnd()}>Características</a>
+          <a href="#pricing" onClick={closeMenuAnd()}>Planes de Precios</a>
+          <a href="#faqs" onClick={closeMenuAnd()}>Preguntas Frecuentes</a>
+          <button onClick={closeMenuAnd(onEnterLogin)} style={{ color: '#6fb4ff', fontWeight: 700 }}>
+            Acceso Cliente
+          </button>
+        </div>
       </header>
 
-      {/* HERO SECTION */}
-      <section style={{
-        maxWidth: '1000px',
-        margin: '0 auto',
-        padding: '90px 24px 60px 24px',
-        textAlign: 'center',
-        position: 'relative',
-        zIndex: 10
-      }}>
-        {hero.badge && (
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'rgba(0, 113, 227, 0.08)',
-            border: '1px solid rgba(0, 113, 227, 0.15)',
-            color: '#0071e3',
-            padding: '6px 14px',
-            borderRadius: '999px',
-            fontSize: '12px',
-            fontWeight: 600,
-            marginBottom: '24px'
-          }}>
-            {getIcon("Sparkles", 14, "#0071e3")}
-            <span>{hero.badge}</span>
-          </div>
-        )}
+      {/* HERO */}
+      <section className="gy-hero">
+        <div className="gy-aurora" />
+        <div className="gy-sheen" />
+        <div className="gy-hero-scrim" />
+        <div className="gy-noise" />
 
-        <h1 style={{
-          fontSize: '48px',
-          fontWeight: 800,
-          lineHeight: 1.15,
-          letterSpacing: '-1.5px',
-          marginBottom: '20px',
-          color: '#1d1d1f'
-        }}>
-          {hero.title}
-        </h1>
-
-        <p style={{
-          fontSize: '17px',
-          color: '#515154',
-          lineHeight: '1.6',
-          maxWidth: '680px',
-          margin: '0 auto 36px auto'
-        }}>
-          {hero.desc}
-        </p>
-
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
-          <button 
-            onClick={onEnterLogin}
-            style={{
-              background: 'linear-gradient(135deg, #0071e3 0%, #0056b3 100%)',
-              color: '#fff',
-              border: 'none',
-              padding: '14px 28px',
-              borderRadius: '12px',
-              fontSize: '15px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 8px 20px rgba(0, 113, 227, 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'transform 0.2s'
-            }}
-          >
-            <span>{hero.ctaPrimary}</span>
-            {getIcon("ArrowRight", 18)}
-          </button>
-
-          <a 
-            href="#pricing"
-            style={{
-              background: '#f5f5f7',
-              color: '#0071e3',
-              border: '1px solid rgba(0, 0, 0, 0.06)',
-              padding: '14px 28px',
-              borderRadius: '12px',
-              fontSize: '15px',
-              fontWeight: 600,
-              textDecoration: 'none',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center'
-            }}
-          >
-            {hero.ctaSecondary}
-          </a>
-        </div>
-
-        {/* Preview concept image (WOW factor) */}
-        {hero.imageUrl && (
-          <div style={{
-            marginTop: '60px',
-            position: 'relative',
-            borderRadius: '24px',
-            border: '1px solid rgba(0, 0, 0, 0.08)',
-            background: '#ffffff',
-            padding: '12px',
-            boxShadow: '0 30px 60px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-            overflow: 'hidden',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            transition: 'transform 0.4s ease, box-shadow 0.4s ease',
-            cursor: 'pointer'
-          }}
-          className="hero-image-container"
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)';
-            e.currentTarget.style.boxShadow = '0 30px 65px rgba(0, 113, 227, 0.1), 0 20px 45px rgba(0,0,0,0.12)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0) scale(1)';
-            e.currentTarget.style.boxShadow = '0 30px 60px rgba(0, 0, 0, 0.08)';
-          }}
-          onClick={onEnterLogin}
-          >
-            {isVideoUrl(hero.imageUrl) ? (
-              hero.imageUrl.includes('youtube.com') || hero.imageUrl.includes('youtu.be') || hero.imageUrl.includes('vimeo.com') ? (
-                <iframe
-                  src={getEmbedUrl(hero.imageUrl)}
-                  title="Video de presentación de GANANCY"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  style={{
-                    width: '100%',
-                    aspectRatio: '16/9',
-                    borderRadius: '16px',
-                    display: 'block',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.06)',
-                    pointerEvents: 'none',
-                    transform: 'scale(1.03)'
-                  }}
-                />
-              ) : (
-                <video
-                  src={hero.imageUrl}
-                  controls
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    borderRadius: '16px',
-                    display: 'block',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.06)'
-                  }}
-                />
-              )
-            ) : (
-              <img 
-                src={hero.imageUrl} 
-                alt="GANANCY Dashboard Financiero" 
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  borderRadius: '16px',
-                  display: 'block',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.06)'
-                }}
-              />
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* CORE DIFFERENTIATOR FEATURES */}
-      <section id="features" style={{
-        background: '#f5f5f7',
-        borderTop: '1px solid rgba(0, 0, 0, 0.04)',
-        borderBottom: '1px solid rgba(0, 0, 0, 0.04)',
-        padding: '80px 24px',
-        position: 'relative',
-        zIndex: 10
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 style={{ fontSize: '30px', fontWeight: 700, marginBottom: '8px', color: '#1d1d1f' }}>{featuresHeader.title}</h2>
-            <p style={{ color: '#86868b', fontSize: '15px' }}>{featuresHeader.subtitle}</p>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '24px'
-          }}>
-            {features.map((feat) => (
-              <div key={feat.id} className="card glass-panel" style={{
-                background: '#ffffff',
-                border: '1px solid rgba(0, 0, 0, 0.06)',
-                borderRadius: '16px',
-                padding: '24px',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.02)',
-                transition: 'all 0.3s',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                <div style={{
-                  background: 'rgba(0, 113, 227, 0.08)',
-                  color: '#0071e3',
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '16px'
-                }}>
-                  {getIcon(feat.iconName, 20, "#0071e3")}
-                </div>
-                <h3 style={{ fontSize: '17px', fontWeight: 600, margin: '0 0 10px 0', color: '#1d1d1f' }}>{feat.title}</h3>
-                <p style={{ color: '#515154', fontSize: '13px', lineHeight: '1.5', margin: 0, flexGrow: 1 }}>
-                  {feat.desc}
-                </p>
-                <div style={{ marginTop: '16px' }}>
-                  <button 
-                    onClick={onEnterLogin}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#0071e3',
-                      fontSize: '12.5px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      transition: 'opacity 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.target.style.opacity = 0.75}
-                    onMouseLeave={(e) => e.target.style.opacity = 1}
-                  >
-                    Probar ahora &rarr;
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* PRICING PLANS */}
-      <section id="pricing" style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '80px 24px',
-        position: 'relative',
-        zIndex: 10
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <h2 style={{ fontSize: '30px', fontWeight: 700, marginBottom: '8px', color: '#1d1d1f' }}>{pricingHeader.title}</h2>
-          <p style={{ color: '#86868b', fontSize: '15px' }}>{pricingHeader.subtitle}</p>
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '20px',
-          alignItems: 'stretch'
-        }}>
-          {plans.map((plan) => (
-            <div 
-              key={plan.id}
-              style={{
-                background: plan.popular 
-                  ? 'linear-gradient(135deg, rgba(0, 113, 227, 0.03) 0%, #ffffff 100%)' 
-                  : '#ffffff',
-                border: plan.popular ? '2px solid #0071e3' : '1px solid rgba(0, 0, 0, 0.08)',
-                borderRadius: '20px',
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-                position: 'relative',
-                overflow: 'hidden',
-                transition: 'all 0.3s',
-                boxShadow: plan.popular ? '0 20px 40px rgba(0, 113, 227, 0.08)' : '0 10px 30px rgba(0, 0, 0, 0.03)'
-              }}
-            >
-              {/* Popular Tag */}
-              {plan.tag && (
-                <div style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  background: plan.popular ? '#0071e3' : 'rgba(0,0,0,0.05)',
-                  color: plan.popular ? '#fff' : '#515154',
-                  fontSize: '9.5px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  padding: '3px 8px',
-                  borderRadius: '999px',
-                  letterSpacing: '0.5px'
-                }}>
-                  {plan.tag}
-                </div>
-              )}
-
-              {/* Plan header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
-                <div style={{
-                  background: `rgba(${plan.popular ? '0, 113, 227' : '0, 0, 0'}, 0.06)`,
-                  color: plan.popular ? '#0071e3' : '#1d1d1f',
-                  padding: '8px',
-                  borderRadius: '10px'
-                }}>
-                  {getIcon(plan.iconName || "User", 20, plan.popular ? '#0071e3' : '#1d1d1f')}
-                </div>
-                <h3 style={{ fontSize: '16.5px', fontWeight: 700, margin: 0, color: '#1d1d1f' }}>{plan.name}</h3>
-              </div>
-
-              {/* Price block */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                {plan.originalPrice && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '11.5px', color: '#86868b', textDecoration: 'line-through', fontWeight: '500' }}>
-                      {formatMoney(plan.originalPrice)}
-                    </span>
-                    <span style={{ 
-                      fontSize: '8.5px', 
-                      background: 'rgba(52, 199, 89, 0.15)', 
-                      color: '#1a7f37', 
-                      padding: '1px 5px', 
-                      borderRadius: '4px', 
-                      fontWeight: '700',
-                      textTransform: 'uppercase'
-                    }}>
-                      Lanzamiento
-                    </span>
-                  </div>
-                )}
-                <div>
-                  <span style={{ fontSize: '26px', fontWeight: 800, color: '#1d1d1f' }}>{formatMoney(plan.price)}</span>
-                  {plan.price !== null && (
-                    <span style={{ fontSize: '11px', color: '#86868b', marginLeft: '4px' }}>/ {plan.period}</span>
-                  )}
-                </div>
-              </div>
-
-              <p style={{ fontSize: '12px', color: '#515154', lineHeight: '1.4', margin: 0, minHeight: '42px' }}>
-                {plan.desc}
-              </p>
-
-              <div style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.08)', margin: '4px 0' }}></div>
-
-              {/* Features list */}
-              <ul style={{
-                listStyle: 'none',
-                padding: 0,
-                margin: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-                flexGrow: 1
-              }}>
-                {(plan.features || []).map((feat, idx) => (
-                  <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '11.5px', color: '#424245' }}>
-                    {getIcon("CheckCircle2", 13, plan.popular ? '#0071e3' : '#1d1d1f', { style: { marginTop: '2px', flexShrink: 0 } })}
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button 
-                onClick={onEnterLogin}
-                style={{
-                  background: plan.popular ? 'linear-gradient(135deg, #0071e3 0%, #0056b3 100%)' : '#f5f5f7',
-                  color: plan.popular ? '#fff' : '#0071e3',
-                  border: plan.popular ? 'none' : '1px solid rgba(0, 0, 0, 0.05)',
-                  padding: '10px 16px',
-                  borderRadius: '10px',
-                  fontSize: '12.5px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  width: '100%',
-                  transition: 'all 0.2s',
-                  boxShadow: plan.popular ? '0 4px 12px rgba(0, 113, 227, 0.2)' : 'none',
-                  marginTop: '8px'
-                }}
-              >
-                {plan.price === null ? "Contactar Ventas" : "Suscribirme al Plan"}
-              </button>
+        <div className="gy-hero-inner">
+          {hero.badge && (
+            <div className="gy-badge">
+              {getIcon('Sparkles', 13, 'var(--gy-amber-light)')}
+              <span>{hero.badge}</span>
             </div>
-          ))}
+          )}
+
+          <h1>{emphasize(hero.title, 'bajo control')}</h1>
+
+          <p className="gy-hero-desc">{hero.desc}</p>
+
+          <div className="gy-hero-actions">
+            <button onClick={onEnterLogin} className="gy-btn gy-btn-lg gy-btn-primary">
+              <span>{hero.ctaPrimary}</span>
+              {getIcon('ArrowRight', 18)}
+            </button>
+            <a href="#pricing" className="gy-btn gy-btn-lg gy-btn-secondary">
+              {hero.ctaSecondary}
+            </a>
+          </div>
+
+          <div className="gy-trust-strip">
+            <span>{getIcon('ShieldCheck', 14)} Datos encriptados</span>
+            <span>{getIcon('RefreshCw', 13)} Cancela cuando quieras</span>
+            <span>{getIcon('MapPin', 13)} Hecho para PYMEs y personas en Chile</span>
+          </div>
         </div>
       </section>
 
-      {/* FAQS SECTION */}
-      <section id="faqs" style={{
-        background: '#f5f5f7',
-        borderTop: '1px solid rgba(0, 0, 0, 0.04)',
-        padding: '80px 24px 100px 24px',
-        position: 'relative',
-        zIndex: 10
-      }}>
-        <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <h2 style={{ fontSize: '30px', fontWeight: 700, marginBottom: '8px', color: '#1d1d1f' }}>{faqsHeader.title}</h2>
-            <p style={{ color: '#86868b', fontSize: '14px' }}>{faqsHeader.subtitle}</p>
+      {/* STEPS */}
+      <section className="gy-steps-section">
+        <div className="gy-container">
+          <div className="gy-steps-grid">
+            {STEPS.map((step, idx) => (
+              <Reveal key={step.num} delay={idx * 90} className="gy-step-card" as="div">
+                <div className="gy-step-icon">{getIcon(step.iconName, 24)}</div>
+                <div className="gy-step-num">PASO {step.num}</div>
+                <h3>{step.title}</h3>
+                <p>{step.desc}</p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES — BENTO */}
+      <section id="features" className="gy-section gy-section-alt">
+        <div className="gy-container">
+          <Reveal className="gy-section-head">
+            <span className="gy-eyebrow">{getIcon('Sparkles', 12, 'var(--gy-amber)')} Características</span>
+            <h2>{featuresHeader.title}</h2>
+            <p>{featuresHeader.subtitle}</p>
+          </Reveal>
+
+          <div className="gy-bento">
+            {features.map((feat, idx) => (
+              <Reveal
+                key={feat.id}
+                delay={(idx % 3) * 80}
+                className={`gy-bento-card ${bentoSpan(idx)} ${bentoVariant(idx)}`}
+                as="div"
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  e.currentTarget.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+                  e.currentTarget.style.setProperty('--my', `${e.clientY - rect.top}px`);
+                }}
+              >
+                <div className="gy-bento-icon">{getIcon(feat.iconName, 21, bentoIconColor(idx))}</div>
+                <h3>{feat.title}</h3>
+                <p>{feat.desc}</p>
+                <button onClick={onEnterLogin} className="gy-bento-link">
+                  Probar ahora {getIcon('ArrowRight', 14)}
+                </button>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PROBLEM / SOLUTION */}
+      <section className="gy-section gy-section-tight">
+        <div className="gy-container">
+          <Reveal className="gy-section-head">
+            <span className="gy-eyebrow">{getIcon('Sparkles', 12, 'var(--gy-amber)')} Por qué existe Ganancy</span>
+            <h2>Mezclar tus finanzas te puede salir caro</h2>
+            <p>El SII cataloga los gastos mezclados como retiro encubierto. Ganancy separa todo desde el primer clic.</p>
+          </Reveal>
+
+          <div className="gy-split">
+            <Reveal className="gy-split-card gy-bad">
+              <div className="gy-split-icon">{getIcon('AlertTriangle', 22)}</div>
+              <span className="gy-split-tag">Sin separar tus finanzas</span>
+              <h3>El desorden que preocupa al SII</h3>
+              <p>Pagar la mercadería del negocio con tu cuenta personal, o el súper de tu casa con la cuenta de la empresa, se cataloga como retiro encubierto o gasto rechazado.</p>
+              <ul className="gy-split-list">
+                <li><span className="gy-split-check">{getIcon('X', 14)}</span> Multas y créditos de IVA perdidos</li>
+                <li><span className="gy-split-check">{getIcon('X', 14)}</span> Boletas sueltas y difíciles de auditar</li>
+                <li><span className="gy-split-check">{getIcon('X', 14)}</span> Todo mezclado en hojas de cálculo</li>
+              </ul>
+            </Reveal>
+
+            <Reveal delay={100} className="gy-split-card gy-good">
+              <div className="gy-split-icon">{getIcon('ShieldCheck', 22)}</div>
+              <span className="gy-split-tag">Con Ganancy</span>
+              <h3>Control absoluto, a un click</h3>
+              <p>Aísla tus cuentas contables al instante, respalda cada boleta para una fiscalización y consulta tu CFO con IA antes de tomar una decisión.</p>
+              <ul className="gy-split-list">
+                <li><span className="gy-split-check">{getIcon('CheckCircle2', 14)}</span> Aislamiento contable 1-click</li>
+                <li><span className="gy-split-check">{getIcon('CheckCircle2', 14)}</span> Boletas respaldadas y listas para el SII</li>
+                <li><span className="gy-split-check">{getIcon('CheckCircle2', 14)}</span> IA que calcula RUT, montos e IVA por ti</li>
+              </ul>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section id="pricing" className="gy-section gy-section-alt">
+        <div className="gy-container">
+          <Reveal className="gy-section-head">
+            <span className="gy-eyebrow">{getIcon('Sparkles', 12, 'var(--gy-amber)')} Precios</span>
+            <h2>{pricingHeader.title}</h2>
+            <p>{pricingHeader.subtitle}</p>
+          </Reveal>
+
+          <div className="gy-pricing-grid">
+            {plans.map((plan, idx) => (
+              <Reveal key={plan.id} delay={idx * 100} className={`gy-plan-card ${plan.popular ? 'gy-popular' : ''}`}>
+                {plan.tag && <div className="gy-plan-tag">{plan.tag}</div>}
+
+                <div className="gy-plan-head">
+                  <div className="gy-plan-icon">{getIcon(plan.iconName || 'User', 19)}</div>
+                  <h3>{plan.name}</h3>
+                </div>
+
+                <div>
+                  {plan.originalPrice && (
+                    <div className="gy-price-row" style={{ marginBottom: '2px' }}>
+                      <span className="gy-price-old">{formatMoney(plan.originalPrice)}</span>
+                      <span className="gy-price-badge">Lanzamiento</span>
+                    </div>
+                  )}
+                  <div className="gy-price-row">
+                    <span className="gy-price-now">{formatMoney(plan.price)}</span>
+                    {plan.price !== null && <span className="gy-price-period">/ {plan.period}</span>}
+                  </div>
+                </div>
+
+                <p className="gy-plan-desc">{plan.desc}</p>
+
+                <div className="gy-plan-divider" />
+
+                <ul className="gy-plan-features">
+                  {(plan.features || []).map((feat, i) => {
+                    const featIcon = getPlanFeatureIcon(feat);
+                    return (
+                      <li key={i}>
+                        <span className="gy-plan-check">{getIcon('Check', 15, 'var(--gy-amber)')}</span>
+                        {featIcon && (
+                          <span className="gy-plan-feat-icon">{getIcon(featIcon, 14, 'var(--gy-amber)')}</span>
+                        )}
+                        <span>{feat}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <button onClick={onEnterLogin} className={`gy-btn ${plan.popular ? 'gy-btn-primary' : 'gy-btn-secondary'}`} style={{ width: '100%', marginTop: '4px' }}>
+                  {plan.price === null ? 'Contactar Ventas' : 'Suscribirme al Plan'}
+                </button>
+              </Reveal>
+            ))}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="gy-guarantee-row">
+            {getIcon('ShieldCheck', 16, 'var(--gy-blue)')}
+            Garantía de devolución de 14 días · Cancela cuando quieras, sin contratos forzosos
+          </div>
+        </div>
+      </section>
+
+      {/* FAQS */}
+      <section id="faqs" className="gy-section">
+        <div className="gy-container">
+          <Reveal className="gy-section-head">
+            <span className="gy-eyebrow">{getIcon('Sparkles', 12, 'var(--gy-amber)')} Dudas frecuentes</span>
+            <h2>{faqsHeader.title}</h2>
+            <p>{faqsHeader.subtitle}</p>
+          </Reveal>
+
+          <div className="gy-faq-list">
             {faqs.map((faq, index) => (
-              <div 
-                key={index} 
-                className="glass-panel"
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid rgba(0, 0, 0, 0.05)',
-                  borderRadius: '12px',
-                  padding: '16px 20px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.01)',
-                  transition: 'all 0.2s'
-                }}
-                onClick={() => setActiveFaq(activeFaq === index ? null : index)}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: '#1d1d1f' }}>{faq.q}</h4>
-                  {getIcon("ChevronDown", 18, "#86868b", {
-                    style: {
-                      transform: activeFaq === index ? 'rotate(180deg)' : 'none',
-                      transition: 'transform 0.2s',
-                      flexShrink: 0
-                    }
-                  })}
+              <Reveal key={index} delay={index * 60} className={`gy-faq-item ${activeFaq === index ? 'is-open' : ''}`}>
+                <button
+                  className="gy-faq-trigger"
+                  onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                  aria-expanded={activeFaq === index}
+                >
+                  <h4>{faq.q}</h4>
+                  {getIcon('ChevronDown', 18)}
+                </button>
+                <div className="gy-faq-answer-wrap">
+                  <div className="gy-faq-answer-inner">
+                    <p>{faq.a}</p>
+                  </div>
                 </div>
-                
-                {activeFaq === index && (
-                  <p style={{ 
-                    margin: '12px 0 0 0', 
-                    fontSize: '13px', 
-                    color: '#515154', 
-                    lineHeight: '1.6',
-                    borderTop: '1px solid rgba(0, 0, 0, 0.06)',
-                    paddingTop: '12px'
-                  }}>
-                    {faq.a}
-                  </p>
-                )}
-              </div>
+              </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="gy-final-cta">
+        <div className="gy-aurora" style={{ opacity: 0.7 }} />
+        <div className="gy-sheen" />
+        <div className="gy-container">
+          <h2>Tu dinero, finalmente <em className="gy-em">bajo control</em></h2>
+          <p>Prueba Ganancy gratis y separa tus finanzas personales de tu negocio hoy mismo.</p>
+          <div className="gy-hero-actions">
+            <button onClick={onEnterLogin} className="gy-btn gy-btn-lg gy-btn-primary">
+              <span>{hero.ctaPrimary}</span>
+              {getIcon('ArrowRight', 18)}
+            </button>
+            <a href="#pricing" className="gy-btn gy-btn-lg gy-btn-ghost-dark">
+              {hero.ctaSecondary}
+            </a>
           </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer style={{
-        background: '#f5f5f7',
-        borderTop: '1px solid rgba(0, 0, 0, 0.08)',
-        padding: '32px 24px',
-        textAlign: 'center',
-        color: '#86868b',
-        fontSize: '12px',
-        position: 'relative',
-        zIndex: 10
-      }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <strong style={{ color: '#1d1d1f' }}>{footer.brandText}</strong>
-          </div>
-          <div>
-            {footer.copyright}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', marginTop: '8px' }}>
-            <button onClick={() => setActiveLegalModal('terms')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 600 }}>Términos de Servicio</button>
-            <button onClick={() => setActiveLegalModal('privacy')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 600 }}>Política de Privacidad</button>
-            <button onClick={() => setActiveLegalModal('refunds')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 600 }}>Política de Reembolsos</button>
-            <button onClick={() => setActiveLegalModal('contact')} style={{ background: 'none', border: 'none', color: '#0071e3', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline', fontWeight: 600 }}>Contacto y Soporte</button>
+      <footer className="gy-footer">
+        <div className="gy-container gy-footer-inner">
+          <div className="gy-footer-brand">{footer.brandText}</div>
+          <div className="gy-footer-copy">{footer.copyright}</div>
+          <div className="gy-footer-links">
+            <button onClick={() => setActiveLegalModal('terms')}>Términos de Servicio</button>
+            <button onClick={() => setActiveLegalModal('privacy')}>Política de Privacidad</button>
+            <button onClick={() => setActiveLegalModal('refunds')}>Política de Reembolsos</button>
+            <button onClick={() => setActiveLegalModal('contact')}>Contacto y Soporte</button>
           </div>
         </div>
       </footer>
 
-      {/* LEGAL MODALS FOR PADDLE COMPLIANCE */}
+      {/* LEGAL MODALS */}
       {activeLegalModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1100,
-          padding: '24px'
-        }} onClick={() => setActiveLegalModal(null)}>
-          <div style={{
-            backgroundColor: '#ffffff',
-            borderRadius: '20px',
-            width: '100%',
-            maxWidth: '600px',
-            maxHeight: '80vh',
-            overflowY: 'auto',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            border: '1px solid rgba(0, 0, 0, 0.05)',
-            padding: '32px',
-            position: 'relative',
-            textAlign: 'left'
-          }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setActiveLegalModal(null)} style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              background: '#f5f5f7',
-              border: 'none',
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: '#1d1d1f'
-            }}>
+        <div className="gy-modal-overlay" onClick={() => setActiveLegalModal(null)}>
+          <div className="gy-modal" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setActiveLegalModal(null)} className="gy-modal-close">
               <Icons.X size={16} />
             </button>
-            
-            <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#1d1d1f', marginBottom: '20px', marginTop: 0 }}>
-              {activeLegalModal === 'terms' && "Términos de Servicio"}
-              {activeLegalModal === 'privacy' && "Política de Privacidad"}
-              {activeLegalModal === 'refunds' && "Política de Reembolsos"}
-              {activeLegalModal === 'contact' && "Contacto y Soporte"}
+
+            <h3>
+              {activeLegalModal === 'terms' && 'Términos de Servicio'}
+              {activeLegalModal === 'privacy' && 'Política de Privacidad'}
+              {activeLegalModal === 'refunds' && 'Política de Reembolsos'}
+              {activeLegalModal === 'contact' && 'Contacto y Soporte'}
             </h3>
-            
-            <div style={{ color: '#515154', fontSize: '13px', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+            <div className="gy-modal-body">
               {activeLegalModal === 'terms' && (
                 <>
                   <p><strong>1. Aceptación de los Términos</strong></p>
@@ -841,7 +561,7 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
                 <>
                   <p>Para cualquier duda legal, soporte técnico, consultas sobre facturación o solicitudes de reembolso, puede comunicarse directamente con nuestro equipo de atención comercial:</p>
                   <p style={{ marginTop: '8px' }}><strong>Correo Electrónico de Soporte:</strong></p>
-                  <p><a href="mailto:contacto@ganancy.cl" style={{ color: '#0071e3', fontWeight: 600, textDecoration: 'underline' }}>contacto@ganancy.cl</a></p>
+                  <p><a href="mailto:contacto@ganancy.cl">contacto@ganancy.cl</a></p>
                   <p style={{ marginTop: '8px' }}><strong>Dirección Comercial y Representación Legal:</strong></p>
                   <p>Metinca SpA / Ganancy</p>
                   <p>Santiago de Chile, Chile</p>

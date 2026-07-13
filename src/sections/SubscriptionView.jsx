@@ -92,6 +92,25 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
   const formatMoney = (val) => val === null ? "Cotizar" : (formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL'));
   const plans = [
     {
+      id: "plan_personal",
+      name: "Plan Personal",
+      price: 6990,
+      originalPrice: 13990,
+      paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_ID_PLAN_PERSONAL,
+      icon: User,
+      color: "#0071e3",
+      target: "Uso Personal",
+      desc: "Controla tus gastos, ingresos y deudas personales con IA. Ideal si todavía no necesitas separar tu negocio.",
+      features: [
+        "Dashboard financiero personal en tiempo real",
+        "Escáner IA de boletas y facturas",
+        "Flujo mensual y proyecciones de gasto",
+        "Control de deudas y tarjetas",
+        "Asesor IA básico de finanzas personales"
+      ],
+      popular: false
+    },
+    {
       id: "plan_completo",
       name: "Plan Único (Personal + Negocio)",
       price: 9990,

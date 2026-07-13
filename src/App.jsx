@@ -241,11 +241,7 @@ export default function App() {
     
     if (data.plans) {
       const originalCount = data.plans.length;
-      const hasOldPlans = data.plans.some(p => p.id === 'plan_personal' || p.id === 'plan_custom');
-      
-      // Keep only plan_completo and plan_familiar
-      data.plans = data.plans.filter(p => p.id === 'plan_completo' || p.id === 'plan_familiar');
-      
+
       // Ensure plan_completo exists
       if (!data.plans.some(p => p.id === 'plan_completo')) {
         data.plans.unshift({
@@ -297,7 +293,7 @@ export default function App() {
         });
       }
       
-      if (data.plans.length !== originalCount || hasOldPlans) {
+      if (data.plans.length !== originalCount) {
         modified = true;
       }
     }
