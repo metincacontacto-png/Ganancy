@@ -119,7 +119,7 @@ export const LANDING_PAGE_DEFAULTS = {
   },
   faqs: [
     {
-      q: "¿Por qué es peligroso mezclar finanzas personales con las de la empresa en Chile?",
+      q: "¿Por qué es peligroso mezclar finanzas personales con las de la empresa?",
       a: "Mezclar cuentas (ej: pagar la mercadería del negocio con tu cuenta personal, o comprar el supermercado de tu casa a nombre de la empresa) es catalogado como 'retiro encubierto' o 'gasto rechazado' por el SII. Esto puede generar multas severas, rechazo de créditos de IVA y serios dolores de cabeza durante una fiscalización."
     },
     {
@@ -136,7 +136,7 @@ export const LANDING_PAGE_DEFAULTS = {
     }
   ],
   footer: {
-    brandText: "GANANCY es un producto de GANIMIDES — El software de control de caja y auditoría contable definitivo para PYMEs chilenas.",
+    brandText: "GANANCY es un producto de GANIMIDES — El software de control de caja y auditoría contable definitivo para PYMEs.",
     copyright: "© 2026 GANIMIDES. Todos los derechos reservados. Cumple con la normativa tributaria del Servicio de Impuestos Internos (SII)."
   }
 };

@@ -205,7 +205,7 @@ export default function DashboardView({
       name: "Combustible Copec (Operaciones)"
     },
     {
-      emisor: "STARBUCKS CHILE",
+      emisor: "STARBUCKS",
       rut: "77.987.654-2",
       fecha: "2026-05-29",
       montoNeto: 5790,
@@ -225,7 +225,7 @@ export default function DashboardView({
       name: "Enel Luz Oficina"
     },
     {
-      emisor: "HOSTINGER CHILE",
+      emisor: "HOSTINGER",
       rut: "76.452.190-3",
       fecha: "2026-05-20",
       montoNeto: 8395,
@@ -278,13 +278,13 @@ export default function DashboardView({
     let emisor = "PROVEEDOR EXTRACTO";
     const textUpper = healedText.toUpperCase();
     if (textUpper.includes("STARBUCKS")) {
-      emisor = "STARBUCKS CHILE";
+      emisor = "STARBUCKS";
     } else if (textUpper.includes("COPEC")) {
       emisor = "COPEC S.A.";
     } else if (textUpper.includes("ENEL") || textUpper.includes("CHILECTRA")) {
       emisor = "ENEL DISTRIBUCION";
     } else if (textUpper.includes("HOSTINGER")) {
-      emisor = "HOSTINGER CHILE";
+      emisor = "HOSTINGER";
     } else if (textUpper.includes("JUMBO")) {
       emisor = "JUMBO SUPERMERCADOS";
     } else if (textUpper.includes("LIDER") || textUpper.includes("WALMART")) {
@@ -296,9 +296,9 @@ export default function DashboardView({
     } else if (textUpper.includes("EASYTIENDA") || textUpper.includes("EASY TIENDA") || textUpper.includes("EASY.CL")) {
       emisor = "EASY TIENDA";
     } else if (textUpper.includes("PEDIDOSYA") || textUpper.includes("PEDIDOS YA")) {
-      emisor = "PEDIDOSYA CHILE";
+      emisor = "PEDIDOSYA";
     } else if (textUpper.includes("UBER")) {
-      emisor = "UBER CHILE";
+      emisor = "UBER";
     } else if (textUpper.includes("FALABELLA")) {
       emisor = "FALABELLA S.A.";
     } else if (textUpper.includes("PARIS.CL")) {
@@ -974,7 +974,7 @@ Tus ingresos fijos declarados son de **${formatMoney(ingresosTotales)}** mensual
 
 Para potenciar tu patrimonio individual, te sugiero las siguientes directrices de crecimiento financiero:
 1.  **Desarrolla fuentes de ingresos alternativos:** Diversifica mediante servicios de consultoría independiente, freelancing o comercialización de habilidades complementarias en tus horas libres.
-2.  **Plan de Depósito a Plazo / Ahorro Previsional (APV):** Si mantienes un superávit mensual, aprovecha las tasas de interés y beneficios tributarios chilenos para hacer crecer tu capital de forma segura e interés compuesto.
+2.  **Plan de Depósito a Plazo / Ahorro Previsional (APV):** Si mantienes un superávit mensual, aprovecha las tasas de interés y beneficios tributarios locales para hacer crecer tu capital de forma segura e interés compuesto.
 3.  **Invierte en tu Capacitación:** La mejor forma de subir tus ingresos en el mediano plazo es aumentar tu valor de mercado mediante el aprendizaje de habilidades técnicas o especializadas.`;
         } 
         else {

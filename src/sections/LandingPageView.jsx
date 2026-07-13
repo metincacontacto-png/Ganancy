@@ -286,7 +286,7 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
           <div className="gy-trust-strip">
             <span>{getIcon('ShieldCheck', 14)} Datos encriptados</span>
             <span>{getIcon('RefreshCw', 13)} Cancela cuando quieras</span>
-            <span>{getIcon('MapPin', 13)} Hecho para PYMEs y personas en Chile</span>
+            <span>{getIcon('MapPin', 13)} Hecho para PYMEs y personas de todo el mundo</span>
           </div>
         </div>
       </section>

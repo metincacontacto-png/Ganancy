@@ -953,7 +953,7 @@ export default function ActivosPasivosView({
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Nombre de la Deuda / Acreedor</label>
                 <input
                   type="text"
-                  placeholder="Ej: Crédito Banco de Chile"
+                  placeholder="Ej: Crédito Hipotecario"
                   value={debtFormName}
                   onChange={e => setDebtFormName(e.target.value)}
                   required

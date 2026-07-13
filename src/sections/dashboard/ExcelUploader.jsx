@@ -46,7 +46,7 @@ export function ExcelUploader({
           const auditReport = `📑 **Auditoría de Cartola Bancaria (PDF) - "${file.name}" completada.**
 
 Tras escanear el documento, he extraído los siguientes indicadores clave para contrastar con tu balance:
-*   **Entidad:** Banco Estado de Chile
+*   **Entidad:** Banco Principal
 *   **Saldo Final Identificado:** ${formatMoney(assetsTotal || 7137698)}
 *   **Transacciones conciliadas:** 42 movimientos detectados
 
