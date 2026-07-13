@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { initializePaddle } from '@paddle/paddle-js';
 import { supabase } from '../lib/supabaseClient';
-import { 
-  CreditCard, Check, ShieldCheck, AlertCircle, X, Loader, 
+import {
+  Check, ShieldCheck, AlertCircle, X, Loader,
   Sparkles, Briefcase, Building, Lock, CheckCircle2, ChevronRight,
   User, Users, TrendingUp, LineChart, Cpu, Camera
 } from 'lucide-react';
@@ -23,24 +24,70 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [promoCode, setPromoCode] = useState("");
 
-  const isSupabaseConfigured = 
-    import.meta.env.VITE_SUPABASE_URL && 
-    import.meta.env.VITE_SUPABASE_ANON_KEY && 
-    !import.meta.env.VITE_SUPABASE_URL.includes('YOUR_SUPABASE_URL') &&
-    !import.meta.env.VITE_SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY');
-  
-  // Credit Card Form States
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
-  const [isFlipped, setIsFlipped] = useState(false); // flips card for CVV
-  
-  // Payment animation/state
+  // Clave Maestra (bypass administrativo, no relacionado a Paddle)
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Paddle Checkout
+  const [paddleInstance, setPaddleInstance] = useState(null);
+  const [paddleSyncing, setPaddleSyncing] = useState(false);
+  const [paddleSyncTimedOut, setPaddleSyncTimedOut] = useState(false);
+
+  React.useEffect(() => {
+    const clientToken = import.meta.env.VITE_PADDLE_CLIENT_TOKEN;
+    const environment = import.meta.env.VITE_PADDLE_ENV;
+    if (!clientToken || !environment) return;
+
+    initializePaddle({
+      token: clientToken,
+      environment,
+      eventCallback: (event) => {
+        if (event.name === 'checkout.completed') {
+          setCheckoutOpen(true);
+          setPaymentSuccess(false);
+          setPaddleSyncTimedOut(false);
+          setPaddleSyncing(true);
+        }
+      },
+    }).then((p) => p && setPaddleInstance(p));
+  }, []);
+
+  // Espera a que el webhook de Paddle sincronice profiles.subscription_status
+  // vía Realtime, en vez de asumir éxito inmediato desde el redirect del checkout.
+  React.useEffect(() => {
+    if (!paddleSyncing || !currentUser?.id || !selectedPlan) return;
+
+    const timeoutId = setTimeout(() => setPaddleSyncTimedOut(true), 30000);
+
+    const channel = supabase
+      .channel(`profile-subscription-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${currentUser.id}`,
+        },
+        (payload) => {
+          if (payload.new?.subscription_status === selectedPlan.id) {
+            clearTimeout(timeoutId);
+            setPaddleSyncing(false);
+            setPaymentSuccess(true);
+            if (onUpdateSubscription) onUpdateSubscription(selectedPlan.id);
+            setTimeout(() => setCheckoutOpen(false), 2500);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      clearTimeout(timeoutId);
+      supabase.removeChannel(channel);
+    };
+  }, [paddleSyncing, currentUser?.id, selectedPlan, onUpdateSubscription]);
 
   const formatMoney = (val) => val === null ? "Cotizar" : (formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL'));
   const plans = [
@@ -49,6 +96,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
       name: "Plan Único (Personal + Negocio)",
       price: 9990,
       originalPrice: 24990,
+      paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_ID_PLAN_COMPLETO,
       icon: Briefcase,
       color: "#0a84ff",
       target: "Todo en Uno",
@@ -72,6 +120,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
       name: "Plan Familiar (Multi-Perfil)",
       price: 14990,
       originalPrice: 29990,
+      paddlePriceId: import.meta.env.VITE_PADDLE_PRICE_ID_PLAN_FAMILIAR,
       icon: Users,
       color: "#ff9500",
       target: "Parejas y Familias",
@@ -154,30 +203,6 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
     }
   };
 
-  // Card formatting helpers
-  const handleCardNumberChange = (e) => {
-    let input = e.target.value.replace(/\D/g, ""); // numbers only
-    if (input.length > 16) input = input.slice(0, 16);
-    // Format: 4-4-4-4
-    let formatted = input.match(/.{1,4}/g)?.join(" ") || "";
-    setCardNumber(formatted);
-  };
-
-  const handleExpiryChange = (e) => {
-    let input = e.target.value.replace(/\D/g, ""); // numbers only
-    if (input.length > 4) input = input.slice(0, 4);
-    if (input.length >= 2) {
-      input = input.slice(0, 2) + "/" + input.slice(2);
-    }
-    setCardExpiry(input);
-  };
-
-  const handleCvvChange = (e) => {
-    let input = e.target.value.replace(/\D/g, ""); // numbers only
-    if (input.length > 4) input = input.slice(0, 4);
-    setCardCvv(input);
-  };
-
   const openCheckout = (plan) => {
     if (plan.price === null) {
       alert(`💼 ¡Gracias por tu interés en el Plan Corporativo! Un asesor de cuentas de GANANCY se pondrá en contacto al correo "${currentUser?.email || 'asociado'}" dentro de las próximas 2 horas para diseñar tu integración contable a medida.`);
@@ -185,97 +210,56 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
     }
     setSelectedPlan(plan);
     setCheckoutOpen(true);
-    setCardNumber("");
-    setCardName("");
-    setCardExpiry("");
-    setCardCvv("");
     setPromoCode("");
-    setIsFlipped(false);
     setIsProcessing(false);
     setProcessingStep(0);
     setPaymentSuccess(false);
+    setPaddleSyncing(false);
+    setPaddleSyncTimedOut(false);
     setErrorMessage("");
   };
 
-  const handlePaymentSubmit = async (e) => {
+  const handlePaddleCheckout = (plan) => {
+    if (!paddleInstance || !plan.paddlePriceId) {
+      setErrorMessage("El pago con Paddle no está disponible en este momento. Contacta a contacto@ganancy.cl.");
+      return;
+    }
+    setCheckoutOpen(false);
+    paddleInstance.Checkout.open({
+      items: [{ priceId: plan.paddlePriceId, quantity: 1 }],
+      customer: { email: currentUser.email },
+      customData: { user_id: currentUser.id },
+      settings: { variant: "one-page" },
+    });
+  };
+
+  // Bypass administrativo (no relacionado a Paddle) — activa un plan sin pago
+  // real mediante una clave maestra. El pago real vive en handlePaddleCheckout.
+  const handleMasterKeySubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
 
     const isMasterKey = promoCode.trim().toUpperCase() === "GANANCY-MASTER-2026" || promoCode.trim().toUpperCase() === "METINCA-MASTER-2026";
 
-    if (isMasterKey) {
-      setIsProcessing(true);
-      setProcessingStep(1); // Connecting
-
-      // Simulate verification of Master Key
-      setTimeout(() => {
-        setProcessingStep(2); // Validating master key
-        setTimeout(() => {
-          setProcessingStep(3); // Upgrading account status
-          setTimeout(async () => {
-            try {
-              if (currentUser && currentUser.provider === 'supabase') {
-                const { error } = await supabase
-                  .from('profiles')
-                  .update({ 
-                    subscription_status: selectedPlan.id,
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq('id', currentUser.id);
-
-                if (error) throw error;
-              }
-              
-              setProcessingStep(4);
-              setPaymentSuccess(true);
-              setIsProcessing(false);
-
-              setTimeout(() => {
-                if (onUpdateSubscription) {
-                  onUpdateSubscription(selectedPlan.id);
-                }
-                setCheckoutOpen(false);
-              }, 2500);
-            } catch (err) {
-              console.error("Error al actualizar la suscripción con clave maestra:", err);
-              setErrorMessage("Clave maestra válida, pero hubo un error al sincronizar con la nube.");
-              setIsProcessing(false);
-            }
-          }, 1500);
-        }, 1200);
-      }, 1000);
-      return;
-    }
-
-    // Block mock card payments in production / Supabase-connected environments
-    if (isSupabaseConfigured || import.meta.env.PROD) {
-      setErrorMessage("Los pagos automatizados con tarjeta de crédito están temporalmente en mantenimiento. Para activar tu plan, ingresa una Clave Maestra válida o realiza una transferencia bancaria contactando a contacto@ganancy.cl.");
-      return;
-    }
-
-    // Local / Demo mock credit card flow
-    if (!cardNumber || !cardName || !cardExpiry || !cardCvv) {
-      setErrorMessage("Por favor, completa todos los datos de la tarjeta o ingresa una Clave Maestra válida.");
+    if (!isMasterKey) {
+      setErrorMessage("Clave Maestra inválida. Para pagar con tarjeta, usa el botón \"Pagar con Paddle\".");
       return;
     }
 
     setIsProcessing(true);
     setProcessingStep(1); // Connecting
 
-    // Step 1: Connecting (1s)
+    // Simulate verification of Master Key
     setTimeout(() => {
-      setProcessingStep(2); // Validating card details
-      
-      // Step 2: Validating card (1.2s)
+      setProcessingStep(2); // Validating master key
       setTimeout(() => {
-        setProcessingStep(3); // Saving credentials & Securing db
-        
+        setProcessingStep(3); // Upgrading account status
         setTimeout(async () => {
           try {
             if (currentUser && currentUser.provider === 'supabase') {
               const { error } = await supabase
                 .from('profiles')
-                .update({ 
+                .update({
                   subscription_status: selectedPlan.id,
                   updated_at: new Date().toISOString()
                 })
@@ -283,13 +267,11 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
 
               if (error) throw error;
             }
-            
-            // Succeed!
+
             setProcessingStep(4);
             setPaymentSuccess(true);
             setIsProcessing(false);
 
-            // Update parent app context with active plan
             setTimeout(() => {
               if (onUpdateSubscription) {
                 onUpdateSubscription(selectedPlan.id);
@@ -297,8 +279,8 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
               setCheckoutOpen(false);
             }, 2500);
           } catch (err) {
-            console.error("Error al actualizar la suscripción en Supabase:", err);
-            setErrorMessage("Transacción aprobada, pero hubo un error al sincronizar tu perfil con la nube. Por favor inténtalo de nuevo.");
+            console.error("Error al actualizar la suscripción con clave maestra:", err);
+            setErrorMessage("Clave maestra válida, pero hubo un error al sincronizar con la nube.");
             setIsProcessing(false);
           }
         }, 1500);
@@ -546,6 +528,24 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
             TAB 2: ORIGINAL SUBSCRIPTION PLANS & CHECKOUT
            ======================================================== */
         <>
+          {currentUser?.paddle_status === 'past_due' && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '14px 18px',
+              marginBottom: '24px',
+              background: 'rgba(255, 159, 10, 0.1)',
+              border: '1px solid rgba(255, 159, 10, 0.25)',
+              borderRadius: '14px',
+              color: '#ff9f0a',
+              fontSize: '13px'
+            }}>
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>Hubo un problema con tu último pago. Estamos reintentando el cobro automáticamente — no necesitas hacer nada, pero si persiste revisa tu método de pago.</span>
+            </div>
+          )}
+
           {/* Intro Header */}
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <span style={{
@@ -831,7 +831,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                   ¡Suscripción Activada!
                 </h3>
                 <p style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '340px', lineHeight: '1.5', margin: '0 0 20px 0' }}>
-                  Tu pago de <strong>{formatMoney(selectedPlan.price)}</strong> ha sido procesado exitosamente por Stripe.
+                  Tu plan <strong>{selectedPlan.name}</strong> ya está activo.
                 </p>
                 <div style={{
                   fontSize: '12px',
@@ -846,6 +846,26 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                 }}>
                   <Loader className="spin-icon" size={12} /> Redireccionando al Dashboard...
                 </div>
+              </div>
+            ) : paddleSyncing ? (
+              /* Step: PADDLE SYNC — esperando confirmación del webhook vía Realtime */
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: '50px 10px'
+              }}>
+                <Loader className="spin-icon" size={48} style={{ color: 'var(--accent)', marginBottom: '24px' }} />
+                <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', margin: '0 0 8px 0' }}>
+                  Activando tu plan...
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '320px' }}>
+                  {paddleSyncTimedOut
+                    ? "Tu pago ya fue exitoso — esto puede tardar un minuto más en reflejarse. Podés cerrar esta ventana, tu plan se activará solo."
+                    : "Tu pago se está procesando con Paddle. Esto suele tardar solo unos segundos."}
+                </p>
               </div>
             ) : isProcessing ? (
               /* Step: PROCESSING BANNER */
@@ -876,7 +896,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                 </div>
               </div>
             ) : (
-              /* Step: CREDIT CARD INPUT PANEL */
+              /* Step: ELEGIR MÉTODO DE ACTIVACIÓN */
               <div>
                 <div style={{ marginBottom: '20px' }}>
                   <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -884,7 +904,7 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                     Pago Seguro / Checkout
                   </h3>
                   <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Estás suscribiéndote al <strong>{selectedPlan.name}</strong> por <strong>{formatMoney(selectedPlan.price)}/mes</strong>.
+                    Estás suscribiéndote al <strong>{selectedPlan.name}</strong> ({formatMoney(selectedPlan.price)}/mes aprox.).
                   </p>
                 </div>
 
@@ -906,268 +926,70 @@ export default function SubscriptionView({ currentUser, onUpdateSubscription, on
                   </div>
                 )}
 
-                {/* 3D CREDIT CARD VISUAL PREVIEW (WOW FACTOR) */}
-                <div style={{
-                  perspective: '1000px',
-                  width: '100%',
-                  height: '180px',
-                  marginBottom: '28px',
-                  cursor: 'pointer'
-                }} onClick={() => setIsFlipped(!isFlipped)}>
-                  <div style={{
-                    position: 'relative',
+                <button
+                  type="button"
+                  onClick={() => handlePaddleCheckout(selectedPlan)}
+                  style={{
+                    background: 'linear-gradient(135deg, var(--accent) 0%, #0056b3 100%)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontSize: '14.5px',
+                    fontWeight: '600',
                     width: '100%',
-                    height: '100%',
-                    transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                    transformStyle: 'preserve-3d',
-                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
-                  }}>
-                    
-                    {/* CARD FRONT */}
-                    <div style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: '100%',
-                      backfaceVisibility: 'hidden',
-                      background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
-                      borderRadius: '16px',
-                      padding: '20px',
-                      color: 'white',
-                      boxShadow: '0 15px 30px rgba(0,0,0,0.3)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      border: '1px solid rgba(255, 255, 255, 0.1)'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.8)' }}>GANANCY FINANCIERO</span>
-                        <CreditCard size={28} />
-                      </div>
-                      
-                      {/* Chip & Signal Icon */}
-                      <div style={{
-                        width: '36px',
-                        height: '26px',
-                        borderRadius: '4px',
-                        backgroundColor: '#fbbf24',
-                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.3)'
-                      }}></div>
-                      
-                      {/* Card Number */}
-                      <div style={{ 
-                        fontSize: '18px', 
-                        fontWeight: '600', 
-                        letterSpacing: '0.15em', 
-                        fontFamily: 'monospace',
-                        color: 'white',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.5)'
-                      }}>
-                        {cardNumber || "•••• •••• •••• ••••"}
-                      </div>
-                      
-                      {/* Card Holder & Expiry */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '8px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>TITULAR</span>
-                          <strong style={{ fontSize: '12px', color: 'white', fontWeight: 600 }}>{cardName || "NOMBRE TITULAR"}</strong>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                          <span style={{ fontSize: '8px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>EXPIRA</span>
-                          <strong style={{ fontSize: '12px', color: 'white', fontWeight: 600 }}>{cardExpiry || "MM/YY"}</strong>
-                        </div>
-                      </div>
-                    </div>
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 12px rgba(10, 132, 255, 0.2)'
+                  }}
+                >
+                  <Lock size={16} /> Pagar con Paddle
+                </button>
 
-                    {/* CARD BACK */}
-                    <div style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: '100%',
-                      backfaceVisibility: 'hidden',
-                      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                      borderRadius: '16px',
-                      color: 'white',
-                      boxShadow: '0 15px 30px rgba(0,0,0,0.3)',
-                      transform: 'rotateY(180deg)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      padding: '20px 0',
-                      border: '1px solid rgba(255, 255, 255, 0.1)'
-                    }}>
-                      {/* Black Stripe */}
-                      <div style={{ width: '100%', height: '40px', backgroundColor: '#020617', marginTop: '10px' }}></div>
-                      
-                      {/* Signature & CVV Area */}
-                      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Firma Autorizada</span>
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                          {/* Signature line */}
-                          <div style={{
-                            flex: 1,
-                            height: '32px',
-                            background: 'repeating-linear-gradient(45deg, #e2e8f0, #e2e8f0 10px, #cbd5e1 10px, #cbd5e1 20px)',
-                            borderRadius: '4px'
-                          }}></div>
-                          {/* CVV text box */}
-                          <div style={{
-                            width: '50px',
-                            height: '32px',
-                            backgroundColor: 'white',
-                            color: 'black',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 'bold',
-                            fontFamily: 'monospace',
-                            fontSize: '14px'
-                          }}>
-                            {cardCvv || "•••"}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Back info */}
-                      <div style={{ padding: '0 20px', fontSize: '8px', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
-                        Esta tarjeta simulada opera con fines demostrativos exclusivos en el entorno de desarrollo seguro de Ganímedes.
-                      </div>
-                    </div>
-
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '20px 0' }}>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>o</span>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
                 </div>
 
-                {/* Billing Input Fields */}
-                <form onSubmit={handlePaymentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Cupón o Clave Maestra */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Cupón o Clave Maestra de Activación</label>
-                    <input
-                      type="text"
-                      placeholder="Escribe tu Clave Maestra para activar gratis"
-                      value={promoCode}
-                      onChange={e => setPromoCode(e.target.value)}
-                      onFocus={() => setIsFlipped(false)}
-                      style={{
-                        background: 'var(--bg-primary, #0f172a)',
-                        border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
-                        color: 'var(--text-primary)',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        letterSpacing: '0.05em'
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Nombre del Titular</label>
-                    <input
-                      type="text"
-                      placeholder="Ej: Daniel Repetto"
-                      value={cardName}
-                      onChange={e => setCardName(e.target.value.toUpperCase())}
-                      required={!promoCode.trim()}
-                      onFocus={() => setIsFlipped(false)}
-                      style={{
-                        background: 'var(--bg-primary, #0f172a)',
-                        border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
-                        color: 'var(--text-primary)',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Número de Tarjeta</label>
-                    <input
-                      type="text"
-                      placeholder="4000 1234 5678 9010"
-                      value={cardNumber}
-                      onChange={handleCardNumberChange}
-                      required={!promoCode.trim()}
-                      onFocus={() => setIsFlipped(false)}
-                      style={{
-                        background: 'var(--bg-primary, #0f172a)',
-                        border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
-                        color: 'var(--text-primary)',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        fontFamily: 'monospace',
-                        letterSpacing: '0.05em'
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Vencimiento (MM/YY)</label>
-                      <input
-                        type="text"
-                        placeholder="12/28"
-                        value={cardExpiry}
-                        onChange={handleExpiryChange}
-                        required={!promoCode.trim()}
-                        onFocus={() => setIsFlipped(false)}
-                        style={{
-                          background: 'var(--bg-primary, #0f172a)',
-                          border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
-                          color: 'var(--text-primary)',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          outline: 'none',
-                          fontFamily: 'monospace'
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Código CVV</label>
-                      <input
-                        type="text"
-                        placeholder="123"
-                        value={cardCvv}
-                        onChange={handleCvvChange}
-                        required={!promoCode.trim()}
-                        onFocus={() => setIsFlipped(true)}
-                        onBlur={() => setIsFlipped(false)}
-                        style={{
-                          background: 'var(--bg-primary, #0f172a)',
-                          border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
-                          color: 'var(--text-primary)',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          outline: 'none',
-                          fontFamily: 'monospace'
-                        }}
-                      />
-                    </div>
-                  </div>
-
+                {/* Clave Maestra: bypass administrativo, no relacionado a Paddle */}
+                <form onSubmit={handleMasterKeySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <label style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Clave Maestra de Activación</label>
+                  <input
+                    type="text"
+                    placeholder="Escribe tu Clave Maestra para activar gratis"
+                    value={promoCode}
+                    onChange={e => setPromoCode(e.target.value)}
+                    style={{
+                      background: 'var(--bg-primary, #0f172a)',
+                      border: '1px solid var(--border-color, rgba(255,255,255,0.1))',
+                      color: 'var(--text-primary)',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      letterSpacing: '0.05em'
+                    }}
+                  />
                   <button
                     type="submit"
+                    disabled={!promoCode.trim()}
                     style={{
-                      background: 'linear-gradient(135deg, var(--accent) 0%, #0056b3 100%)',
-                      color: 'white',
-                      border: 'none',
-                      padding: '12px',
+                      background: 'transparent',
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                      padding: '10px',
                       borderRadius: '10px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      marginTop: '12px',
-                      boxShadow: '0 4px 12px rgba(10, 132, 255, 0.2)'
+                      cursor: promoCode.trim() ? 'pointer' : 'default',
+                      opacity: promoCode.trim() ? 1 : 0.5,
+                      fontSize: '13px',
+                      fontWeight: '600'
                     }}
                   >
-                    Confirmar Transacción y Suscribirse
+                    Activar con Clave Maestra
                   </button>
                 </form>
               </div>

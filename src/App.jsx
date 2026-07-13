@@ -388,6 +388,7 @@ export default function App() {
         avatarInitials: profile?.avatar_initials || fallbackName.substring(0, 2).toUpperCase(),
         photoURL: profile?.avatar_url || null,
         subscription_status: profile?.subscription_status || 'trial',
+        paddle_status: profile?.paddle_status || null,
         provider: 'supabase'
       };
 
