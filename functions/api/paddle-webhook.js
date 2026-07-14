@@ -109,6 +109,8 @@ async function processEvent(event, env) {
     case "subscription.created":
     case "subscription.updated":
     case "subscription.canceled":
+    case "subscription.paused":
+    case "subscription.past_due":
       return upsertSubscription(event.data, env);
     case "transaction.completed":
       // El estado de la suscripción llega por los eventos subscription.*
