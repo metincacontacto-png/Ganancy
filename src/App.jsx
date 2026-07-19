@@ -71,15 +71,20 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isMacSafari, setIsMacSafari] = useState(false);
   const [showIosTip, setShowIosTip] = useState(false);
 
   useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent) || (navigator.maxTouchPoints > 1 && userAgent.includes('macintosh'));
     setIsIOS(isIosDevice);
 
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isIosDevice && !isStandalone) {
+    
+    const isSafariMac = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('chromium') && !userAgent.includes('android') && !isIosDevice;
+    setIsMacSafari(isSafariMac);
+
+    if ((isIosDevice || isSafariMac) && !isStandalone) {
       setShowInstallBtn(true);
     }
 
@@ -98,7 +103,7 @@ export default function App() {
   }, []);
 
   const handleInstallClick = () => {
-    if (isIOS) {
+    if (isIOS || isMacSafari) {
       setShowIosTip(!showIosTip);
       return;
     }
@@ -2746,14 +2751,25 @@ export default function App() {
                     textAlign: 'left'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <strong style={{ fontSize: '12px' }}>Instalar en iPhone</strong>
+                      <strong style={{ fontSize: '12px' }}>
+                        {isMacSafari ? 'Instalar en Mac' : 'Instalar en iPhone'}
+                      </strong>
                       <button onClick={() => setShowIosTip(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#86868b' }}>
                         <X size={12} />
                       </button>
                     </div>
                     <p style={{ margin: 0, fontSize: '10.5px', lineHeight: '1.4', color: '#515154' }}>
-                      1. Presiona <strong>Compartir</strong> <Share2 size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> en Safari.<br/>
-                      2. Elige <strong>"Añadir a pantalla de inicio"</strong>.
+                      {isMacSafari ? (
+                        <>
+                          1. En el menú superior de Safari, haz clic en <strong>Archivo</strong> (File).<br/>
+                          2. Selecciona <strong>"Añadir al Dock..."</strong> (Add to Dock...).
+                        </>
+                      ) : (
+                        <>
+                          1. Presiona <strong>Compartir</strong> <Share2 size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> en Safari.<br/>
+                          2. Elige <strong>"Añadir a pantalla de inicio"</strong>.
+                        </>
+                      )}
                     </p>
                   </div>
                 )}

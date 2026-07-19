@@ -627,6 +627,10 @@ export default function FlujoMensualView({
   const egresosPagados = currentDetails ? currentDetails.egresos.filter(item => item.paid).reduce((sum, item) => sum + item.value, 0) : 0;
   const balanceCajaActual = ingresosRecibidos - egresosPagados;
 
+  const ingresosPorRecibir = totalIngresosMes - ingresosRecibidos;
+  const egresosPorPagar = totalEgresosMes - egresosPagados;
+  const balancePendiente = ingresosPorRecibir - egresosPorPagar;
+
   const incomesWithIdx = currentDetails ? (currentDetails.ingresos || []).map((item, idx) => ({ ...item, originalIndex: idx })) : [];
   const expensesWithIdx = currentDetails ? (currentDetails.egresos || []).map((item, idx) => ({ ...item, originalIndex: idx })) : [];
 
@@ -1524,6 +1528,28 @@ export default function FlujoMensualView({
                 <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Caja Real a la fecha</span>
                 <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balanceCajaActual >= 0 ? "num-positive" : "num-negative"}>
                   {balanceCajaActual >= 0 ? '+' : ''}{formatMoney(balanceCajaActual)}
+                </strong>
+              </div>
+
+              {/* Row 3: Pending Totals */}
+              <div style={{ padding: '14px 18px', background: 'rgba(10, 132, 255, 0.05)', border: '1px solid rgba(10, 132, 255, 0.15)', borderRadius: '12px', textAlign: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--accent)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos por Recibir (Pendiente)</span>
+                <strong style={{ fontSize: '20px', color: 'var(--accent)', display: 'block', marginTop: '4px' }}>{formatMoney(ingresosPorRecibir)}</strong>
+              </div>
+              <div style={{ padding: '14px 18px', background: 'rgba(255, 149, 0, 0.05)', border: '1px solid rgba(255, 149, 0, 0.15)', borderRadius: '12px', textAlign: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--warning)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos por Pagar (Pendiente)</span>
+                <strong style={{ fontSize: '20px', color: 'var(--warning)', display: 'block', marginTop: '4px' }}>{formatMoney(egresosPorPagar)}</strong>
+              </div>
+              <div style={{ 
+                padding: '14px 18px', 
+                background: balancePendiente >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
+                border: balancePendiente >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
+                borderRadius: '12px', 
+                textAlign: 'center' 
+              }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance de Pendientes</span>
+                <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balancePendiente >= 0 ? "num-positive" : "num-negative"}>
+                  {balancePendiente >= 0 ? '+' : ''}{formatMoney(balancePendiente)}
                 </strong>
               </div>
             </div>

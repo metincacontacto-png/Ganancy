@@ -91,15 +91,20 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isMacSafari, setIsMacSafari] = useState(false);
   const [showIosTip, setShowIosTip] = useState(false);
 
   React.useEffect(() => {
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent) || (navigator.maxTouchPoints > 1 && userAgent.includes('macintosh'));
     setIsIOS(isIosDevice);
 
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isIosDevice && !isStandalone) {
+    
+    const isSafariMac = userAgent.includes('safari') && !userAgent.includes('chrome') && !userAgent.includes('chromium') && !userAgent.includes('android') && !isIosDevice;
+    setIsMacSafari(isSafariMac);
+
+    if ((isIosDevice || isSafariMac) && !isStandalone) {
       setShowInstallBtn(true);
     }
 
@@ -114,7 +119,7 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
   }, []);
 
   const handleInstallClick = () => {
-    if (isIOS) {
+    if (isIOS || isMacSafari) {
       setShowIosTip(!showIosTip);
       return;
     }
@@ -211,18 +216,28 @@ export default function LandingPageView({ onEnterLogin, landingPageData }) {
                   <Icons.Download size={14} />
                   <span className="gy-install-text">Instalar App</span>
                 </button>
-
                 {showIosTip && (
                   <div className="gy-modal" style={{ position: 'absolute', top: '48px', right: 0, width: '260px', maxHeight: 'none', padding: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '13px' }}>Instalar en iPhone</strong>
+                      <strong style={{ fontSize: '13px' }}>
+                        {isMacSafari ? 'Instalar en Mac' : 'Instalar en iPhone'}
+                      </strong>
                       <button onClick={() => setShowIosTip(false)} className="gy-modal-close" style={{ position: 'static', width: '24px', height: '24px' }}>
                         <Icons.X size={13} />
                       </button>
                     </div>
                     <p style={{ margin: 0, fontSize: '11.5px', lineHeight: '1.4', color: 'var(--gy-text-soft)' }}>
-                      1. Presiona el botón de <strong>Compartir</strong> <Icons.Share2 size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> en Safari.<br />
-                      2. Selecciona <strong>&quot;Añadir a la pantalla de inicio&quot;</strong>.
+                      {isMacSafari ? (
+                        <>
+                          1. En el menú superior de Safari, haz clic en <strong>Archivo</strong> (File).<br />
+                          2. Selecciona <strong>&quot;Añadir al Dock...&quot;</strong> (Add to Dock...).
+                        </>
+                      ) : (
+                        <>
+                          1. Presiona el botón de <strong>Compartir</strong> <Icons.Share2 size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> en Safari.<br />
+                          2. Selecciona <strong>&quot;Añadir a la pantalla de inicio&quot;</strong>.
+                        </>
+                      )}
                     </p>
                   </div>
                 )}
