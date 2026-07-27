@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   TrendingUp, TrendingDown, DollarSign, Activity, Percent, ArrowUpRight, ArrowDownRight, 
   Edit2, Trash2, Plus, X, BrainCircuit, MessageSquare, Send, Sparkles, 
-  UploadCloud, FileText, RefreshCw, CheckCircle, FileCheck, Trash 
+  UploadCloud, FileText, RefreshCw, CheckCircle, FileCheck, Trash, AlertTriangle
 } from 'lucide-react';
 import { formatCLP, HISTORICAL_FLOWS } from '../data/financialData';
 import { compressImage } from '../lib/imageCompressor';
@@ -287,7 +287,7 @@ export default function DashboardView({
       emisor = "HOSTINGER";
     } else if (textUpper.includes("JUMBO")) {
       emisor = "JUMBO SUPERMERCADOS";
-    } else if (textUpper.includes("LIDER") || textUpper.includes("WALMART")) {
+    } else if (textUpper.includes("LIDER") || textUpper.includes("WALMART") || textUpper.includes("Acuenta")) {
       emisor = "LIDER SUPERMERCADOS";
     } else if (textUpper.includes("SANTA ISABEL")) {
       emisor = "SANTA ISABEL";
@@ -307,6 +307,42 @@ export default function DashboardView({
       emisor = "RIPLEY S.A.";
     } else if (textUpper.includes("VERSLUYS")) {
       emisor = "VERSLUYS CONCEPCION";
+    } else if (textUpper.includes("OXXO")) {
+      emisor = "OXXO";
+    } else if (textUpper.includes("OK MARKET")) {
+      emisor = "OK MARKET";
+    } else if (textUpper.includes("SHELL")) {
+      emisor = "SHELL";
+    } else if (textUpper.includes("PETROBRAS")) {
+      emisor = "PETROBRAS";
+    } else if (textUpper.includes("UNIMARC")) {
+      emisor = "UNIMARC";
+    } else if (textUpper.includes("TOTTUS")) {
+      emisor = "TOTTUS";
+    } else if (textUpper.includes("CLARO")) {
+      emisor = "CLARO";
+    } else if (textUpper.includes("MOVISTAR")) {
+      emisor = "MOVISTAR";
+    } else if (textUpper.includes("ENTEL")) {
+      emisor = "ENTEL";
+    } else if (textUpper.includes("VTR")) {
+      emisor = "VTR";
+    } else if (textUpper.includes("CABIFY")) {
+      emisor = "CABIFY";
+    } else if (textUpper.includes("DIDI")) {
+      emisor = "DIDI";
+    } else if (textUpper.includes("MCDONALD") || textUpper.includes("MACDONALD")) {
+      emisor = "MCDONALD'S";
+    } else if (textUpper.includes("BURGER KING")) {
+      emisor = "BURGER KING";
+    } else if (textUpper.includes("KFC") || textUpper.includes("KENTUCKY")) {
+      emisor = "KFC";
+    } else if (textUpper.includes("RAPPI")) {
+      emisor = "RAPPI";
+    } else if (textUpper.includes("SENCILLITO") || textUpper.includes("SENCILITO")) {
+      emisor = "SENCILLITO";
+    } else if (textUpper.includes("SERVIPAG")) {
+      emisor = "SERVIPAG";
     } else {
       if (lines.length > 0) {
         // Find a line that looks like a name and doesn't contain RUT/BOLETA
@@ -332,17 +368,17 @@ export default function DashboardView({
       }
     }
     
-    // 2. Identify RUT (format: XX.XXX.XXX-X or XX.XXX.XXX-K or XXXXXXXX-X)
+    // 2. Identify RUT (format: XX.XXX.XXX-X or XX.XXX.XXX-K or XXXXXXXX-X, allowing spaces around hyphen)
     let rut = "76.123.456-K";
-    const rutRegex = /\b\d{1,2}(?:\.?\d{3}){2}-[\dkK]\b/;
+    const rutRegex = /\b\d{1,2}(?:\.?\d{3}){2}\s*-\s*[\dkK]\b/;
     const rutMatch = healedText.match(rutRegex);
     if (rutMatch) {
-      rut = rutMatch[0];
+      rut = rutMatch[0].replace(/\s/g, "");
     } else {
-      const rutRegexNoDots = /\b\d{7,8}-[\dkK]\b/;
+      const rutRegexNoDots = /\b\d{7,8}\s*-\s*[\dkK]\b/;
       const rutMatchNoDots = healedText.match(rutRegexNoDots);
       if (rutMatchNoDots) {
-        const rawRut = rutMatchNoDots[0];
+        const rawRut = rutMatchNoDots[0].replace(/\s/g, "");
         const cleanRut = rawRut.replace("-", "");
         const dv = cleanRut.slice(-1);
         const num = cleanRut.slice(0, -1);
@@ -351,16 +387,19 @@ export default function DashboardView({
       }
     }
     
-    // 3. Identify Date (DD/MM/YYYY or YYYY-MM-DD)
+    // 3. Identify Date (DD/MM/YYYY, DD.MM.YY, YYYY-MM-DD etc.)
     let fecha = new Date().toISOString().split("T")[0]; // default to today
-    const dateRegexDMY = /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4})\b/;
-    const dateRegexYMD = /\b(\d{4})[-/](\d{2})[-/](\d{2})\b/;
+    const dateRegexDMY = /\b(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{2,4})\b/;
+    const dateRegexYMD = /\b(\d{4})[-/. ](\d{2})[-/. ](\d{2})\b/;
     const dmyMatch = healedText.match(dateRegexDMY);
     const ymdMatch = healedText.match(dateRegexYMD);
     if (dmyMatch) {
       let day = dmyMatch[1].padStart(2, '0');
       let month = dmyMatch[2].padStart(2, '0');
       let year = dmyMatch[3];
+      if (year.length === 2) {
+        year = "20" + year; // assume 21st century
+      }
       fecha = `${year}-${month}-${day}`;
     } else if (ymdMatch) {
       fecha = `${ymdMatch[1]}-${ymdMatch[2]}-${ymdMatch[3]}`;
@@ -600,11 +639,14 @@ export default function DashboardView({
 
       setScanProgress(100);
       
+      const ocrFailed = !rawText || rawText.trim().length < 15 || rawText.includes("No se pudo extraer texto") || parsedData.montoTotal === 0;
+
       const finalData = {
         ...parsedData,
         fileName: file.name,
         receiptUrl: compressedBase64,
-        rawText: rawText
+        rawText: rawText,
+        ocrFailed: ocrFailed
       };
       
       setScannedData(finalData);
@@ -1709,7 +1751,7 @@ He procesado tu consulta y analizado tus números integrados.
               }}>
                 <input
                   type="file"
-                  accept="image/*,.pdf"
+                  accept="image/*,.heic,.heif,.pdf"
                   onChange={handleReceiptUpload}
                   style={{
                     position: 'absolute',
@@ -2656,6 +2698,24 @@ He procesado tu consulta y analizado tus números integrados.
             <p className="subtitle" style={{ marginBottom: '20px', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
               Verifica los números extraídos por el asistente CFO. Al confirmar, guardaremos este egreso y su respaldo tributario en Supabase.
             </p>
+
+            {scannedData.ocrFailed && (
+              <div style={{
+                padding: '12px 14px',
+                background: 'rgba(245, 158, 11, 0.1)',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+                borderRadius: '12px',
+                color: '#f59e0b',
+                fontSize: '12.5px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '16px'
+              }}>
+                <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                <span style={{ lineHeight: 1.4 }}>La IA no pudo extraer los datos de la boleta automáticamente. Por favor, ingresa los valores manualmente.</span>
+              </div>
+            )}
 
             <form onSubmit={handleConfirmReceipt} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
