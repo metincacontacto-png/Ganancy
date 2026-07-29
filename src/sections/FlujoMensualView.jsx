@@ -675,7 +675,7 @@ export default function FlujoMensualView({
             justifyContent: 'space-between', 
             alignItems: 'center',
             cursor: 'pointer',
-            backgroundColor: 'var(--bg-card)',
+            backgroundColor: 'var(--bg-secondary)',
             borderBottom: isExpanded ? '1px solid var(--border-color)' : 'none',
             boxShadow: isExpanded ? '0 2px 4px rgba(0,0,0,0.02)' : 'none',
             transition: 'background-color 0.2s',
