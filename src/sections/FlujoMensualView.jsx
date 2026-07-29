@@ -215,6 +215,7 @@ export default function FlujoMensualView({
     return "Q_0";
   });
   const [selectedMonthDetail, setSelectedMonthDetail] = useState(null);
+  const [activeModalTab, setActiveModalTab] = useState("resumen");
 
   // Fixed Template States
   const [fixedTemplatesOpen, setFixedTemplatesOpen] = useState(false);
@@ -1372,7 +1373,7 @@ export default function FlujoMensualView({
                 </strong>
               </div>
               <button 
-                onClick={() => setSelectedMonthDetail(latestMonth.month)}
+                onClick={() => { setSelectedMonthDetail(latestMonth.month); setActiveModalTab("resumen"); }}
                 style={{ 
                   background: 'var(--accent)', 
                   border: 'none', 
@@ -1408,7 +1409,7 @@ export default function FlujoMensualView({
                 <div 
                   key={item.month} 
                   className="card" 
-                  onClick={() => setSelectedMonthDetail(item.month)}
+                  onClick={() => { setSelectedMonthDetail(item.month); setActiveModalTab("resumen"); }}
                   style={{ 
                     cursor: 'pointer', 
                     borderLeft: `4px solid ${isNegative ? 'var(--danger)' : 'var(--success)'}`,
@@ -1476,111 +1477,234 @@ export default function FlujoMensualView({
       {/* Modal / Sheet de Detalle de Mes (DIRECT CRUD & Reminders) */}
       {selectedMonthDetail && currentDetails && currentMonthFlow && (
         <div className="modal-overlay" onClick={() => setSelectedMonthDetail(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1750px', width: '99%', maxHeight: '98vh', display: 'flex', flexDirection: 'column', padding: '24px 36px', borderRadius: '16px', overflowY: 'auto' }}>
-            <button className="close-btn" onClick={() => setSelectedMonthDetail(null)}>
-              <X size={18} />
-            </button>
+          <div className="modal-content modal-sidebar-layout" onClick={e => e.stopPropagation()} style={{ maxWidth: '1750px', width: '99%' }}>
             
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Calendar size={26} color="var(--accent)" />
-                <h3 style={{ fontSize: '26px', fontWeight: 700 }}>Desglose Operacional — {selectedMonthDetail}</h3>
-              </div>
-              <p className="subtitle" style={{ marginTop: '6px', fontSize: '15px' }}>
-                Registra, edita o elimina movimientos mensuales. Tilda los cheques correspondientes para marcar ingresos recibidos o egresos pagados.
-              </p>
-            </div>
-
-            {/* Quick Balance Header inside Modal */}
-            <div className="modal-balance-grid" style={{ marginBottom: '16px' }}>
-              {/* Row 1: Planned Totals */}
-              <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Totales (Mes)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--success)', display: 'block', marginTop: '4px' }}>{formatMoney(totalIngresosMes)}</strong>
-              </div>
-              <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Totales (Mes)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--danger)', display: 'block', marginTop: '4px' }}>{formatMoney(totalEgresosMes)}</strong>
-              </div>
-              <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance Neto Proyectado</span>
-                <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balanceNetoMes >= 0 ? "num-positive" : "num-negative"}>
-                  {balanceNetoMes >= 0 ? '+' : ''}{formatMoney(balanceNetoMes)}
-                </strong>
+            {/* Sidebar Navigation */}
+            <div className="modal-sidebar">
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Calendar size={22} color="var(--accent)" />
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>{selectedMonthDetail}</h3>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '6px 0 0 0' }}>Desglose Operacional</p>
               </div>
 
-              {/* Row 2: Actual / Paid to Date Totals */}
-              <div style={{ padding: '14px 18px', background: 'rgba(52, 199, 89, 0.05)', border: '1px solid rgba(52, 199, 89, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--success)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Recibidos (a la fecha)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--success)', display: 'block', marginTop: '4px' }}>{formatMoney(ingresosRecibidos)}</strong>
-              </div>
-              <div style={{ padding: '14px 18px', background: 'rgba(255, 59, 48, 0.05)', border: '1px solid rgba(255, 59, 48, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--danger)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Pagados (a la fecha)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--danger)', display: 'block', marginTop: '4px' }}>{formatMoney(egresosPagados)}</strong>
-              </div>
-              <div style={{ 
-                padding: '14px 18px', 
-                background: balanceCajaActual >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
-                border: balanceCajaActual >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
-                borderRadius: '12px', 
-                textAlign: 'center' 
-              }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Caja Real a la fecha</span>
-                <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balanceCajaActual >= 0 ? "num-positive" : "num-negative"}>
-                  {balanceCajaActual >= 0 ? '+' : ''}{formatMoney(balanceCajaActual)}
-                </strong>
-              </div>
-
-              {/* Row 3: Pending Totals */}
-              <div style={{ padding: '14px 18px', background: 'rgba(10, 132, 255, 0.05)', border: '1px solid rgba(10, 132, 255, 0.15)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--accent)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos por Recibir (Pendiente)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--accent)', display: 'block', marginTop: '4px' }}>{formatMoney(ingresosPorRecibir)}</strong>
-              </div>
-              <div style={{ padding: '14px 18px', background: 'rgba(255, 149, 0, 0.05)', border: '1px solid rgba(255, 149, 0, 0.15)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--warning)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos por Pagar (Pendiente)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--warning)', display: 'block', marginTop: '4px' }}>{formatMoney(egresosPorPagar)}</strong>
-              </div>
-              <div style={{ 
-                padding: '14px 18px', 
-                background: balancePendiente >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
-                border: balancePendiente >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
-                borderRadius: '12px', 
-                textAlign: 'center' 
-              }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance de Pendientes</span>
-                <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balancePendiente >= 0 ? "num-positive" : "num-negative"}>
-                  {balancePendiente >= 0 ? '+' : ''}{formatMoney(balancePendiente)}
-                </strong>
-              </div>
-            </div>
-
-            {/* Grid Columns for Incomes / Expenses - 4 Panels (2x2 Grid) */}
-            {/* Columns for Incomes / Expenses - 2-Column masonry layout */}
-            <div className="operational-grid-2x2" style={{ marginTop: '14px', gap: '20px', alignItems: 'start' }}>
-              {/* Left Column: Incomes (Ingresos) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Ingresos Fijos */}
-                <div 
-                  className="card" 
-                  style={{ 
-                    padding: '24px 0 16px 0', 
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '16px',
-                    boxShadow: 'var(--shadow-sm)'
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <button 
+                  onClick={() => setActiveModalTab("resumen")}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: activeModalTab === "resumen" ? 'var(--accent-light)' : 'transparent',
+                    color: activeModalTab === "resumen" ? 'var(--accent)' : 'var(--text-primary)',
+                    fontWeight: activeModalTab === "resumen" ? 700 : 500,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    transition: 'all 0.2s ease'
                   }}
                 >
+                  <span style={{ fontSize: '16px' }}>📊</span> Resumen General
+                </button>
+
+                <button 
+                  onClick={() => setActiveModalTab("ingresos_fijos")}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: activeModalTab === "ingresos_fijos" ? 'var(--accent-light)' : 'transparent',
+                    color: activeModalTab === "ingresos_fijos" ? 'var(--accent)' : 'var(--text-primary)',
+                    fontWeight: activeModalTab === "ingresos_fijos" ? 700 : 500,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '16px' }}>💰</span> Ingresos Fijos
+                  </div>
+                  <span style={{ fontSize: '12px', backgroundColor: 'var(--border-color)', padding: '2px 8px', borderRadius: '12px', color: 'var(--text-primary)' }}>
+                    {ingresosFijos.length}
+                  </span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveModalTab("egresos_fijos")}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: activeModalTab === "egresos_fijos" ? 'var(--accent-light)' : 'transparent',
+                    color: activeModalTab === "egresos_fijos" ? 'var(--accent)' : 'var(--text-primary)',
+                    fontWeight: activeModalTab === "egresos_fijos" ? 700 : 500,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '16px' }}>💸</span> Egresos Fijos
+                  </div>
+                  <span style={{ fontSize: '12px', backgroundColor: 'var(--border-color)', padding: '2px 8px', borderRadius: '12px', color: 'var(--text-primary)' }}>
+                    {egresosFijos.length}
+                  </span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveModalTab("ingresos_variables")}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: activeModalTab === "ingresos_variables" ? 'var(--accent-light)' : 'transparent',
+                    color: activeModalTab === "ingresos_variables" ? 'var(--accent)' : 'var(--text-primary)',
+                    fontWeight: activeModalTab === "ingresos_variables" ? 700 : 500,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '16px' }}>📈</span> Ingresos Variables
+                  </div>
+                  <span style={{ fontSize: '12px', backgroundColor: 'var(--border-color)', padding: '2px 8px', borderRadius: '12px', color: 'var(--text-primary)' }}>
+                    {ingresosVariables.length}
+                  </span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveModalTab("egresos_variables")}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: activeModalTab === "egresos_variables" ? 'var(--accent-light)' : 'transparent',
+                    color: activeModalTab === "egresos_variables" ? 'var(--accent)' : 'var(--text-primary)',
+                    fontWeight: activeModalTab === "egresos_variables" ? 700 : 500,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '16px' }}>📉</span> Egresos Variables
+                  </div>
+                  <span style={{ fontSize: '12px', backgroundColor: 'var(--border-color)', padding: '2px 8px', borderRadius: '12px', color: 'var(--text-primary)' }}>
+                    {egresosVariables.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Content Body Area */}
+            <div className="modal-body-content">
+              <button className="close-btn" onClick={() => setSelectedMonthDetail(null)}>
+                <X size={18} />
+              </button>
+
+              {activeModalTab === "resumen" && (
+                <div>
+                  <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>Resumen General de Caja</h3>
+                    <p className="subtitle" style={{ marginTop: '6px', fontSize: '14px' }}>
+                      Resumen consolidado de saldos proyectados, recibidos y por pagar para el mes de {selectedMonthDetail}.
+                    </p>
+                  </div>
+
+                  <div className="modal-balance-grid" style={{ marginBottom: '16px' }}>
+                    {/* Row 1: Planned Totals */}
+                    <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Totales (Mes)</span>
+                      <strong style={{ fontSize: '20px', color: 'var(--success)', display: 'block', marginTop: '4px' }}>{formatMoney(totalIngresosMes)}</strong>
+                    </div>
+                    <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Totales (Mes)</span>
+                      <strong style={{ fontSize: '20px', color: 'var(--danger)', display: 'block', marginTop: '4px' }}>{formatMoney(totalEgresosMes)}</strong>
+                    </div>
+                    <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                      <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance Neto Proyectado</span>
+                      <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balanceNetoMes >= 0 ? "num-positive" : "num-negative"}>
+                        {balanceNetoMes >= 0 ? '+' : ''}{formatMoney(balanceNetoMes)}
+                      </strong>
+                    </div>
+
+                    {/* Row 2: Actual / Paid to Date Totals */}
+                    <div style={{ padding: '14px 18px', background: 'rgba(52, 199, 89, 0.05)', border: '1px solid rgba(52, 199, 89, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '12.5px', color: 'var(--success)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Recibidos (a la fecha)</span>
+                      <strong style={{ fontSize: '20px', color: 'var(--success)', display: 'block', marginTop: '4px' }}>{formatMoney(ingresosRecibidos)}</strong>
+                    </div>
+                    <div style={{ padding: '14px 18px', background: 'rgba(255, 59, 48, 0.05)', border: '1px solid rgba(255, 59, 48, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '12.5px', color: 'var(--danger)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Pagados (a la fecha)</span>
+                      <strong style={{ fontSize: '20px', color: 'var(--danger)', display: 'block', marginTop: '4px' }}>{formatMoney(egresosPagados)}</strong>
+                    </div>
+                    <div style={{ 
+                      padding: '14px 18px', 
+                      background: balanceCajaActual >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
+                      border: balanceCajaActual >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
+                      borderRadius: '12px', 
+                      textAlign: 'center' 
+                    }}>
+                      <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Caja Real a la fecha</span>
+                      <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balanceCajaActual >= 0 ? "num-positive" : "num-negative"}>
+                        {balanceCajaActual >= 0 ? '+' : ''}{formatMoney(balanceCajaActual)}
+                      </strong>
+                    </div>
+
+                    {/* Row 3: Pending Totals */}
+                    <div style={{ padding: '14px 18px', background: 'rgba(10, 132, 255, 0.05)', border: '1px solid rgba(10, 132, 255, 0.15)', borderRadius: '12px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '12.5px', color: 'var(--accent)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos por Recibir (Pendiente)</span>
+                      <strong style={{ fontSize: '20px', color: 'var(--accent)', display: 'block', marginTop: '4px' }}>{formatMoney(ingresosPorRecibir)}</strong>
+                    </div>
+                    <div style={{ padding: '14px 18px', background: 'rgba(255, 149, 0, 0.05)', border: '1px solid rgba(255, 149, 0, 0.15)', borderRadius: '12px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '12.5px', color: 'var(--warning)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos por Pagar (Pendiente)</span>
+                      <strong style={{ fontSize: '20px', color: 'var(--warning)', display: 'block', marginTop: '4px' }}>{formatMoney(egresosPorPagar)}</strong>
+                    </div>
+                    <div style={{ 
+                      padding: '14px 18px', 
+                      background: balancePendiente >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
+                      border: balancePendiente >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
+                      borderRadius: '12px', 
+                      textAlign: 'center' 
+                    }}>
+                      <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance de Pendientes</span>
+                      <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balancePendiente >= 0 ? "num-positive" : "num-negative"}>
+                        {balancePendiente >= 0 ? '+' : ''}{formatMoney(balancePendiente)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeModalTab === "ingresos_fijos" && (
+                <div className="card" style={{ padding: '24px 0 16px 0', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                        Ingresos Fijos
-                      </h4>
+                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Ingresos Fijos</h4>
                       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos recurrentes mensuales</p>
                     </div>
-                    <button 
-                      onClick={() => handleOpenAdd("ingresos", false)} 
-                      style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                    >
+                    <button onClick={() => handleOpenAdd("ingresos", false)} style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}>
                       <Plus size={14} /> Agregar
                     </button>
                   </div>
@@ -1590,64 +1714,16 @@ export default function FlujoMensualView({
                     <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosFijos)}</span>
                   </div>
                 </div>
+              )}
 
-                {/* Ingresos Variables */}
-                <div 
-                  className="card" 
-                  style={{ 
-                    padding: '24px 0 16px 0', 
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '16px',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                >
+              {activeModalTab === "egresos_fijos" && (
+                <div className="card" style={{ padding: '24px 0 16px 0', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                        Ingresos Variables
-                      </h4>
-                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos variables de ingresos</p>
-                    </div>
-                    <button 
-                      onClick={() => handleOpenAdd("ingresos", true)} 
-                      style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      <Plus size={14} /> Agregar
-                    </button>
-                  </div>
-                  {renderTransactionTable(ingresosVariables, "ingresos", "Monto Estimado", "No hay ingresos variables registrados.")}
-                  <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Ingresos Var.</span>
-                    <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosVariables)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Expenses (Egresos) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Egresos Fijos */}
-                <div 
-                  className="card" 
-                  style={{ 
-                    padding: '24px 0 16px 0', 
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '16px',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                >
-                  <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                        Egresos Fijos
-                      </h4>
+                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Egresos Fijos</h4>
                       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de costos recurrentes</p>
                     </div>
-                    <button 
-                      onClick={() => handleOpenAdd("egresos", false)} 
-                      style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                    >
+                    <button onClick={() => handleOpenAdd("egresos", false)} style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}>
                       <Plus size={14} /> Agregar
                     </button>
                   </div>
@@ -1657,29 +1733,35 @@ export default function FlujoMensualView({
                     <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosFijos)}</span>
                   </div>
                 </div>
+              )}
 
-                {/* Egresos Variables */}
-                <div 
-                  className="card" 
-                  style={{ 
-                    padding: '24px 0 16px 0', 
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '16px',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                >
+              {activeModalTab === "ingresos_variables" && (
+                <div className="card" style={{ padding: '24px 0 16px 0', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                        Egresos Variables
-                      </h4>
+                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Ingresos Variables</h4>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos variables de ingresos</p>
+                    </div>
+                    <button onClick={() => handleOpenAdd("ingresos", true)} style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}>
+                      <Plus size={14} /> Agregar
+                    </button>
+                  </div>
+                  {renderTransactionTable(ingresosVariables, "ingresos", "Monto Estimado", "No hay ingresos variables registrados.")}
+                  <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Ingresos Var.</span>
+                    <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosVariables)}</span>
+                  </div>
+                </div>
+              )}
+
+              {activeModalTab === "egresos_variables" && (
+                <div className="card" style={{ padding: '24px 0 16px 0', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>Egresos Variables</h4>
                       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de egresos variables</p>
                     </div>
-                    <button 
-                      onClick={() => handleOpenAdd("egresos", true)} 
-                      style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                    >
+                    <button onClick={() => handleOpenAdd("egresos", true)} style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}>
                       <Plus size={14} /> Agregar
                     </button>
                   </div>
@@ -1689,7 +1771,7 @@ export default function FlujoMensualView({
                     <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosVariables)}</span>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

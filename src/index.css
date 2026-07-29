@@ -1745,3 +1745,55 @@ td { font-size: 15.5px; }
   width: 100% !important;
   height: 100% !important;
 }
+
+/* Modal Sidebar Layout */
+.modal-sidebar-layout {
+  display: flex;
+  flex-direction: row;
+  height: 92vh;
+  max-height: 94vh;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.modal-sidebar {
+  width: 280px;
+  border-right: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  gap: 24px;
+  flex-shrink: 0;
+}
+
+.modal-body-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 40px;
+  overflow-y: auto;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .modal-sidebar-layout {
+    flex-direction: column;
+    height: auto;
+    max-height: 98vh;
+    overflow-y: auto !important;
+  }
+  
+  .modal-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 16px;
+    gap: 16px;
+  }
+  
+  .modal-body-content {
+    padding: 20px 16px;
+    overflow-y: visible;
+  }
+}
