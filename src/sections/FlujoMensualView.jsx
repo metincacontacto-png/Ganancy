@@ -654,7 +654,7 @@ export default function FlujoMensualView({
     const isExpanded = activePanel === key;
     return (
       <div 
-        className="card" 
+        className="card modal-accordion-card" 
         style={{ 
           marginBottom: '16px',
           padding: 0,

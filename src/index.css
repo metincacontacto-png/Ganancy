@@ -1797,3 +1797,15 @@ td { font-size: 15.5px; }
     overflow-y: visible;
   }
 }
+
+/* Modal Accordion Cards */
+.modal-accordion-card {
+  overflow: visible !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+.modal-accordion-card:hover {
+  transform: none !important;
+  box-shadow: var(--shadow-sm) !important;
+}
