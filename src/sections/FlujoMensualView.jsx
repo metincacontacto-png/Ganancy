@@ -647,7 +647,7 @@ export default function FlujoMensualView({
 
   const renderTransactionTable = (items, type, montoLabel, emptyMessage) => {
     return (
-      <div className="table-responsive" style={{ maxHeight: '38vh', overflowY: 'auto' }}>
+      <div className="table-responsive">
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1.5px solid var(--border-color)' }}>
