@@ -1562,12 +1562,12 @@ export default function FlujoMensualView({
       {/* Modal / Sheet de Detalle de Mes (DIRECT CRUD & Reminders) */}
       {selectedMonthDetail && currentDetails && currentMonthFlow && (
         <div className="modal-overlay" onClick={() => setSelectedMonthDetail(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1750px', width: '99%', maxHeight: '98vh', display: 'flex', flexDirection: 'column', padding: '24px 36px', borderRadius: '16px', overflowY: 'auto' }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1750px', width: '99%', maxHeight: '98vh', display: 'flex', flexDirection: 'column', padding: '0 36px 24px 36px', borderRadius: '16px', overflowY: 'auto' }}>
             <button className="close-btn" onClick={() => setSelectedMonthDetail(null)}>
               <X size={18} />
             </button>
             
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '20px', marginTop: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Calendar size={26} color="var(--accent)" />
                 <h3 style={{ fontSize: '26px', fontWeight: 700 }}>Desglose Operacional — {selectedMonthDetail}</h3>
