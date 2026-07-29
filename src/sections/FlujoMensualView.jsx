@@ -215,12 +215,7 @@ export default function FlujoMensualView({
     return "Q_0";
   });
   const [selectedMonthDetail, setSelectedMonthDetail] = useState(null);
-  const [expandedPanels, setExpandedPanels] = useState({
-    ingresos_fijos: true,
-    egresos_fijos: true,
-    ingresos_variables: true,
-    egresos_variables: true
-  });
+  const [activePanel, setActivePanel] = useState("ingresos_fijos");
 
   // Fixed Template States
   const [fixedTemplatesOpen, setFixedTemplatesOpen] = useState(false);
@@ -652,14 +647,11 @@ export default function FlujoMensualView({
   const totalEgresosVariables = egresosVariables.reduce((sum, item) => sum + item.value, 0);
 
   const togglePanel = (panelKey) => {
-    setExpandedPanels(prev => ({
-      ...prev,
-      [panelKey]: !prev[panelKey]
-    }));
+    setActivePanel(prev => prev === panelKey ? null : panelKey);
   };
 
   const renderAccordionCard = (key, title, subtitle, items, type, isVariable, totalValue, badgeColorClass) => {
-    const isExpanded = expandedPanels[key];
+    const isExpanded = activePanel === key;
     return (
       <div 
         className="card" 
@@ -676,13 +668,17 @@ export default function FlujoMensualView({
         <div 
           onClick={() => togglePanel(key)}
           style={{ 
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
             padding: '18px 24px', 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
             cursor: 'pointer',
-            backgroundColor: isExpanded ? 'rgba(0, 0, 0, 0.02)' : 'transparent',
+            backgroundColor: 'var(--bg-card)',
             borderBottom: isExpanded ? '1px solid var(--border-color)' : 'none',
+            boxShadow: isExpanded ? '0 2px 4px rgba(0,0,0,0.02)' : 'none',
             transition: 'background-color 0.2s'
           }}
         >
@@ -1459,7 +1455,7 @@ export default function FlujoMensualView({
                 </strong>
               </div>
               <button 
-                onClick={() => { setSelectedMonthDetail(latestMonth.month); setExpandedPanels({ ingresos_fijos: true, egresos_fijos: true, ingresos_variables: true, egresos_variables: true }); }}
+                onClick={() => { setSelectedMonthDetail(latestMonth.month); setActivePanel("ingresos_fijos"); }}
                 style={{ 
                   background: 'var(--accent)', 
                   border: 'none', 
@@ -1495,7 +1491,7 @@ export default function FlujoMensualView({
                 <div 
                   key={item.month} 
                   className="card" 
-                  onClick={() => { setSelectedMonthDetail(item.month); setExpandedPanels({ ingresos_fijos: true, egresos_fijos: true, ingresos_variables: true, egresos_variables: true }); }}
+                  onClick={() => { setSelectedMonthDetail(item.month); setActivePanel("ingresos_fijos"); }}
                   style={{ 
                     cursor: 'pointer', 
                     borderLeft: `4px solid ${isNegative ? 'var(--danger)' : 'var(--success)'}`,
