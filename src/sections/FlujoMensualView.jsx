@@ -1579,63 +1579,63 @@ export default function FlujoMensualView({
             </div>
 
             {/* Quick Balance Header inside Modal */}
-            <div className="modal-balance-grid" style={{ marginBottom: '24px' }}>
+            <div className="modal-balance-grid" style={{ marginBottom: '20px', gap: '12px' }}>
               {/* Row 1: Planned Totals */}
-              <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Totales (Mes)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--success)', display: 'block', marginTop: '4px' }}>{formatMoney(totalIngresosMes)}</strong>
+              <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Totales (Mes)</span>
+                <strong style={{ fontSize: '15px', color: 'var(--success)', display: 'block', marginTop: '2px' }}>{formatMoney(totalIngresosMes)}</strong>
               </div>
-              <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Totales (Mes)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--danger)', display: 'block', marginTop: '4px' }}>{formatMoney(totalEgresosMes)}</strong>
+              <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Totales (Mes)</span>
+                <strong style={{ fontSize: '15px', color: 'var(--danger)', display: 'block', marginTop: '2px' }}>{formatMoney(totalEgresosMes)}</strong>
               </div>
-              <div style={{ padding: '14px 18px', background: 'var(--bg-primary)', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance Neto Proyectado</span>
-                <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balanceNetoMes >= 0 ? "num-positive" : "num-negative"}>
+              <div style={{ padding: '8px 12px', background: 'var(--bg-primary)', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance Neto Proyectado</span>
+                <strong style={{ fontSize: '15px', display: 'block', marginTop: '2px' }} className={balanceNetoMes >= 0 ? "num-positive" : "num-negative"}>
                   {balanceNetoMes >= 0 ? '+' : ''}{formatMoney(balanceNetoMes)}
                 </strong>
               </div>
 
               {/* Row 2: Actual / Paid to Date Totals */}
-              <div style={{ padding: '14px 18px', background: 'rgba(52, 199, 89, 0.05)', border: '1px solid rgba(52, 199, 89, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--success)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Recibidos (a la fecha)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--success)', display: 'block', marginTop: '4px' }}>{formatMoney(ingresosRecibidos)}</strong>
+              <div style={{ padding: '8px 12px', background: 'rgba(52, 199, 89, 0.04)', border: '1px solid rgba(52, 199, 89, 0.10)', borderRadius: '8px', textAlign: 'center' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--success)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos Recibidos (a la fecha)</span>
+                <strong style={{ fontSize: '15px', color: 'var(--success)', display: 'block', marginTop: '2px' }}>{formatMoney(ingresosRecibidos)}</strong>
               </div>
-              <div style={{ padding: '14px 18px', background: 'rgba(255, 59, 48, 0.05)', border: '1px solid rgba(255, 59, 48, 0.12)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--danger)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Pagados (a la fecha)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--danger)', display: 'block', marginTop: '4px' }}>{formatMoney(egresosPagados)}</strong>
+              <div style={{ padding: '8px 12px', background: 'rgba(255, 59, 48, 0.04)', border: '1px solid rgba(255, 59, 48, 0.10)', borderRadius: '8px', textAlign: 'center' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--danger)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos Pagados (a la fecha)</span>
+                <strong style={{ fontSize: '15px', color: 'var(--danger)', display: 'block', marginTop: '2px' }}>{formatMoney(egresosPagados)}</strong>
               </div>
               <div style={{ 
-                padding: '14px 18px', 
-                background: balanceCajaActual >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
-                border: balanceCajaActual >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
-                borderRadius: '12px', 
+                padding: '8px 12px', 
+                background: balanceCajaActual >= 0 ? 'rgba(52, 199, 89, 0.04)' : 'rgba(255, 59, 48, 0.04)', 
+                border: balanceCajaActual >= 0 ? '1px solid rgba(52, 199, 89, 0.10)' : '1px solid rgba(255, 59, 48, 0.10)', 
+                borderRadius: '8px', 
                 textAlign: 'center' 
               }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Caja Real a la fecha</span>
-                <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balanceCajaActual >= 0 ? "num-positive" : "num-negative"}>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Caja Real a la fecha</span>
+                <strong style={{ fontSize: '15px', display: 'block', marginTop: '2px' }} className={balanceCajaActual >= 0 ? "num-positive" : "num-negative"}>
                   {balanceCajaActual >= 0 ? '+' : ''}{formatMoney(balanceCajaActual)}
                 </strong>
               </div>
 
               {/* Row 3: Pending Totals */}
-              <div style={{ padding: '14px 18px', background: 'rgba(10, 132, 255, 0.05)', border: '1px solid rgba(10, 132, 255, 0.15)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--accent)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos por Recibir (Pendiente)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--accent)', display: 'block', marginTop: '4px' }}>{formatMoney(ingresosPorRecibir)}</strong>
+              <div style={{ padding: '8px 12px', background: 'rgba(10, 132, 255, 0.04)', border: '1px solid rgba(10, 132, 255, 0.10)', borderRadius: '8px', textAlign: 'center' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--accent)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Ingresos por Recibir (Pendiente)</span>
+                <strong style={{ fontSize: '15px', color: 'var(--accent)', display: 'block', marginTop: '2px' }}>{formatMoney(ingresosPorRecibir)}</strong>
               </div>
-              <div style={{ padding: '14px 18px', background: 'rgba(255, 149, 0, 0.05)', border: '1px solid rgba(255, 149, 0, 0.15)', borderRadius: '12px', textAlign: 'center' }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--warning)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos por Pagar (Pendiente)</span>
-                <strong style={{ fontSize: '20px', color: 'var(--warning)', display: 'block', marginTop: '4px' }}>{formatMoney(egresosPorPagar)}</strong>
+              <div style={{ padding: '8px 12px', background: 'rgba(255, 149, 0, 0.04)', border: '1px solid rgba(255, 149, 0, 0.10)', borderRadius: '8px', textAlign: 'center' }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--warning)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Egresos por Pagar (Pendiente)</span>
+                <strong style={{ fontSize: '15px', color: 'var(--warning)', display: 'block', marginTop: '2px' }}>{formatMoney(egresosPorPagar)}</strong>
               </div>
               <div style={{ 
-                padding: '14px 18px', 
-                background: balancePendiente >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
-                border: balancePendiente >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
-                borderRadius: '12px', 
+                padding: '8px 12px', 
+                background: balancePendiente >= 0 ? 'rgba(52, 199, 89, 0.04)' : 'rgba(255, 59, 48, 0.04)', 
+                border: balancePendiente >= 0 ? '1px solid rgba(52, 199, 89, 0.10)' : '1px solid rgba(255, 59, 48, 0.10)', 
+                borderRadius: '8px', 
                 textAlign: 'center' 
               }}>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance de Pendientes</span>
-                <strong style={{ fontSize: '20px', display: 'block', marginTop: '4px' }} className={balancePendiente >= 0 ? "num-positive" : "num-negative"}>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-primary)', display: 'block', textTransform: 'uppercase', fontWeight: 600 }}>Balance de Pendientes</span>
+                <strong style={{ fontSize: '15px', display: 'block', marginTop: '2px' }} className={balancePendiente >= 0 ? "num-positive" : "num-negative"}>
                   {balancePendiente >= 0 ? '+' : ''}{formatMoney(balancePendiente)}
                 </strong>
               </div>
