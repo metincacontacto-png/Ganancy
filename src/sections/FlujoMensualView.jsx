@@ -1640,12 +1640,19 @@ export default function FlujoMensualView({
               </div>
             </div>
 
-            {/* Accordion Stack for the 4 modules */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px' }}>
-              {renderAccordionCard("ingresos_fijos", "Ingresos Fijos", "Detalle de flujos recurrentes mensuales", ingresosFijos, "ingresos", false, totalIngresosFijos, "num-positive")}
-              {renderAccordionCard("egresos_fijos", "Egresos Fijos", "Detalle de costos recurrentes", egresosFijos, "egresos", false, totalEgresosFijos, "num-negative")}
-              {renderAccordionCard("ingresos_variables", "Ingresos Variables", "Detalle de flujos variables de ingresos", ingresosVariables, "ingresos", true, totalIngresosVariables, "num-positive")}
-              {renderAccordionCard("egresos_variables", "Egresos Variables", "Detalle de egresos variables", egresosVariables, "egresos", true, totalEgresosVariables, "num-negative")}
+            {/* Accordion Stack for the 4 modules - 2 and 2 Layout */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
+              {/* Row 1: Fijos */}
+              <div className="operational-grid-2x2" style={{ gap: '20px', marginTop: 0, alignItems: 'start' }}>
+                {renderAccordionCard("ingresos_fijos", "Ingresos Fijos", "Detalle de flujos recurrentes mensuales", ingresosFijos, "ingresos", false, totalIngresosFijos, "num-positive")}
+                {renderAccordionCard("egresos_fijos", "Egresos Fijos", "Detalle de costos recurrentes", egresosFijos, "egresos", false, totalEgresosFijos, "num-negative")}
+              </div>
+
+              {/* Row 2: Variables */}
+              <div className="operational-grid-2x2" style={{ gap: '20px', marginTop: 0, alignItems: 'start' }}>
+                {renderAccordionCard("ingresos_variables", "Ingresos Variables", "Detalle de flujos variables de ingresos", ingresosVariables, "ingresos", true, totalIngresosVariables, "num-positive")}
+                {renderAccordionCard("egresos_variables", "Egresos Variables", "Detalle de egresos variables", egresosVariables, "egresos", true, totalEgresosVariables, "num-negative")}
+              </div>
             </div>
           </div>
         </div>
