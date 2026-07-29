@@ -661,8 +661,7 @@ export default function FlujoMensualView({
           backgroundColor: 'var(--bg-card)',
           border: '1px solid var(--border-color)',
           borderRadius: '16px',
-          boxShadow: 'var(--shadow-sm)',
-          overflow: 'hidden'
+          boxShadow: 'var(--shadow-sm)'
         }}
       >
         <div 
@@ -679,7 +678,11 @@ export default function FlujoMensualView({
             backgroundColor: 'var(--bg-card)',
             borderBottom: isExpanded ? '1px solid var(--border-color)' : 'none',
             boxShadow: isExpanded ? '0 2px 4px rgba(0,0,0,0.02)' : 'none',
-            transition: 'background-color 0.2s'
+            transition: 'background-color 0.2s',
+            borderTopLeftRadius: '15px',
+            borderTopRightRadius: '15px',
+            borderBottomLeftRadius: isExpanded ? '0px' : '15px',
+            borderBottomRightRadius: isExpanded ? '0px' : '15px'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
