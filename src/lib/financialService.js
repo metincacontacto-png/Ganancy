@@ -133,10 +133,18 @@ export const fetchAllUserData = async (userId) => {
     });
 
     (detailsRows || []).forEach(row => {
-      if (!monthlyDetailsState[row.month]) {
-        monthlyDetailsState[row.month] = { ingresos: [], egresos: [] };
+      let targetMonth = row.month;
+      if (row.due_date) {
+        const date = new Date(row.due_date + 'T00:00:00');
+        if (!isNaN(date.getTime())) {
+          const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+          targetMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
+        }
       }
-      const list = row.type === 'ingreso' ? monthlyDetailsState[row.month].ingresos : monthlyDetailsState[row.month].egresos;
+      if (!monthlyDetailsState[targetMonth]) {
+        monthlyDetailsState[targetMonth] = { ingresos: [], egresos: [] };
+      }
+      const list = row.type === 'ingreso' ? monthlyDetailsState[targetMonth].ingresos : monthlyDetailsState[targetMonth].egresos;
       list.push({
         id: row.id,
         name: row.name,
