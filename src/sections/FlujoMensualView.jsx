@@ -1555,132 +1555,139 @@ export default function FlujoMensualView({
             </div>
 
             {/* Grid Columns for Incomes / Expenses - 4 Panels (2x2 Grid) */}
-            <div className="operational-grid-2x2" style={{ marginTop: '14px', gap: '20px' }}>
-              {/* Left: Ingresos Fijos */}
-              <div 
-                className="card" 
-                style={{ 
-                  padding: '24px 0 16px 0', 
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '16px',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              >
-                <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                      Ingresos Fijos
-                    </h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos recurrentes mensuales</p>
+            {/* Columns for Incomes / Expenses - 2-Column masonry layout */}
+            <div className="operational-grid-2x2" style={{ marginTop: '14px', gap: '20px', alignItems: 'start' }}>
+              {/* Left Column: Incomes (Ingresos) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Ingresos Fijos */}
+                <div 
+                  className="card" 
+                  style={{ 
+                    padding: '24px 0 16px 0', 
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '16px',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                        Ingresos Fijos
+                      </h4>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos recurrentes mensuales</p>
+                    </div>
+                    <button 
+                      onClick={() => handleOpenAdd("ingresos", false)} 
+                      style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      <Plus size={14} /> Agregar
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => handleOpenAdd("ingresos", false)} 
-                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    <Plus size={14} /> Agregar
-                  </button>
+                  {renderTransactionTable(ingresosFijos, "ingresos", "Monto Mensual", "No hay ingresos fijos registrados.")}
+                  <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Ingresos Fijos</span>
+                    <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosFijos)}</span>
+                  </div>
                 </div>
-                {renderTransactionTable(ingresosFijos, "ingresos", "Monto Mensual", "No hay ingresos fijos registrados.")}
-                <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Ingresos Fijos</span>
-                  <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosFijos)}</span>
+
+                {/* Ingresos Variables */}
+                <div 
+                  className="card" 
+                  style={{ 
+                    padding: '24px 0 16px 0', 
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '16px',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                        Ingresos Variables
+                      </h4>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos variables de ingresos</p>
+                    </div>
+                    <button 
+                      onClick={() => handleOpenAdd("ingresos", true)} 
+                      style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      <Plus size={14} /> Agregar
+                    </button>
+                  </div>
+                  {renderTransactionTable(ingresosVariables, "ingresos", "Monto Estimado", "No hay ingresos variables registrados.")}
+                  <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Ingresos Var.</span>
+                    <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosVariables)}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Right: Egresos Fijos */}
-              <div 
-                className="card" 
-                style={{ 
-                  padding: '24px 0 16px 0', 
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '16px',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              >
-                <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                      Egresos Fijos
-                    </h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de costos recurrentes</p>
+              {/* Right Column: Expenses (Egresos) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Egresos Fijos */}
+                <div 
+                  className="card" 
+                  style={{ 
+                    padding: '24px 0 16px 0', 
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '16px',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                        Egresos Fijos
+                      </h4>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de costos recurrentes</p>
+                    </div>
+                    <button 
+                      onClick={() => handleOpenAdd("egresos", false)} 
+                      style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      <Plus size={14} /> Agregar
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => handleOpenAdd("egresos", false)} 
-                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    <Plus size={14} /> Agregar
-                  </button>
+                  {renderTransactionTable(egresosFijos, "egresos", "Monto Mensual", "No hay egresos fijos registrados.")}
+                  <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Egresos Fijos</span>
+                    <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosFijos)}</span>
+                  </div>
                 </div>
-                {renderTransactionTable(egresosFijos, "egresos", "Monto Mensual", "No hay egresos fijos registrados.")}
-                <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Egresos Fijos</span>
-                  <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosFijos)}</span>
-                </div>
-              </div>
 
-              {/* Bottom Left: Ingresos Variables */}
-              <div 
-                className="card" 
-                style={{ 
-                  padding: '24px 0 16px 0', 
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '16px',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              >
-                <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                      Ingresos Variables
-                    </h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de flujos variables de ingresos</p>
+                {/* Egresos Variables */}
+                <div 
+                  className="card" 
+                  style={{ 
+                    padding: '24px 0 16px 0', 
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '16px',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}
+                >
+                  <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                        Egresos Variables
+                      </h4>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de egresos variables</p>
+                    </div>
+                    <button 
+                      onClick={() => handleOpenAdd("egresos", true)} 
+                      style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      <Plus size={14} /> Agregar
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => handleOpenAdd("ingresos", true)} 
-                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    <Plus size={14} /> Agregar
-                  </button>
-                </div>
-                {renderTransactionTable(ingresosVariables, "ingresos", "Monto Estimado", "No hay ingresos variables registrados.")}
-                <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Ingresos Var.</span>
-                  <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-positive">{formatMoney(totalIngresosVariables)}</span>
-                </div>
-              </div>
-
-              {/* Bottom Right: Egresos Variables */}
-              <div 
-                className="card" 
-                style={{ 
-                  padding: '24px 0 16px 0', 
-                  backgroundColor: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '16px',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              >
-                <div style={{ padding: '0 24px 14px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h4 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                      Egresos Variables
-                    </h4>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>Detalle de egresos variables</p>
+                  {renderTransactionTable(egresosVariables, "egresos", "Monto Estimado", "No hay egresos variables registrados.")}
+                  <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Egresos Var.</span>
+                    <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosVariables)}</span>
                   </div>
-                  <button 
-                    onClick={() => handleOpenAdd("egresos", true)} 
-                    style={{ background: 'var(--accent-light)', border: 'none', color: 'var(--accent)', padding: '6px 12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    <Plus size={14} /> Agregar
-                  </button>
-                </div>
-                {renderTransactionTable(egresosVariables, "egresos", "Monto Estimado", "No hay egresos variables registrados.")}
-                <div style={{ padding: '14px 24px 0 24px', borderTop: '2.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Est. Egresos Var.</span>
-                  <span style={{ fontSize: '18px', fontWeight: 700 }} className="num-negative">{formatMoney(totalEgresosVariables)}</span>
                 </div>
               </div>
             </div>
