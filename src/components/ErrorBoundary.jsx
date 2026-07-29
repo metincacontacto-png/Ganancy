@@ -57,6 +57,28 @@ export class ErrorBoundary extends React.Component {
           >
             Recargar Aplicación
           </button>
+          
+          {this.state.error && (
+            <div style={{
+              marginTop: '32px',
+              padding: '16px',
+              backgroundColor: '#2c2c2e',
+              borderRadius: '8px',
+              textAlign: 'left',
+              maxWidth: '800px',
+              width: '100%',
+              overflowX: 'auto',
+              fontFamily: 'monospace',
+              fontSize: '12px',
+              color: '#ff453a',
+              border: '1px solid rgba(255, 69, 58, 0.3)',
+              maxHeight: '30vh',
+              overflowY: 'auto'
+            }}>
+              <strong style={{ display: 'block', marginBottom: '8px', fontSize: '13px' }}>Error Details: {this.state.error.message}</strong>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>{this.state.error.stack}</pre>
+            </div>
+          )}
         </div>
       );
     }
