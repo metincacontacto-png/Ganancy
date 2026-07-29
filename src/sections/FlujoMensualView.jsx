@@ -1629,8 +1629,8 @@ export default function FlujoMensualView({
               </div>
               <div style={{ 
                 padding: '14px 18px', 
-                background: balancePendingState || balancePendiente >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
-                border: balancePendingState || balancePendiente >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
+                background: balancePendiente >= 0 ? 'rgba(52, 199, 89, 0.05)' : 'rgba(255, 59, 48, 0.05)', 
+                border: balancePendiente >= 0 ? '1px solid rgba(52, 199, 89, 0.12)' : '1px solid rgba(255, 59, 48, 0.12)', 
                 borderRadius: '12px', 
                 textAlign: 'center' 
               }}>
