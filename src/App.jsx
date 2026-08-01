@@ -559,7 +559,7 @@ export default function App() {
     if (wordsA.length === 0 || wordsB.length === 0) return false;
     
     const intersection = wordsA.filter(w => wordsB.includes(w));
-    const matchRatio = intersection.length / Math.min(wordsA.length, wordsB.length);
+    const matchRatio = intersection.length / Math.max(wordsA.length, wordsB.length);
     return matchRatio >= 0.75;
   }, []);
 
