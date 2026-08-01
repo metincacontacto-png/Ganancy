@@ -539,6 +539,96 @@ export default function App() {
     return `${months[date.getMonth()]} ${date.getFullYear()}`;
   }, [parseMonthYear]);
 
+  // Helpers for matching raw transactions to general debts and syncing payments
+  const normalizeWord = (w) => {
+    return w
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/gi, "")
+      .replace(/s$/, "");
+  };
+
+  const namesMatch = React.useCallback((nameA, nameB) => {
+    if (!nameA || !nameB) return false;
+    const cleanA = nameA.replace(/\[personal\]|\[empresa\]/gi, "");
+    const cleanB = nameB.replace(/\[personal\]|\[empresa\]/gi, "");
+    
+    const wordsA = cleanA.split(/[\s/_-]+/).map(normalizeWord).filter(Boolean);
+    const wordsB = cleanB.split(/[\s/_-]+/).map(normalizeWord).filter(Boolean);
+    
+    if (wordsA.length === 0 || wordsB.length === 0) return false;
+    
+    const intersection = wordsA.filter(w => wordsB.includes(w));
+    const matchRatio = intersection.length / Math.min(wordsA.length, wordsB.length);
+    return matchRatio >= 0.75;
+  }, []);
+
+  const getMonthLabelForIndex = React.useCallback((startMonth, index) => {
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const monthsMap = {
+      "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+      "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11,
+      "Mayo": 4
+    };
+    const parts = startMonth.split(' ');
+    const abbr = parts[0];
+    const year = parseInt(parts[1], 10);
+    const monthIndex = monthsMap[abbr] !== undefined ? monthsMap[abbr] : 0;
+    
+    const targetDate = new Date(year, monthIndex + index, 1);
+    return `${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
+  }, []);
+
+  const syncedDebtsState = React.useMemo(() => {
+    return debtsState.map(debt => {
+      if (debt.tipo !== "fija" && !(debt.cuotasTotales && debt.cuotasTotales > 1)) {
+        return debt;
+      }
+      
+      const startMonth = getStartMonth(debt);
+      const cuotasArray = Array.isArray(debt.cuotas) ? debt.cuotas : [];
+      const newCuotas = [...cuotasArray];
+      while (newCuotas.length < debt.cuotasTotales) {
+        newCuotas.push(false);
+      }
+      
+      let modified = false;
+      for (let i = 0; i < debt.cuotasTotales; i++) {
+        const monthLabel = getMonthLabelForIndex(startMonth, i);
+        const monthObj = monthlyDetailsState[monthLabel];
+        if (monthObj) {
+          const matchedPaidTx = (monthObj.egresos || []).find(it => 
+            namesMatch(it.name, debt.name) && it.paid
+          );
+          if (matchedPaidTx) {
+            if (!newCuotas[i]) {
+              newCuotas[i] = true;
+              modified = true;
+            }
+          }
+        }
+      }
+      
+      if (modified) {
+        const paidCount = newCuotas.filter(Boolean).length;
+        const completed = paidCount === debt.cuotasTotales;
+        return {
+          ...debt,
+          cuotas: newCuotas,
+          cuotaActual: paidCount,
+          completed
+        };
+      }
+      
+      return debt;
+    });
+  }, [debtsState, monthlyDetailsState, getStartMonth, namesMatch, getMonthLabelForIndex]);
+
+  // Apply context filters to debtsState
+  const filteredDebtsState = React.useMemo(() => {
+    return filterByActiveContext(syncedDebtsState);
+  }, [syncedDebtsState, filterByActiveContext]);
+
   const filteredMonthlyDetails = React.useMemo(() => {
     const res = {};
     const exclusions = {}; // month -> Set of excluded IDs
@@ -736,96 +826,6 @@ export default function App() {
     const total = categories.reduce((sum, cat) => sum + cat.total, 0);
     return { total, categories };
   }, [assetsState, filterByActiveContext]);
-
-  // Helpers for matching raw transactions to general debts and syncing payments
-  const normalizeWord = (w) => {
-    return w
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]/gi, "")
-      .replace(/s$/, "");
-  };
-
-  const namesMatch = React.useCallback((nameA, nameB) => {
-    if (!nameA || !nameB) return false;
-    const cleanA = nameA.replace(/\[personal\]|\[empresa\]/gi, "");
-    const cleanB = nameB.replace(/\[personal\]|\[empresa\]/gi, "");
-    
-    const wordsA = cleanA.split(/[\s/_-]+/).map(normalizeWord).filter(Boolean);
-    const wordsB = cleanB.split(/[\s/_-]+/).map(normalizeWord).filter(Boolean);
-    
-    if (wordsA.length === 0 || wordsB.length === 0) return false;
-    
-    const intersection = wordsA.filter(w => wordsB.includes(w));
-    const matchRatio = intersection.length / Math.min(wordsA.length, wordsB.length);
-    return matchRatio >= 0.75;
-  }, []);
-
-  const getMonthLabelForIndex = React.useCallback((startMonth, index) => {
-    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-    const monthsMap = {
-      "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
-      "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11,
-      "Mayo": 4
-    };
-    const parts = startMonth.split(' ');
-    const abbr = parts[0];
-    const year = parseInt(parts[1], 10);
-    const monthIndex = monthsMap[abbr] !== undefined ? monthsMap[abbr] : 0;
-    
-    const targetDate = new Date(year, monthIndex + index, 1);
-    return `${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
-  }, []);
-
-  const syncedDebtsState = React.useMemo(() => {
-    return debtsState.map(debt => {
-      if (debt.tipo !== "fija" && !(debt.cuotasTotales && debt.cuotasTotales > 1)) {
-        return debt;
-      }
-      
-      const startMonth = getStartMonth(debt);
-      const cuotasArray = Array.isArray(debt.cuotas) ? debt.cuotas : [];
-      const newCuotas = [...cuotasArray];
-      while (newCuotas.length < debt.cuotasTotales) {
-        newCuotas.push(false);
-      }
-      
-      let modified = false;
-      for (let i = 0; i < debt.cuotasTotales; i++) {
-        const monthLabel = getMonthLabelForIndex(startMonth, i);
-        const monthObj = monthlyDetailsState[monthLabel];
-        if (monthObj) {
-          const matchedPaidTx = (monthObj.egresos || []).find(it => 
-            namesMatch(it.name, debt.name) && it.paid
-          );
-          if (matchedPaidTx) {
-            if (!newCuotas[i]) {
-              newCuotas[i] = true;
-              modified = true;
-            }
-          }
-        }
-      }
-      
-      if (modified) {
-        const paidCount = newCuotas.filter(Boolean).length;
-        const completed = paidCount === debt.cuotasTotales;
-        return {
-          ...debt,
-          cuotas: newCuotas,
-          cuotaActual: paidCount,
-          completed
-        };
-      }
-      
-      return debt;
-    });
-  }, [debtsState, monthlyDetailsState, getStartMonth, namesMatch, getMonthLabelForIndex]);
-
-  // Apply context filters to debtsState
-  const filteredDebtsState = React.useMemo(() => {
-    return filterByActiveContext(syncedDebtsState);
-  }, [syncedDebtsState, filterByActiveContext]);
 
   // Sync Supabase Database if authenticated via Supabase
   useEffect(() => {
