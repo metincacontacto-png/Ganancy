@@ -1,0 +1,355 @@
+{
+  "communities": {
+    "0": [
+      "src_app",
+      "src_app_activospasivosview",
+      "src_app_adjustdebtspaidinstallments",
+      "src_app_adminconsoleview",
+      "src_app_app",
+      "src_app_createprofilemodal",
+      "src_app_dashboardview",
+      "src_app_deudasview",
+      "src_app_flujomensualview",
+      "src_app_formatmoney",
+      "src_app_manageprofilesmodal",
+      "src_app_proyeccionview",
+      "src_app_subscriptionview",
+      "src_app_upgradeplanmodal",
+      "src_components_errorboundary",
+      "src_components_errorboundary_errorboundary",
+      "src_components_errorboundary_errorboundary_componentdidcatch",
+      "src_components_errorboundary_errorboundary_constructor",
+      "src_components_errorboundary_errorboundary_getderivedstatefromerror",
+      "src_components_errorboundary_errorboundary_render",
+      "src_data_financialdata",
+      "src_data_financialdata_activos_data",
+      "src_data_financialdata_egresos_fijos",
+      "src_data_financialdata_historical_flows",
+      "src_data_financialdata_ingresos_fijos",
+      "src_data_financialdata_month_details",
+      "src_data_financialdata_pasivos_data",
+      "src_lib_financialservice",
+      "src_lib_financialservice_fetchalluserdata",
+      "src_lib_financialservice_initializedefaultuserdata",
+      "src_lib_financialservice_reconstructassetsstate",
+      "src_main"
+    ],
+    "1": [
+      "eslint",
+      "eslint_js",
+      "eslint_plugin_react_hooks",
+      "eslint_plugin_react_refresh",
+      "globals",
+      "package_devdependencies",
+      "package_devdependencies_eslint",
+      "package_devdependencies_eslint_js",
+      "package_devdependencies_eslint_plugin_react_hooks",
+      "package_devdependencies_eslint_plugin_react_refresh",
+      "package_devdependencies_globals",
+      "package_devdependencies_types_react",
+      "package_devdependencies_types_react_dom",
+      "package_devdependencies_vite",
+      "package_devdependencies_vitejs_plugin_react",
+      "types_react",
+      "types_react_dom",
+      "vite",
+      "vitejs_plugin_react"
+    ],
+    "2": [
+      "heic2any",
+      "lucide_react",
+      "package_dependencies",
+      "package_dependencies_heic2any",
+      "package_dependencies_lucide_react",
+      "package_dependencies_react_dom",
+      "package_dependencies_react_is",
+      "package_dependencies_recharts",
+      "package_dependencies_supabase_supabase_js",
+      "package_dependencies_tesseract_js",
+      "package_dependencies_xlsx",
+      "react_dom",
+      "react_is",
+      "recharts",
+      "supabase_supabase_js",
+      "tesseract_js",
+      "xlsx"
+    ],
+    "3": [
+      "package_dependencies_react",
+      "react",
+      "src_data_financialdata_formatclp",
+      "src_sections_activospasivosview",
+      "src_sections_activospasivosview_activospasivosview",
+      "src_sections_deudasview",
+      "src_sections_deudasview_deudasview",
+      "src_sections_flujomensualview",
+      "src_sections_flujomensualview_flujomensualview",
+      "src_sections_flujomensualview_getquarterinfo",
+      "src_sections_flujomensualview_parsemonthyear",
+      "src_sections_flujomensualview_renderformattedtoastmessage",
+      "src_sections_proyeccionview",
+      "src_sections_proyeccionview_proyeccionview",
+      "src_sections_subscriptionview_subscriptionview"
+    ],
+    "4": [
+      "scratch_test_debts",
+      "scratch_test_debts_assert",
+      "scratch_test_debts_debtsstate",
+      "scratch_test_debts_getmonthdistance",
+      "scratch_test_debts_getstartmonth",
+      "scratch_test_debts_monthlydetailsstate",
+      "scratch_test_debts_parsemonthyear",
+      "scratch_test_debts_pato_jun",
+      "scratch_test_debts_runsimulation",
+      "scratch_test_debts_simconsolidado",
+      "scratch_test_debts_simempresa",
+      "scratch_test_debts_simpersonal",
+      "scratch_test_debts_startbe",
+      "scratch_test_debts_virtualbe_jun",
+      "scratch_test_debts_virtualbe_may"
+    ],
+    "5": [
+      "src_data_landingpagedefaults",
+      "src_data_landingpagedefaults_landing_page_defaults",
+      "src_lib_supabaseclient",
+      "src_lib_supabaseclient_supabase",
+      "src_sections_adminconsoleview",
+      "src_sections_adminconsoleview_adminconsoleview",
+      "src_sections_landingeditorview",
+      "src_sections_landingeditorview_landingeditorview",
+      "src_sections_landingpageview",
+      "src_sections_landingpageview_landingpageview",
+      "src_sections_landingpageview_reveal",
+      "src_sections_landingpageview_steps",
+      "src_sections_loginview",
+      "src_sections_loginview_loginview",
+      "src_sections_subscriptionview"
+    ],
+    "6": [
+      "public_manifest",
+      "public_manifest_background_color",
+      "public_manifest_description",
+      "public_manifest_display",
+      "public_manifest_icons",
+      "public_manifest_name",
+      "public_manifest_orientation",
+      "public_manifest_scope",
+      "public_manifest_short_name",
+      "public_manifest_start_url",
+      "public_manifest_theme_color"
+    ],
+    "7": [
+      "package",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_build",
+      "package_scripts_dev",
+      "package_scripts_lint",
+      "package_scripts_preview",
+      "package_type",
+      "package_version"
+    ],
+    "8": [
+      "src_lib_imagecompressor",
+      "src_lib_imagecompressor_compressimage",
+      "src_sections_dashboard_dashboardcharts",
+      "src_sections_dashboard_dashboardcharts_customtooltip",
+      "src_sections_dashboard_dashboardcharts_dashboardcharts",
+      "src_sections_dashboard_exceluploader",
+      "src_sections_dashboard_exceluploader_exceluploader",
+      "src_sections_dashboard_exceluploader_sanitizeparsedobject",
+      "src_sections_dashboardview",
+      "src_sections_dashboardview_dashboardview"
+    ],
+    "9": [
+      "scratch_generate_template",
+      "scratch_generate_template_wb",
+      "scratch_generate_template_ws_activos",
+      "scratch_generate_template_ws_deudas",
+      "scratch_generate_template_ws_flujos"
+    ],
+    "10": [
+      "mcp",
+      "mcp_mcp_server_paddle_docs",
+      "mcp_mcp_server_paddle_live",
+      "mcp_mcp_server_paddle_sandbox"
+    ],
+    "11": [
+      "src_hooks_useseo",
+      "src_hooks_useseo_useseo"
+    ],
+    "12": [
+      "eslint_config"
+    ],
+    "13": [
+      "public_sw"
+    ],
+    "14": [
+      "vite_config"
+    ]
+  },
+  "cohesion": {
+    "0": 0.11491935483870967,
+    "1": 0.10526315789473684,
+    "2": 0.11764705882352941,
+    "3": 0.22857142857142856,
+    "4": 0.18095238095238095,
+    "5": 0.20952380952380953,
+    "6": 0.18181818181818182,
+    "7": 0.2,
+    "8": 0.3111111111111111,
+    "9": 0.4,
+    "10": 0.5,
+    "11": 1.0,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.0
+  },
+  "gods": [
+    {
+      "id": "src_data_financialdata_formatclp",
+      "label": "formatCLP()",
+      "degree": 15
+    },
+    {
+      "id": "package_dependencies_react",
+      "label": "react",
+      "degree": 8
+    },
+    {
+      "id": "src_app_app",
+      "label": "App()",
+      "degree": 8
+    },
+    {
+      "id": "src_data_financialdata_historical_flows",
+      "label": "HISTORICAL_FLOWS",
+      "degree": 7
+    },
+    {
+      "id": "src_components_errorboundary_errorboundary",
+      "label": "ErrorBoundary",
+      "degree": 6
+    },
+    {
+      "id": "src_lib_financialservice_initializedefaultuserdata",
+      "label": "initializeDefaultUserData()",
+      "degree": 6
+    },
+    {
+      "id": "src_lib_supabaseclient_supabase",
+      "label": "supabase",
+      "degree": 6
+    },
+    {
+      "id": "src_sections_flujomensualview_flujomensualview",
+      "label": "FlujoMensualView()",
+      "degree": 6
+    },
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "degree": 5
+    },
+    {
+      "id": "scratch_test_debts_parsemonthyear",
+      "label": "parseMonthYear()",
+      "degree": 4
+    }
+  ],
+  "surprises": [
+    {
+      "source": "App()",
+      "target": "react",
+      "source_files": [
+        "src/App.jsx",
+        "package.json"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "DashboardView()",
+      "target": "react",
+      "source_files": [
+        "src/sections/DashboardView.jsx",
+        "package.json"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "LandingPageView()",
+      "target": "react",
+      "source_files": [
+        "src/sections/LandingPageView.jsx",
+        "package.json"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "ExcelUploader()",
+      "target": "xlsx",
+      "source_files": [
+        "src/sections/dashboard/ExcelUploader.jsx",
+        "package.json"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "DeudasView()",
+      "target": "react",
+      "source_files": [
+        "src/sections/DeudasView.jsx",
+        "package.json"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `dependencies` connect `dependencies` to `formatCLP`, `package.json`?",
+      "why": "High betweenness centrality (0.305) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `react` connect `formatCLP` to `App.jsx`, `DashboardView.jsx`, `dependencies`, `LandingPageView.jsx`?",
+      "why": "High betweenness centrality (0.252) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `devDependencies` connect `devDependencies` to `package.json`?",
+      "why": "High betweenness centrality (0.157) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `paddle-sandbox`, `paddle-live`, `paddle-docs` to the rest of the system?",
+      "why": "61 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `App.jsx` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.11491935483870967 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `devDependencies` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.10526315789473684 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `dependencies` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

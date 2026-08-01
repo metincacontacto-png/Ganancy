@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "paddle-sandbox": {
+      "type": "http",
+      "url": "https://sandbox-mcp.paddle.com/mcp"
+    },
+    "paddle-live": {
+      "type": "http",
+      "url": "https://mcp.paddle.com/mcp"
+    },
+    "paddle-docs": {
+      "type": "http",
+      "url": "https://paddlehq.mcp.kapa.ai"
+    }
+  }
+}

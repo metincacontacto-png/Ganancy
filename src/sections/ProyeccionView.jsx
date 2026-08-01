@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Sparkles, TrendingUp, HelpCircle, ShieldAlert, CheckCircle, Info, Zap } from 'lucide-react';
 import { formatCLP, HISTORICAL_FLOWS } from '../data/financialData';
 
-export default function ProyeccionView({ debtsState, assetsTotal, ingresosFijosState, egresosFijosState, currentUser }) {
+export default function ProyeccionView({ debtsState, assetsTotal, baseIngresos = 0, baseEgresos = 0, currentUser }) {
   const isPersonalPlan = currentUser?.subscription_status === 'plan_personal';
   const [extraIncome, setExtraIncome] = useState(0);
 
@@ -20,10 +20,6 @@ export default function ProyeccionView({ debtsState, assetsTotal, ingresosFijosS
   }, 0);
 
   const patrimonioNeto = assetsTotal - liabilitiesTotal;
-
-  // Calculate base revenues and expenses dynamically from live edited states
-  const baseIngresos = ingresosFijosState.reduce((sum, item) => sum + item.value, 0);
-  const baseEgresos = egresosFijosState.reduce((sum, item) => sum + item.value, 0);
   
   // Calculate dynamic adjusted monthly balance based on slider
   const adjustedIngresos = baseIngresos + extraIncome;

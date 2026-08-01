@@ -133,19 +133,6 @@ export default function App() {
     return []; // Empty by default for new real users
   });
 
-  // 3. Recurring Incomes State
-  const [ingresosFijosState, setIngresosFijosState] = useState(() => {
-    const saved = localStorage.getItem('ingresos_fijos');
-    if (saved) return JSON.parse(saved);
-    return []; // Empty by default
-  });
-
-  // 4. Recurring Expenses State
-  const [egresosFijosState, setEgresosFijosState] = useState(() => {
-    const saved = localStorage.getItem('egresos_fijos');
-    if (saved) return JSON.parse(saved);
-    return []; // Empty by default
-  });
 
   // Recurring Variables Incomes State
   const [ingresosVariablesState, setIngresosVariablesState] = useState(() => {
@@ -498,9 +485,7 @@ export default function App() {
     return newParts.join(' ||| ');
   }, [currentContext, activeProfileId]);
 
-  // Apply context filters to fixed and variable list states
-  const filteredIngresosFijos = React.useMemo(() => filterByActiveContext(ingresosFijosState), [ingresosFijosState, filterByActiveContext]);
-  const filteredEgresosFijos = React.useMemo(() => filterByActiveContext(egresosFijosState), [egresosFijosState, filterByActiveContext]);
+
   const filteredIngresosVariables = React.useMemo(() => filterByActiveContext(ingresosVariablesState), [ingresosVariablesState, filterByActiveContext]);
   const filteredEgresosVariables = React.useMemo(() => filterByActiveContext(egresosVariablesState), [egresosVariablesState, filterByActiveContext]);
 
@@ -516,6 +501,23 @@ export default function App() {
     };
     return new Date(yr, monthMap[abbr] !== undefined ? monthMap[abbr] : 0, 1);
   }, []);
+
+  const { baseIngresos, baseEgresos } = React.useMemo(() => {
+    if (!historicalFlowsState || historicalFlowsState.length === 0) {
+      return { baseIngresos: 0, baseEgresos: 0 };
+    }
+    const sorted = [...historicalFlowsState].sort((a, b) => parseMonthYear(b.month) - parseMonthYear(a.month));
+    const latestMonthLabel = sorted[0]?.month;
+    const latestDetails = latestMonthLabel ? (monthlyDetailsState[latestMonthLabel] || { ingresos: [], egresos: [] }) : { ingresos: [], egresos: [] };
+    
+    const incomes = filterByActiveContext(latestDetails.ingresos || []);
+    const expenses = filterByActiveContext(latestDetails.egresos || []);
+    
+    const baseInc = incomes.filter(it => !it.isVariable && !it.name.startsWith('__EXCLUDED__')).reduce((sum, item) => sum + item.value, 0);
+    const baseExp = expenses.filter(it => !it.isVariable && !it.name.startsWith('__EXCLUDED__')).reduce((sum, item) => sum + item.value, 0);
+    
+    return { baseIngresos: baseInc, baseEgresos: baseExp };
+  }, [historicalFlowsState, monthlyDetailsState, filterByActiveContext, parseMonthYear]);
 
   const getMonthDistance = React.useCallback((startMonth, endMonth) => {
     const start = parseMonthYear(startMonth);
@@ -541,6 +543,26 @@ export default function App() {
     const res = {};
     const exclusions = {}; // month -> Set of excluded IDs
     
+    const isMatchedByActiveDebt = (tx, month, debts) => {
+      return debts.some(debt => {
+        if (!namesMatch(tx.name, debt.name)) return false;
+        
+        if (debt.tipo === "fija" || (debt.cuotasTotales && debt.cuotasTotales > 1)) {
+          const startMonth = getStartMonth(debt);
+          const index_M = getMonthDistance(startMonth, month);
+          return index_M >= 0 && index_M < debt.cuotasTotales;
+        } else if (debt.tipo === "pago_unico" && debt.fechaVencimiento) {
+          const date = new Date(debt.fechaVencimiento + "T00:00:00");
+          if (!isNaN(date.getTime())) {
+            const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+            const debtMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
+            return debtMonth === month;
+          }
+        }
+        return false;
+      });
+    };
+
     // 1. Copiar los detalles existentes y detectar exclusiones
     Object.keys(monthlyDetailsState).forEach(month => {
       const monthObj = monthlyDetailsState[month] || { ingresos: [], egresos: [] };
@@ -553,6 +575,8 @@ export default function App() {
         if (it.name && it.name.startsWith('__EXCLUDED__')) {
           const excludedId = it.name.replace('__EXCLUDED__', '');
           exclusions[month].add(excludedId);
+        } else if (isMatchedByActiveDebt(it, month, syncedDebtsState)) {
+          return;
         } else {
           cleanIngresos.push(it);
         }
@@ -562,6 +586,8 @@ export default function App() {
         if (it.name && it.name.startsWith('__EXCLUDED__')) {
           const excludedId = it.name.replace('__EXCLUDED__', '');
           exclusions[month].add(excludedId);
+        } else if (isMatchedByActiveDebt(it, month, syncedDebtsState)) {
+          return;
         } else {
           cleanEgresos.push(it);
         }
@@ -582,7 +608,7 @@ export default function App() {
     
     // 2. Procesar mes a mes cronológicamente para inyectar deudas de cuotas y arrastrar saldos
     sortedMonths.forEach(month => {
-      debtsState.forEach(debt => {
+      syncedDebtsState.forEach(debt => {
         const suffix = debt.context === 'personal' ? ' [Personal]' : ' [Empresa]';
         const taggedName = debt.name.includes('[Personal]') || debt.name.includes('[Empresa]') 
           ? debt.name 
@@ -680,7 +706,7 @@ export default function App() {
     });
     
     return filteredRes;
-  }, [monthlyDetailsState, debtsState, filterByActiveContext, parseMonthYear, getMonthDistance, getStartMonth]);
+  }, [monthlyDetailsState, syncedDebtsState, filterByActiveContext, parseMonthYear, getMonthDistance, getStartMonth, namesMatch]);
 
   const filteredHistoricalFlows = React.useMemo(() => {
     return historicalFlowsState.map(flow => {
@@ -711,10 +737,95 @@ export default function App() {
     return { total, categories };
   }, [assetsState, filterByActiveContext]);
 
+  // Helpers for matching raw transactions to general debts and syncing payments
+  const normalizeWord = (w) => {
+    return w
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/gi, "")
+      .replace(/s$/, "");
+  };
+
+  const namesMatch = React.useCallback((nameA, nameB) => {
+    if (!nameA || !nameB) return false;
+    const cleanA = nameA.replace(/\[personal\]|\[empresa\]/gi, "");
+    const cleanB = nameB.replace(/\[personal\]|\[empresa\]/gi, "");
+    
+    const wordsA = cleanA.split(/[\s/_-]+/).map(normalizeWord).filter(Boolean);
+    const wordsB = cleanB.split(/[\s/_-]+/).map(normalizeWord).filter(Boolean);
+    
+    if (wordsA.length === 0 || wordsB.length === 0) return false;
+    
+    const intersection = wordsA.filter(w => wordsB.includes(w));
+    const matchRatio = intersection.length / Math.min(wordsA.length, wordsB.length);
+    return matchRatio >= 0.75;
+  }, []);
+
+  const getMonthLabelForIndex = React.useCallback((startMonth, index) => {
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const monthsMap = {
+      "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+      "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11,
+      "Mayo": 4
+    };
+    const parts = startMonth.split(' ');
+    const abbr = parts[0];
+    const year = parseInt(parts[1], 10);
+    const monthIndex = monthsMap[abbr] !== undefined ? monthsMap[abbr] : 0;
+    
+    const targetDate = new Date(year, monthIndex + index, 1);
+    return `${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
+  }, []);
+
+  const syncedDebtsState = React.useMemo(() => {
+    return debtsState.map(debt => {
+      if (debt.tipo !== "fija" && !(debt.cuotasTotales && debt.cuotasTotales > 1)) {
+        return debt;
+      }
+      
+      const startMonth = getStartMonth(debt);
+      const cuotasArray = Array.isArray(debt.cuotas) ? debt.cuotas : [];
+      const newCuotas = [...cuotasArray];
+      while (newCuotas.length < debt.cuotasTotales) {
+        newCuotas.push(false);
+      }
+      
+      let modified = false;
+      for (let i = 0; i < debt.cuotasTotales; i++) {
+        const monthLabel = getMonthLabelForIndex(startMonth, i);
+        const monthObj = monthlyDetailsState[monthLabel];
+        if (monthObj) {
+          const matchedPaidTx = (monthObj.egresos || []).find(it => 
+            namesMatch(it.name, debt.name) && it.paid
+          );
+          if (matchedPaidTx) {
+            if (!newCuotas[i]) {
+              newCuotas[i] = true;
+              modified = true;
+            }
+          }
+        }
+      }
+      
+      if (modified) {
+        const paidCount = newCuotas.filter(Boolean).length;
+        const completed = paidCount === debt.cuotasTotales;
+        return {
+          ...debt,
+          cuotas: newCuotas,
+          cuotaActual: paidCount,
+          completed
+        };
+      }
+      
+      return debt;
+    });
+  }, [debtsState, monthlyDetailsState, getStartMonth, namesMatch, getMonthLabelForIndex]);
+
   // Apply context filters to debtsState
   const filteredDebtsState = React.useMemo(() => {
-    return filterByActiveContext(debtsState);
-  }, [debtsState, filterByActiveContext]);
+    return filterByActiveContext(syncedDebtsState);
+  }, [syncedDebtsState, filterByActiveContext]);
 
   // Sync Supabase Database if authenticated via Supabase
   useEffect(() => {
@@ -731,8 +842,6 @@ export default function App() {
           const hasCloudData = 
             (dbData.assetsState.categories.some(c => c.items.length > 0)) ||
             (dbData.debtsState.length > 0) ||
-            (dbData.ingresosFijosState.length > 0) ||
-            (dbData.egresosFijosState.length > 0) ||
             (dbData.ingresosVariablesState.length > 0) ||
             (dbData.egresosVariablesState.length > 0) ||
             (dbData.historicalFlowsState.length > 0) ||
@@ -749,8 +858,6 @@ export default function App() {
             // Set empty initial state to bypass mock templates
             setAssetsState({ total: 0, categories: ACTIVOS_DATA.categories.map(c => ({ ...c, total: 0, items: [] })) });
             setDebtsState([]);
-            setIngresosFijosState([]);
-            setEgresosFijosState([]);
             setIngresosVariablesState([]);
             setEgresosVariablesState([]);
             setHistoricalFlowsState([]);
@@ -759,8 +866,6 @@ export default function App() {
             // Existing user: Load all database states
             setAssetsState(dbData.assetsState);
             setDebtsState(adjustDebtsPaidInstallments(dbData.debtsState));
-            setIngresosFijosState(dbData.ingresosFijosState);
-            setEgresosFijosState(dbData.egresosFijosState);
             setIngresosVariablesState(dbData.ingresosVariablesState);
             setEgresosVariablesState(dbData.egresosVariablesState);
             setHistoricalFlowsState(dbData.historicalFlowsState);
@@ -791,17 +896,6 @@ export default function App() {
     }
   }, [debtsState, currentUser]);
 
-  useEffect(() => {
-    if (currentUser?.provider !== 'supabase') {
-      localStorage.setItem('ingresos_fijos', JSON.stringify(ingresosFijosState));
-    }
-  }, [ingresosFijosState, currentUser]);
-
-  useEffect(() => {
-    if (currentUser?.provider !== 'supabase') {
-      localStorage.setItem('egresos_fijos', JSON.stringify(egresosFijosState));
-    }
-  }, [egresosFijosState, currentUser]);
 
   useEffect(() => {
     if (currentUser?.provider !== 'supabase') {
@@ -930,11 +1024,7 @@ export default function App() {
       const previousMonthLabel = sortedFlows[0]?.month;
 
       const autoCreateMonth = async () => {
-        // We import all active fixed incomes/expenses
-        const selectedIncomes = ingresosFijosState || [];
-        const selectedExpenses = egresosFijosState || [];
-        
-        await addHistoricalMonth(currentMonthLabel, selectedIncomes, selectedExpenses);
+        await addHistoricalMonth(currentMonthLabel);
 
         // Check if previous month has any unpaid/unreceived items
         if (previousMonthLabel && monthlyDetailsState[previousMonthLabel]) {
@@ -957,7 +1047,7 @@ export default function App() {
 
       autoCreateMonth();
     }
-  }, [isDataLoading, historicalFlowsState, monthlyDetailsState, ingresosFijosState, egresosFijosState]);
+  }, [isDataLoading, historicalFlowsState, monthlyDetailsState]);
 
   // Initialize migration actions when pendingMigration is populated
   useEffect(() => {
@@ -1052,8 +1142,6 @@ export default function App() {
           fechaVencimiento: d.id === "deuda_pato" ? "2026-06-15" : d.id === "tgr_nathy" ? "2026-07-20" : ""
         };
       }));
-      setIngresosFijosState(INGRESOS_FIJOS);
-      setEgresosFijosState(EGRESOS_FIJOS);
       setIngresosVariablesState([
         { id: "var_inc_1", name: "Servicios Motoemotion", value: 400000 },
         { id: "var_inc_2", name: "Servicios Pancho Papas", value: 350000 },
@@ -1103,8 +1191,6 @@ export default function App() {
           
           setAssetsState(dbData.assetsState);
           setDebtsState(adjustDebtsPaidInstallments(dbData.debtsState));
-          setIngresosFijosState(dbData.ingresosFijosState);
-          setEgresosFijosState(dbData.egresosFijosState);
           setIngresosVariablesState(dbData.ingresosVariablesState);
           setEgresosVariablesState(dbData.egresosVariablesState);
           setHistoricalFlowsState(dbData.historicalFlowsState);
@@ -1117,8 +1203,6 @@ export default function App() {
             const tipo = d.cuotasTotales === 1 ? "pago_unico" : "fija";
             return { ...d, totalOriginal: d.total, interes: 0, total: d.total, tipo, cuotas, fechaVencimiento: "" };
           })));
-          setIngresosFijosState(INGRESOS_FIJOS);
-          setEgresosFijosState(EGRESOS_FIJOS);
           setIngresosVariablesState([
             { id: "var_inc_1", name: "Servicios Motoemotion", value: 400000 },
             { id: "var_inc_2", name: "Servicios Pancho Papas", value: 350000 },
@@ -1171,8 +1255,6 @@ export default function App() {
         // Wipe local React states
         setAssetsState({ total: 0, categories: ACTIVOS_DATA.categories.map(c => ({ ...c, total: 0, items: [] })) });
         setDebtsState([]);
-        setIngresosFijosState([]);
-        setEgresosFijosState([]);
         setIngresosVariablesState([]);
         setEgresosVariablesState([]);
         setHistoricalFlowsState([]);
@@ -1597,130 +1679,6 @@ export default function App() {
   };
 
   // ==========================================
-  // CRUD Actions: Fixed Incomes
-  // ==========================================
-  const addIncome = async (name, value, explicitContext) => {
-    let newId = "inc_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
-    const taggedName = tagWithActiveContext(name, explicitContext);
-
-    if (currentUser && currentUser.provider === 'supabase') {
-      try {
-        const { data, error } = await supabase
-          .from('ingresos_egresos_fijos')
-          .insert({ user_id: currentUser.id, type: 'ingreso_fijo', name: taggedName, value })
-          .select()
-          .single();
-
-        if (error) throw error;
-        newId = data.id;
-      } catch (err) {
-        console.error("Error al guardar ingreso fijo:", err);
-        alert("No se pudo guardar el ingreso en la base de datos.");
-        return;
-      }
-    }
-    setIngresosFijosState(prev => [...prev, { id: newId, name: taggedName, value }]);
-  };
-
-  const editIncome = async (id, name, value) => {
-    if (currentUser && currentUser.provider === 'supabase') {
-      try {
-        const { error } = await supabase
-          .from('ingresos_egresos_fijos')
-          .update({ name, value })
-          .eq('id', id);
-
-        if (error) throw error;
-      } catch (err) {
-        console.error("Error al editar ingreso fijo:", err);
-        alert("No se pudo actualizar el ingreso.");
-        return;
-      }
-    }
-    setIngresosFijosState(prev => prev.map(item => item.id === id ? { ...item, name, value } : item));
-  };
-
-  const deleteIncome = async (id) => {
-    if (currentUser && currentUser.provider === 'supabase') {
-      try {
-        const { error } = await supabase
-          .from('ingresos_egresos_fijos')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-      } catch (err) {
-        console.error("Error al eliminar ingreso fijo:", err);
-        alert("No se pudo eliminar el ingreso.");
-        return;
-      }
-    }
-    setIngresosFijosState(prev => prev.filter(item => String(item.id) !== String(id)));
-  };
-
-  // ==========================================
-  // CRUD Actions: Fixed Expenses
-  // ==========================================
-  const addExpense = async (name, value, explicitContext) => {
-    let newId = "exp_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
-    const taggedName = tagWithActiveContext(name, explicitContext);
-
-    if (currentUser && currentUser.provider === 'supabase') {
-      try {
-        const { data, error } = await supabase
-          .from('ingresos_egresos_fijos')
-          .insert({ user_id: currentUser.id, type: 'egreso_fijo', name: taggedName, value })
-          .select()
-          .single();
-
-        if (error) throw error;
-        newId = data.id;
-      } catch (err) {
-        console.error("Error al guardar egreso fijo:", err);
-        alert("No se pudo guardar el egreso.");
-        return;
-      }
-    }
-    setEgresosFijosState(prev => [...prev, { id: newId, name: taggedName, value }]);
-  };
-
-  const editExpense = async (id, name, value) => {
-    if (currentUser && currentUser.provider === 'supabase') {
-      try {
-        const { error } = await supabase
-          .from('ingresos_egresos_fijos')
-          .update({ name, value })
-          .eq('id', id);
-
-        if (error) throw error;
-      } catch (err) {
-        console.error("Error al editar egreso fijo:", err);
-        alert("No se pudo actualizar el egreso.");
-        return;
-      }
-    }
-    setEgresosFijosState(prev => prev.map(item => item.id === id ? { ...item, name, value } : item));
-  };
-
-  const deleteExpense = async (id) => {
-    if (currentUser && currentUser.provider === 'supabase') {
-      try {
-        const { error } = await supabase
-          .from('ingresos_egresos_fijos')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-      } catch (err) {
-        console.error("Error al eliminar egreso fijo:", err);
-        alert("No se pudo eliminar el egreso.");
-        return;
-      }
-    }
-    setEgresosFijosState(prev => prev.filter(item => String(item.id) !== String(id)));
-  };
-
-  // ==========================================
   // CRUD Actions: Variable Incomes
   // ==========================================
   const addVariableIncome = async (name, value, explicitContext) => {
@@ -1878,9 +1836,91 @@ export default function App() {
     setPendingMigration(null);
   };
 
-  const addHistoricalMonth = async (monthName, selectedIncomes = [], selectedExpenses = []) => {
+  const addHistoricalMonth = async (monthName, selectedIncomes = null, selectedExpenses = null) => {
     if (!monthName) return false;
     
+    const parseMonthYearLocal = (str) => {
+      if (!str) return new Date(0);
+      const p = str.split(' ');
+      const abbr = p[0];
+      const yr = parseInt(p[1], 10);
+      const monthMap = {
+        "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+        "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11,
+        "Mayo": 4
+      };
+      return new Date(yr, monthMap[abbr] !== undefined ? monthMap[abbr] : 0, 1);
+    };
+
+    const adjustDueDate = (oldDueDate, newMonthLabel) => {
+      if (!oldDueDate) return null;
+      const dateParts = oldDueDate.split('-');
+      if (dateParts.length !== 3) return null;
+      const day = parseInt(dateParts[2], 10);
+      
+      const months = {
+        "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
+        "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11,
+        "Mayo": 4
+      };
+      const parts = newMonthLabel.split(' ');
+      const abbr = parts[0];
+      const year = parseInt(parts[1], 10);
+      const monthIndex = months[abbr] !== undefined ? months[abbr] : 0;
+      
+      const lastDayOfMonth = new Date(year, monthIndex + 1, 0).getDate();
+      const targetDay = Math.min(day, lastDayOfMonth);
+      
+      const monthStr = String(monthIndex + 1).padStart(2, '0');
+      const dayStr = String(targetDay).padStart(2, '0');
+      
+      return `${year}-${monthStr}-${dayStr}`;
+    };
+
+    let incomesToCopy = selectedIncomes;
+    let expensesToCopy = selectedExpenses;
+
+    if (incomesToCopy === null || expensesToCopy === null) {
+      const newMonthDate = parseMonthYearLocal(monthName);
+      const pastFlows = historicalFlowsState.filter(f => parseMonthYearLocal(f.month) < newMonthDate);
+      const sorted = [...pastFlows].sort((a, b) => parseMonthYearLocal(b.month) - parseMonthYearLocal(a.month));
+      const previousMonthLabel = sorted[0]?.month;
+
+      if (previousMonthLabel && monthlyDetailsState[previousMonthLabel]) {
+        const prevDetails = monthlyDetailsState[previousMonthLabel];
+        
+        const isMatchedByActiveDebt = (tx, month, debts) => {
+          return debts.some(debt => {
+            if (!namesMatch(tx.name, debt.name)) return false;
+            
+            if (debt.tipo === "fija" || (debt.cuotasTotales && debt.cuotasTotales > 1)) {
+              const startMonth = getStartMonth(debt);
+              const index_M = getMonthDistance(startMonth, month);
+              return index_M >= 0 && index_M < debt.cuotasTotales;
+            } else if (debt.tipo === "pago_unico" && debt.fechaVencimiento) {
+              const date = new Date(debt.fechaVencimiento + "T00:00:00");
+              if (!isNaN(date.getTime())) {
+                const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+                const debtMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
+                return debtMonth === month;
+              }
+            }
+            return false;
+          });
+        };
+
+        incomesToCopy = (prevDetails.ingresos || [])
+          .filter(it => !it.isVariable && !it.name.startsWith('__EXCLUDED__'))
+          .filter(it => !isMatchedByActiveDebt(it, monthName, syncedDebtsState));
+        expensesToCopy = (prevDetails.egresos || [])
+          .filter(it => !it.isVariable && !it.name.startsWith('__EXCLUDED__'))
+          .filter(it => !isMatchedByActiveDebt(it, monthName, syncedDebtsState));
+      } else {
+        incomesToCopy = [];
+        expensesToCopy = [];
+      }
+    }
+
     // Parsear el trimestre desde el mes (ej: "Jul 2026" -> "Q3 2026")
     const parts = monthName.split(' ');
     const monthAbbr = parts[0];
@@ -1895,8 +1935,8 @@ export default function App() {
       q = "Q4 " + year;
     }
     
-    const totalIncomesCopied = selectedIncomes.reduce((sum, it) => sum + it.value, 0);
-    const totalExpensesCopied = selectedExpenses.reduce((sum, it) => sum + it.value, 0);
+    const totalIncomesCopied = incomesToCopy.reduce((sum, it) => sum + it.value, 0);
+    const totalExpensesCopied = expensesToCopy.reduce((sum, it) => sum + it.value, 0);
 
     const newFlow = {
       month: monthName,
@@ -1930,7 +1970,7 @@ export default function App() {
     if (currentUser && currentUser.provider === 'supabase') {
       try {
         const txsToInsert = [];
-        selectedIncomes.forEach(item => {
+        incomesToCopy.forEach(item => {
           txsToInsert.push({
             user_id: currentUser.id,
             month: monthName,
@@ -1939,10 +1979,10 @@ export default function App() {
             value: item.value,
             paid: false,
             is_variable: false,
-            due_date: null
+            due_date: adjustDueDate(item.dueDate, monthName)
           });
         });
-        selectedExpenses.forEach(item => {
+        expensesToCopy.forEach(item => {
           txsToInsert.push({
             user_id: currentUser.id,
             month: monthName,
@@ -1951,7 +1991,7 @@ export default function App() {
             value: item.value,
             paid: false,
             is_variable: false,
-            due_date: null
+            due_date: adjustDueDate(item.dueDate, monthName)
           });
         });
 
@@ -1972,9 +2012,10 @@ export default function App() {
       const yr = parseInt(p[1], 10);
       const monthMap = {
         "Ene": 0, "Feb": 1, "Mar": 2, "Abr": 3, "May": 4, "Jun": 5,
-        "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11
+        "Jul": 6, "Ago": 7, "Sep": 8, "Oct": 9, "Nov": 10, "Dic": 11,
+        "Mayo": 4
       };
-      return new Date(yr, monthMap[abbr] || 0);
+      return new Date(yr, monthMap[abbr] !== undefined ? monthMap[abbr] : 0, 1);
     };
 
     setHistoricalFlowsState(prev => {
@@ -1986,28 +2027,28 @@ export default function App() {
     setMonthlyDetailsState(prev => {
       if (prev[monthName]) return prev;
       
-      const incomes = selectedIncomes.map(item => ({
+      const incomes = incomesToCopy.map(item => ({
         id: "tx_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9),
         name: item.name,
         value: item.value,
         paid: false,
         isVariable: false,
-        dueDate: "",
-        reminderEnabled: false,
-        reminderEmail: "",
-        reminderTime: "3_days_before"
+        dueDate: adjustDueDate(item.dueDate, monthName) || "",
+        reminderEnabled: item.reminderEnabled || false,
+        reminderEmail: item.reminderEmail || "",
+        reminderTime: item.reminderTime || "3_days_before"
       }));
 
-      const expenses = selectedExpenses.map(item => ({
+      const expenses = expensesToCopy.map(item => ({
         id: "tx_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9),
         name: item.name,
         value: item.value,
         paid: false,
         isVariable: false,
-        dueDate: "",
-        reminderEnabled: false,
-        reminderEmail: "",
-        reminderTime: "3_days_before"
+        dueDate: adjustDueDate(item.dueDate, monthName) || "",
+        reminderEnabled: item.reminderEnabled || false,
+        reminderEmail: item.reminderEmail || "",
+        reminderTime: item.reminderTime || "3_days_before"
       }));
 
       return {
@@ -2577,14 +2618,6 @@ export default function App() {
             currentUser={currentUser}
             debtsState={filteredDebtsState} 
             assetsTotal={filteredAssetsState.total}
-            ingresosFijosState={filteredIngresosFijos}
-            egresosFijosState={filteredEgresosFijos}
-            addIncome={addIncome}
-            editIncome={editIncome}
-            deleteIncome={deleteIncome}
-            addExpense={addExpense}
-            editExpense={editExpense}
-            deleteExpense={deleteExpense}
             monthlyDetailsState={filteredMonthlyDetails}
             ingresosVariablesState={filteredIngresosVariables}
             egresosVariablesState={filteredEgresosVariables}
@@ -2666,15 +2699,7 @@ export default function App() {
             currentContext={currentContext}
             addHistoricalMonth={addHistoricalMonth}
             deleteHistoricalMonth={deleteHistoricalMonth}
-            ingresosFijosState={filteredIngresosFijos}
-            egresosFijosState={filteredEgresosFijos}
             toggleCuota={toggleCuota}
-            addIncome={addIncome}
-            editIncome={editIncome}
-            deleteIncome={deleteIncome}
-            addExpense={addExpense}
-            editExpense={editExpense}
-            deleteExpense={deleteExpense}
           />
         );
       case "deudas":
@@ -2693,8 +2718,8 @@ export default function App() {
           <ProyeccionView 
             debtsState={filteredDebtsState} 
             assetsTotal={filteredAssetsState.total}
-            ingresosFijosState={filteredIngresosFijos}
-            egresosFijosState={filteredEgresosFijos}
+            baseIngresos={baseIngresos}
+            baseEgresos={baseEgresos}
             historicalFlowsState={filteredHistoricalFlows}
             currentUser={currentUser}
           />

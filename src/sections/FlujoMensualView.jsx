@@ -65,15 +65,7 @@ export default function FlujoMensualView({
   currentContext,
   addHistoricalMonth,
   toggleCuota,
-  ingresosFijosState = [],
-  egresosFijosState = [],
-  deleteHistoricalMonth,
-  addIncome,
-  editIncome,
-  deleteIncome,
-  addExpense,
-  editExpense,
-  deleteExpense
+  deleteHistoricalMonth
 }) {
   const getCleanName = (name) => {
     if (!name) return "";
@@ -217,112 +209,12 @@ export default function FlujoMensualView({
   const [selectedMonthDetail, setSelectedMonthDetail] = useState(null);
   const [activePanel, setActivePanel] = useState("ingresos_fijos");
 
-  // Fixed Template States
-  const [fixedTemplatesOpen, setFixedTemplatesOpen] = useState(false);
-  const [fixedModalOpen, setFixedModalOpen] = useState(false);
-  const [fixedModalType, setFixedModalType] = useState("ingresos"); // "ingresos" | "egresos"
-  const [fixedModalMode, setFixedModalMode] = useState("add"); // "add" | "edit"
-  const [fixedEditingItem, setFixedEditingItem] = useState(null);
-  const [fixedFormName, setFixedFormName] = useState("");
-  const [fixedFormValue, setFixedFormValue] = useState("");
-  const [fixedFormContext, setFixedFormContext] = useState("empresa");
-  const [fixedLimitStartDate, setFixedLimitStartDate] = useState(false);
-  const [fixedStartMonthSelect, setFixedStartMonthSelect] = useState("Ene");
-  const [fixedStartYearSelect, setFixedStartYearSelect] = useState(new Date().getFullYear());
-
-  const handleOpenFixedModal = (type, mode, item = null) => {
-    setFixedModalType(type);
-    setFixedModalMode(mode);
-    setFixedEditingItem(item);
-    if (item) {
-      const hasPersonalTag = item.name.includes('[Personal]');
-      const parts = item.name.split(' ||| ');
-      const cleanName = parts[0].replace(' [Personal]', '').replace(' [Empresa]', '');
-      setFixedFormName(cleanName);
-      setFixedFormValue(item.value);
-      setFixedFormContext(hasPersonalTag ? 'personal' : 'empresa');
-      
-      if (parts[1]) {
-        const dateParts = parts[1].split(' ');
-        setFixedLimitStartDate(true);
-        setFixedStartMonthSelect(dateParts[0]);
-        setFixedStartYearSelect(Number(dateParts[1]));
-      } else {
-        setFixedLimitStartDate(false);
-        setFixedStartMonthSelect("Ene");
-        setFixedStartYearSelect(new Date().getFullYear());
-      }
-    } else {
-      setFixedFormName("");
-      setFixedFormValue("");
-      setFixedFormContext(currentContext === 'personal' ? 'personal' : 'empresa');
-      setFixedLimitStartDate(false);
-      setFixedStartMonthSelect("Ene");
-      setFixedStartYearSelect(new Date().getFullYear());
-    }
-    setFixedModalOpen(true);
-  };
-
-  const handleFixedSubmit = async (e) => {
-    e.preventDefault();
-    if (!fixedFormName.trim() || !fixedFormValue) return;
-
-    const value = Math.round(Number(fixedFormValue));
-    const nameWithContext = fixedFormContext === 'personal' ? `${fixedFormName} [Personal]` : `${fixedFormName} [Empresa]`;
-    const finalName = fixedLimitStartDate ? `${nameWithContext} ||| ${fixedStartMonthSelect} ${fixedStartYearSelect}` : nameWithContext;
-
-    if (fixedModalType === 'ingresos') {
-      if (fixedModalMode === 'add') {
-        if (addIncome) await addIncome(finalName, value);
-      } else {
-        if (editIncome && fixedEditingItem) await editIncome(fixedEditingItem.id, finalName, value);
-      }
-    } else {
-      if (fixedModalMode === 'add') {
-        if (addExpense) await addExpense(finalName, value);
-      } else {
-        if (editExpense && fixedEditingItem) await editExpense(fixedEditingItem.id, finalName, value);
-      }
-    }
-    setFixedModalOpen(false);
-  };
-
-  const handleConfirmDeleteFixed = async (type, id, name) => {
-    if (window.confirm(`¿Estás seguro de que deseas eliminar "${getCleanName(name)}" de la plantilla de flujos fijos generales?`)) {
-      if (type === 'ingresos') {
-        if (deleteIncome) await deleteIncome(id);
-      } else {
-        if (deleteExpense) await deleteExpense(id);
-      }
-    }
-  };
-
   // Sub-modal states for adding/editing transaction inside details sheet
   const [addMonthModalOpen, setAddMonthModalOpen] = useState(false);
   const [newMonthSelect, setNewMonthSelect] = useState("Ene");
   const [newYearSelect, setNewYearSelect] = useState(new Date().getFullYear());
 
-  const [addIncomesOption, setAddIncomesOption] = useState("all"); // "all", "edit", "none"
-  const [addExpensesOption, setAddExpensesOption] = useState("all"); // "all", "edit", "none"
-  const [selectedIncomesCheck, setSelectedIncomesCheck] = useState({});
-  const [selectedExpensesCheck, setSelectedExpensesCheck] = useState({});
-
   const handleOpenAddMonth = () => {
-    setAddIncomesOption("all");
-    setAddExpensesOption("all");
-    
-    const incomesCheck = {};
-    (ingresosFijosState || []).forEach(item => {
-      incomesCheck[item.id] = true;
-    });
-    setSelectedIncomesCheck(incomesCheck);
-    
-    const expensesCheck = {};
-    (egresosFijosState || []).forEach(item => {
-      expensesCheck[item.id] = true;
-    });
-    setSelectedExpensesCheck(expensesCheck);
-    
     setAddMonthModalOpen(true);
   };
 
@@ -335,34 +227,7 @@ export default function FlujoMensualView({
       return;
     }
     
-    // Filter by start date
-    const activeIncomes = ingresosFijosState.filter(item => {
-      const startMonth = parseFixedStartMonth(item.name);
-      if (!startMonth) return true;
-      return parseMonthYear(monthName) >= parseMonthYear(startMonth);
-    });
-
-    let incomesToPass = [];
-    if (addIncomesOption === "all") {
-      incomesToPass = activeIncomes;
-    } else if (addIncomesOption === "edit") {
-      incomesToPass = activeIncomes.filter(item => !!selectedIncomesCheck[item.id]);
-    }
-
-    const activeExpenses = egresosFijosState.filter(item => {
-      const startMonth = parseFixedStartMonth(item.name);
-      if (!startMonth) return true;
-      return parseMonthYear(monthName) >= parseMonthYear(startMonth);
-    });
-
-    let expensesToPass = [];
-    if (addExpensesOption === "all") {
-      expensesToPass = activeExpenses;
-    } else if (addExpensesOption === "edit") {
-      expensesToPass = activeExpenses.filter(item => !!selectedExpensesCheck[item.id]);
-    }
-
-    const success = await addHistoricalMonth(monthName, incomesToPass, expensesToPass);
+    const success = await addHistoricalMonth(monthName);
     if (success) {
       const targetQ = getQuarterInfo(monthName, accountingStartDate).id;
       setSelectedTrimestre(targetQ);
@@ -415,10 +280,7 @@ export default function FlujoMensualView({
   // Format Helper
   const formatMoney = (val) => formatCLP ? formatCLP(val) : '$' + Math.round(val).toLocaleString('es-CL');
 
-  // Totales de la plantilla fija general
-  const totalIngresosFijosGeneral = (ingresosFijosState || []).reduce((sum, item) => sum + (Number(item.value) || 0), 0);
-  const totalEgresosFijosGeneral = (egresosFijosState || []).reduce((sum, item) => sum + (Number(item.value) || 0), 0);
-  const balanceFijoGeneral = totalIngresosFijosGeneral - totalEgresosFijosGeneral;
+
   
   // Filter months by quarter
   const filteredMonths = processedFlows.filter(item => item.q === selectedTrimestre);
@@ -1165,221 +1027,7 @@ export default function FlujoMensualView({
         </div>
       </div>
 
-      {/* Sección de Plantilla de Flujos Fijos (Collapsible) */}
-      <div className="card glass-panel" style={{
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '16px 20px',
-        marginBottom: '16px'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', flexWrap: 'wrap', gap: '12px' }} onClick={() => setFixedTemplatesOpen(!fixedTemplatesOpen)}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <Calendar size={18} style={{ color: 'var(--accent)' }} />
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              Plantilla de Ingresos y Egresos Fijos Generales
-            </h3>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-              (Se auto-copian al crear nuevos meses en el libro)
-            </span>
-          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-primary)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--border-color)' }} onClick={(e) => e.stopPropagation()}>
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Total Fijo:</span>
-              <span style={{ fontSize: '12.5px', color: 'var(--success)', fontWeight: 600 }}>
-                {formatMoney(totalIngresosFijosGeneral)}
-              </span>
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>/</span>
-              <span style={{ fontSize: '12.5px', color: 'var(--danger)', fontWeight: 600 }}>
-                {formatMoney(totalEgresosFijosGeneral)}
-              </span>
-              <span style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: balanceFijoGeneral >= 0 ? 'var(--success)' : 'var(--danger)',
-                background: balanceFijoGeneral >= 0 ? 'var(--success-light)' : 'var(--danger-light)',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                marginLeft: '4px'
-              }}>
-                {balanceFijoGeneral >= 0 ? '+' : ''}{formatMoney(balanceFijoGeneral)}
-              </span>
-            </div>
-            <span style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>
-              {fixedTemplatesOpen ? 'Ocultar' : 'Configurar'}
-            </span>
-          </div>
-        </div>
-
-        {fixedTemplatesOpen && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-            {/* Column 1: Ingresos Fijos */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--success)', fontWeight: 600 }}>Ingresos Fijos Generales</h4>
-                <button
-                  type="button"
-                  onClick={() => handleOpenFixedModal('ingresos', 'add')}
-                  style={{
-                    background: 'var(--success-light)',
-                    color: 'var(--success)',
-                    border: 'none',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <Plus size={10} /> Agregar
-                </button>
-              </div>
-              {ingresosFijosState.length === 0 ? (
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '10px 0' }}>No hay ingresos fijos registrados.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {ingresosFijosState.map((item, idx) => (
-                    <div key={item.id || idx} style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: 'var(--bg-primary)',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      gap: '8px'
-                    }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                        {getCleanName(item.name)}
-                        {renderContextBadge(item.name)}
-                        {parseFixedStartMonth(item.name) && (
-                          <span style={{
-                            background: 'var(--bg-secondary)',
-                            color: 'var(--text-secondary)',
-                            fontSize: '10px',
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            border: '1px solid var(--border-color)',
-                            fontWeight: 500,
-                            marginLeft: '4px'
-                          }}>
-                            Desde {parseFixedStartMonth(item.name)}
-                          </span>
-                        )}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(item.value)}</span>
-                        <button type="button" onClick={() => handleOpenFixedModal('ingresos', 'edit', item)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}><Edit2 size={11} /></button>
-                        <button type="button" onClick={() => handleConfirmDeleteFixed('ingresos', item.id, item.name)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }}><Trash2 size={11} /></button>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'var(--bg-primary)',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    borderTop: '2px solid var(--success)',
-                    marginTop: '6px'
-                  }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Ingresos</span>
-                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--success)' }}>{formatMoney(totalIngresosFijosGeneral)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Column 2: Egresos Fijos */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--danger)', fontWeight: 600 }}>Egresos Fijos Generales</h4>
-                <button
-                  type="button"
-                  onClick={() => handleOpenFixedModal('egresos', 'add')}
-                  style={{
-                    background: 'var(--danger-light)',
-                    color: 'var(--danger)',
-                    border: 'none',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <Plus size={10} /> Agregar
-                </button>
-              </div>
-              {egresosFijosState.length === 0 ? (
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '10px 0' }}>No hay egresos fijos registrados.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {egresosFijosState.map((item, idx) => (
-                    <div key={item.id || idx} style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: 'var(--bg-primary)',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      gap: '8px'
-                    }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                        {getCleanName(item.name)}
-                        {renderContextBadge(item.name)}
-                        {parseFixedStartMonth(item.name) && (
-                          <span style={{
-                            background: 'var(--bg-secondary)',
-                            color: 'var(--text-secondary)',
-                            fontSize: '10px',
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            border: '1px solid var(--border-color)',
-                            fontWeight: 500,
-                            marginLeft: '4px'
-                          }}>
-                            Desde {parseFixedStartMonth(item.name)}
-                          </span>
-                        )}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{formatMoney(item.value)}</span>
-                        <button type="button" onClick={() => handleOpenFixedModal('egresos', 'edit', item)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}><Edit2 size={11} /></button>
-                        <button type="button" onClick={() => handleConfirmDeleteFixed('egresos', item.id, item.name)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '2px' }}><Trash2 size={11} /></button>
-                      </div>
-                    </div>
-                  ))}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'var(--bg-primary)',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    borderTop: '2px solid var(--danger)',
-                    marginTop: '6px'
-                  }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Egresos</span>
-                    <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--danger)' }}>{formatMoney(totalEgresosFijosGeneral)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Tarjeta del Mes Principal */}
       {latestMonth && (() => {
@@ -2016,7 +1664,7 @@ export default function FlujoMensualView({
 
       {addMonthModalOpen && (
         <div className="modal-overlay" style={{ zIndex: 1200 }} onClick={() => setAddMonthModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', padding: '24px' }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', padding: '24px' }}>
             <button className="close-btn" onClick={() => setAddMonthModalOpen(false)}>
               <X size={16} />
             </button>
@@ -2061,94 +1709,16 @@ export default function FlujoMensualView({
                 </div>
               </div>
 
-              {/* Ingresos Fijos option */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Ingresos Fijos a Incluir</label>
-                <select
-                  value={addIncomesOption}
-                  onChange={e => setAddIncomesOption(e.target.value)}
-                  style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
-                >
-                  <option value="all">Todos los ingresos fijos registrados</option>
-                  <option value="edit">Seleccionar/Editar listado...</option>
-                  <option value="none">Ninguno (Empezar en blanco)</option>
-                </select>
-
-                {addIncomesOption === "edit" && (
-                  <div style={{ 
-                    background: 'var(--bg-primary)', 
-                    border: '1px solid var(--border-color)', 
-                    borderRadius: '8px', 
-                    padding: '10px', 
-                    maxHeight: '130px', 
-                    overflowY: 'auto', 
-                    marginTop: '4px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
-                  }}>
-                    {ingresosFijosState.length === 0 ? (
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>No hay ingresos fijos registrados.</span>
-                    ) : (
-                      ingresosFijosState.map(item => (
-                        <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                          <input
-                            type="checkbox"
-                            checked={!!selectedIncomesCheck[item.id]}
-                            onChange={(e) => setSelectedIncomesCheck(prev => ({ ...prev, [item.id]: e.target.checked }))}
-                            style={{ cursor: 'pointer' }}
-                          />
-                          <span>{getCleanName(item.name)} ({formatMoney(item.value)})</span>
-                        </label>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Egresos Fijos option */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>Egresos Fijos a Incluir</label>
-                <select
-                  value={addExpensesOption}
-                  onChange={e => setAddExpensesOption(e.target.value)}
-                  style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
-                >
-                  <option value="all">Todos los egresos fijos registrados</option>
-                  <option value="edit">Seleccionar/Editar listado...</option>
-                  <option value="none">Ninguno (Empezar en blanco)</option>
-                </select>
-
-                {addExpensesOption === "edit" && (
-                  <div style={{ 
-                    background: 'var(--bg-primary)', 
-                    border: '1px solid var(--border-color)', 
-                    borderRadius: '8px', 
-                    padding: '10px', 
-                    maxHeight: '130px', 
-                    overflowY: 'auto', 
-                    marginTop: '4px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px'
-                  }}>
-                    {egresosFijosState.length === 0 ? (
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>No hay egresos fijos registrados.</span>
-                    ) : (
-                      egresosFijosState.map(item => (
-                        <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                          <input
-                            type="checkbox"
-                            checked={!!selectedExpensesCheck[item.id]}
-                            onChange={(e) => setSelectedExpensesCheck(prev => ({ ...prev, [item.id]: e.target.checked }))}
-                            style={{ cursor: 'pointer' }}
-                          />
-                          <span>{getCleanName(item.name)} ({formatMoney(item.value)})</span>
-                        </label>
-                      ))
-                    )}
-                  </div>
-                )}
+              <div style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '12.5px',
+                color: 'var(--text-secondary)',
+                lineHeight: '1.5'
+              }}>
+                ℹ️ Se copiarán automáticamente los ingresos y egresos fijos del mes anterior. Todos llegarán con estado <strong>No pagado</strong>.
               </div>
 
               <button
@@ -2168,161 +1738,6 @@ export default function FlujoMensualView({
               >
                 Agregar Mes
               </button>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Modal para Agregar/Editar Flujo Fijo General */}
-      {fixedModalOpen && (
-        <div className="modal-overlay" onClick={() => setFixedModalOpen(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <button className="close-btn" onClick={() => setFixedModalOpen(false)}>
-              <X size={16} />
-            </button>
-
-            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px' }}>
-              {fixedModalMode === "add" 
-                ? `Agregar ${fixedModalType === 'ingresos' ? 'Ingreso' : 'Egreso'} Fijo General`
-                : `Editar ${fixedModalType === 'ingresos' ? 'Ingreso' : 'Egreso'} Fijo General`
-              }
-            </h3>
-
-            <form onSubmit={handleFixedSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Nombre / Concepto</label>
-                <input
-                  type="text"
-                  placeholder="Ej: Arriendo Oficina, Suscripción SaaS..."
-                  value={fixedFormName}
-                  onChange={e => setFixedFormName(e.target.value)}
-                  required
-                  style={{
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Monto Fijo Mensual</label>
-                <input
-                  type="number"
-                  placeholder="Ej: 500000"
-                  value={fixedFormValue}
-                  onChange={e => setFixedFormValue(e.target.value)}
-                  required
-                  style={{
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              {currentContext === 'consolidado' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Contexto</label>
-                  <select
-                    value={fixedFormContext}
-                    onChange={e => setFixedFormContext(e.target.value)}
-                    style={{
-                      background: 'var(--bg-primary)',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-primary)',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  >
-                    <option value="empresa">🏢 Empresa / Negocio</option>
-                    <option value="personal">🏠 Personal</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Start Date Configuration */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--bg-secondary)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                  <input
-                    type="checkbox"
-                    checked={fixedLimitStartDate}
-                    onChange={e => setFixedLimitStartDate(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <div>
-                    <span style={{ display: 'block' }}>Activar desde un mes específico</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 400, display: 'block', marginTop: '2px' }}>
-                      (Si está desactivado, se aplicará a todos los meses históricos y futuros)
-                    </span>
-                  </div>
-                </label>
-                
-                {fixedLimitStartDate && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Aplicar desde:</span>
-                    <select
-                      value={fixedStartMonthSelect}
-                      onChange={e => setFixedStartMonthSelect(e.target.value)}
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        fontSize: '12.5px',
-                        outline: 'none'
-                      }}
-                    >
-                      {["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"].map(m => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={fixedStartYearSelect}
-                      onChange={e => setFixedStartYearSelect(Number(e.target.value))}
-                      style={{
-                        background: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        color: 'var(--text-primary)',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        fontSize: '12.5px',
-                        outline: 'none'
-                      }}
-                    >
-                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(y => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setFixedModalOpen(false)}
-                  style={{ flex: 1, background: 'var(--border-color)', border: 'none', color: 'var(--text-primary)', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{ flex: 1, background: 'var(--accent)', border: 'none', color: 'white', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}
-                >
-                  Guardar
-                </button>
-              </div>
             </form>
           </div>
         </div>

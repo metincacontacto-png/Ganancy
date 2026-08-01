@@ -14,14 +14,6 @@ export default function DashboardView({
   currentUser,
   debtsState, 
   assetsTotal, 
-  ingresosFijosState, 
-  egresosFijosState,
-  addIncome,
-  editIncome,
-  deleteIncome,
-  addExpense,
-  editExpense,
-  deleteExpense,
   monthlyDetailsState,
   ingresosVariablesState = [],
   egresosVariablesState = [],
@@ -119,14 +111,13 @@ export default function DashboardView({
 
   const latestMonthDetails = latestMonthFromFlows ? (monthlyDetailsState[latestMonthFromFlows.month] || { ingresos: [], egresos: [] }) : null;
 
-  // 2. Calculate dynamic fixed structural flows from the latest month (or fallback to projections)
   const ingresosFijosTotal = latestMonthDetails 
-    ? latestMonthDetails.ingresos.filter(it => !it.isVariable).reduce((sum, item) => sum + item.value, 0)
-    : ingresosFijosState.reduce((sum, item) => sum + item.value, 0);
+    ? latestMonthDetails.ingresos.filter(it => !it.isVariable && !it.name.startsWith('__EXCLUDED__')).reduce((sum, item) => sum + item.value, 0)
+    : 0;
 
   const egresosFijosTotal = latestMonthDetails 
-    ? latestMonthDetails.egresos.filter(it => !it.isVariable).reduce((sum, item) => sum + item.value, 0)
-    : egresosFijosState.reduce((sum, item) => sum + item.value, 0);
+    ? latestMonthDetails.egresos.filter(it => !it.isVariable && !it.name.startsWith('__EXCLUDED__')).reduce((sum, item) => sum + item.value, 0)
+    : 0;
 
   const balanceFijo = ingresosFijosTotal - egresosFijosTotal;
 

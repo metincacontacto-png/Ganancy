@@ -60,7 +60,32 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
+      // Automatically unregister service workers on localhost to prevent caching issues in development
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+            let unregisteredAny = false;
+            let promises = registrations.map(registration => {
+              unregisteredAny = true;
+              return registration.unregister();
+            });
+            if (unregisteredAny) {
+              Promise.all(promises).then(() => {
+                console.log('Service Workers desregistrados con éxito para desarrollo local.');
+                if ('caches' in window) {
+                  caches.keys().then(names => {
+                    return Promise.all(names.map(name => caches.delete(name)));
+                  }).then(() => {
+                    window.location.reload();
+                  });
+                } else {
+                  window.location.reload();
+                }
+              });
+            }
+          });
+        }
+      } else if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then(reg => {

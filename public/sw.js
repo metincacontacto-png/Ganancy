@@ -26,8 +26,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
   
-  // Ignore Dev Server hot-module-reloads
-  if (url.pathname.includes('@vite') || url.pathname.includes('@react-refresh') || url.hostname === 'localhost' && url.port === '5175' && url.pathname.includes('hot')) {
+  // Bypasses caching for local development to prevent state and component hot-reload conflicts
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
     return;
   }
 

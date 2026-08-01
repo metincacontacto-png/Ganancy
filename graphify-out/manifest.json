@@ -1,0 +1,152 @@
+{
+  ".mcp.json": {
+    "mtime": 1783888124.5069366,
+    "ast_hash": "8c9cfb1d0f9d7d23494cd56bfb3e64d9",
+    "semantic_hash": "8c9cfb1d0f9d7d23494cd56bfb3e64d9"
+  },
+  "eslint.config.js": {
+    "mtime": 1779991718.0011678,
+    "ast_hash": "3aa4b57d7f08181d86bde52a4dcb7f22",
+    "semantic_hash": "3aa4b57d7f08181d86bde52a4dcb7f22"
+  },
+  "package.json": {
+    "mtime": 1780203203.4230459,
+    "ast_hash": "0332dfc44951a73e0fa295986816109a",
+    "semantic_hash": "0332dfc44951a73e0fa295986816109a"
+  },
+  "public/manifest.json": {
+    "mtime": 1783825682.2985947,
+    "ast_hash": "1834bdd0f7101ea9eb15d9ab0ba60bb9",
+    "semantic_hash": "1834bdd0f7101ea9eb15d9ab0ba60bb9"
+  },
+  "public/sw.js": {
+    "mtime": 1783825363.6048994,
+    "ast_hash": "3cd14bcb11e126368bda85fb9822c5c8",
+    "semantic_hash": "3cd14bcb11e126368bda85fb9822c5c8"
+  },
+  "scratch/generate_template.js": {
+    "mtime": 1783818000.185245,
+    "ast_hash": "02b6b91297e3097ee1e6cd873061a4ab",
+    "semantic_hash": "02b6b91297e3097ee1e6cd873061a4ab"
+  },
+  "scratch/test_debts.js": {
+    "mtime": 1781382544.9104505,
+    "ast_hash": "9a2f17961133e8dcc76eeb48e87230ac",
+    "semantic_hash": "9a2f17961133e8dcc76eeb48e87230ac"
+  },
+  "skills-lock.json": {
+    "mtime": 1783884803.0960534,
+    "ast_hash": "6f0a184dd77d32b8cd0ae57cb11d9d95",
+    "semantic_hash": "6f0a184dd77d32b8cd0ae57cb11d9d95"
+  },
+  "src/App.jsx": {
+    "mtime": 1783832454.619124,
+    "ast_hash": "44dac148034360828d3885d632ac84c2",
+    "semantic_hash": "44dac148034360828d3885d632ac84c2"
+  },
+  "src/components/ErrorBoundary.jsx": {
+    "mtime": 1783818427.0852258,
+    "ast_hash": "d118043a1741c208caa34cab05bb3da2",
+    "semantic_hash": "d118043a1741c208caa34cab05bb3da2"
+  },
+  "src/data/financialData.js": {
+    "mtime": 1780184264.6062148,
+    "ast_hash": "e4116ca3fba4a1be08ac2ec085f8f16c",
+    "semantic_hash": "e4116ca3fba4a1be08ac2ec085f8f16c"
+  },
+  "src/data/landingPageDefaults.js": {
+    "mtime": 1783867268.0447748,
+    "ast_hash": "4cc7f7715a0860fae3d89128daee47c6",
+    "semantic_hash": "4cc7f7715a0860fae3d89128daee47c6"
+  },
+  "src/hooks/useSEO.js": {
+    "mtime": 1783818406.103772,
+    "ast_hash": "20928c805312b7356ef8e212ec01d1be",
+    "semantic_hash": "20928c805312b7356ef8e212ec01d1be"
+  },
+  "src/lib/financialService.js": {
+    "mtime": 1782753181.9288836,
+    "ast_hash": "68b0cb9d6bb737d805dd66f0076d8026",
+    "semantic_hash": "68b0cb9d6bb737d805dd66f0076d8026"
+  },
+  "src/lib/imageCompressor.js": {
+    "mtime": 1780201534.0993345,
+    "ast_hash": "dd3697a090007a1af468e95f7392f0a4",
+    "semantic_hash": "dd3697a090007a1af468e95f7392f0a4"
+  },
+  "src/lib/supabaseClient.js": {
+    "mtime": 1783888106.7469785,
+    "ast_hash": "1cf64a73aeb4ecbe5fce12d4f10b550b",
+    "semantic_hash": "1cf64a73aeb4ecbe5fce12d4f10b550b"
+  },
+  "src/main.jsx": {
+    "mtime": 1779991718.0044377,
+    "ast_hash": "e13723e2574429d9a6d849727e3ff695",
+    "semantic_hash": "e13723e2574429d9a6d849727e3ff695"
+  },
+  "src/sections/ActivosPasivosView.jsx": {
+    "mtime": 1782768520.353712,
+    "ast_hash": "a50c0848c3e43861dfae1881b2215028",
+    "semantic_hash": "a50c0848c3e43861dfae1881b2215028"
+  },
+  "src/sections/AdminConsoleView.jsx": {
+    "mtime": 1782777052.6523752,
+    "ast_hash": "9003ff59c2aeacd167d5e561d62e67dc",
+    "semantic_hash": "9003ff59c2aeacd167d5e561d62e67dc"
+  },
+  "src/sections/DashboardView.jsx": {
+    "mtime": 1783828450.3892436,
+    "ast_hash": "a0f715bcc2f0b9de1964d98b18cc1da8",
+    "semantic_hash": "a0f715bcc2f0b9de1964d98b18cc1da8"
+  },
+  "src/sections/DeudasView.jsx": {
+    "mtime": 1783832358.2651434,
+    "ast_hash": "7d9642ca3fb361a2344d5a11976fe2d2",
+    "semantic_hash": "7d9642ca3fb361a2344d5a11976fe2d2"
+  },
+  "src/sections/FlujoMensualView.jsx": {
+    "mtime": 1783831366.6368306,
+    "ast_hash": "58c9cbbc708a67511956ca8307d54d8c",
+    "semantic_hash": "58c9cbbc708a67511956ca8307d54d8c"
+  },
+  "src/sections/LandingEditorView.jsx": {
+    "mtime": 1780676281.3648982,
+    "ast_hash": "bca0366c2e880539583c3e9aeaa85172",
+    "semantic_hash": "bca0366c2e880539583c3e9aeaa85172"
+  },
+  "src/sections/LandingPageView.jsx": {
+    "mtime": 1783867212.4763048,
+    "ast_hash": "415d6e536474ac25e8b87f394af9ce4a",
+    "semantic_hash": "415d6e536474ac25e8b87f394af9ce4a"
+  },
+  "src/sections/LoginView.jsx": {
+    "mtime": 1780289605.8152368,
+    "ast_hash": "1198dc26e7b542f275c4dda16000d988",
+    "semantic_hash": "1198dc26e7b542f275c4dda16000d988"
+  },
+  "src/sections/ProyeccionView.jsx": {
+    "mtime": 1780257015.2181978,
+    "ast_hash": "d953401f9ebfe19c5fcf75d71febb5d9",
+    "semantic_hash": "d953401f9ebfe19c5fcf75d71febb5d9"
+  },
+  "src/sections/SubscriptionView.jsx": {
+    "mtime": 1783828332.091434,
+    "ast_hash": "189045dbc669346cffafac8c4d949178",
+    "semantic_hash": "189045dbc669346cffafac8c4d949178"
+  },
+  "src/sections/dashboard/DashboardCharts.jsx": {
+    "mtime": 1783819861.853181,
+    "ast_hash": "8927a21798c4bdbdecdafc98150c093b",
+    "semantic_hash": "8927a21798c4bdbdecdafc98150c093b"
+  },
+  "src/sections/dashboard/ExcelUploader.jsx": {
+    "mtime": 1783819961.36583,
+    "ast_hash": "44c45b50a9a5cff1adac09718ad5a7f3",
+    "semantic_hash": "44c45b50a9a5cff1adac09718ad5a7f3"
+  },
+  "vite.config.js": {
+    "mtime": 1779991718.0048542,
+    "ast_hash": "88439104b3c207f17d33ef3160e3b080",
+    "semantic_hash": "88439104b3c207f17d33ef3160e3b080"
+  }
+}
