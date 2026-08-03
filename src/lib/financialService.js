@@ -134,13 +134,6 @@ export const fetchAllUserData = async (userId) => {
 
     (detailsRows || []).forEach(row => {
       let targetMonth = row.month;
-      if (row.due_date) {
-        const date = new Date(row.due_date + 'T00:00:00');
-        if (!isNaN(date.getTime())) {
-          const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-          targetMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
-        }
-      }
       if (!monthlyDetailsState[targetMonth]) {
         monthlyDetailsState[targetMonth] = { ingresos: [], egresos: [] };
       }

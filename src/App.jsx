@@ -2163,13 +2163,6 @@ export default function App() {
         const taggedName = tagWithActiveContext(data.item.name, data.item.context);
         
         let newMonth = month;
-        if (data.item.dueDate) {
-          const date = new Date(data.item.dueDate + 'T00:00:00');
-          if (!isNaN(date.getTime())) {
-            const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-            newMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
-          }
-        }
         
         if (currentUser && currentUser.provider === 'supabase') {
           try {
@@ -2356,14 +2349,6 @@ export default function App() {
           const taggedName = tagWithActiveContext(data.item.name, data.item.context);
           
           let newMonth = month;
-          if (data.item.dueDate) {
-            const date = new Date(data.item.dueDate + 'T00:00:00');
-            if (!isNaN(date.getTime())) {
-              const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-              newMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
-            }
-          }
-
           const { error } = await supabase
             .from('detalles_mensuales')
             .update({
@@ -2454,119 +2439,47 @@ export default function App() {
         const taggedName = tagWithActiveContext(data.item.name, data.item.context);
         
         let newMonth = month;
-        if (data.item.dueDate) {
-          const date = new Date(data.item.dueDate + 'T00:00:00');
-          if (!isNaN(date.getTime())) {
-            const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-            newMonth = `${months[date.getMonth()]} ${date.getFullYear()}`;
-          }
-        }
 
-        if (newMonth !== month) {
-          // Remove from old month
-          const oldMonthList = updatedList.filter((_, idx) => idx !== rawIndex);
-          
-          // Add to new month
-          const newMonthObj = prevDetails[newMonth] || { ingresos: [], egresos: [] };
-          const newMonthList = [...(newMonthObj[type] || [])];
-          newMonthList.push({
-            id: item ? item.id : ("tx_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9)),
-            name: taggedName,
-            value: data.item.value,
-            isVariable: data.item.isVariable,
-            paid: data.item.paid !== undefined ? data.item.paid : (item ? item.paid : false),
-            dueDate: data.item.dueDate || "",
-            reminderEnabled: data.item.reminderEnabled || false,
-            reminderEmail: data.item.reminderEmail || "",
-            reminderTime: data.item.reminderTime || "3_days_before"
-          });
+        updatedList = updatedList.map((it, idx) => idx === rawIndex ? {
+          ...it,
+          name: taggedName,
+          value: data.item.value,
+          isVariable: data.item.isVariable,
+          paid: data.item.paid !== undefined ? data.item.paid : it.paid,
+          dueDate: data.item.dueDate || "",
+          reminderEnabled: data.item.reminderEnabled || false,
+          reminderEmail: data.item.reminderEmail || "",
+          reminderTime: data.item.reminderTime || "3_days_before"
+        } : it);
 
-          const updatedOldMonthDetails = {
-            ...monthObj,
-            [type]: oldMonthList
-          };
+        const updatedMonthDetails = {
+          ...monthObj,
+          [type]: updatedList
+        };
 
-          const updatedNewMonthDetails = {
-            ...newMonthObj,
-            [type]: newMonthList
-          };
+        const newDetails = {
+          ...prevDetails,
+          [month]: updatedMonthDetails
+        };
 
-          const newDetails = {
-            ...prevDetails,
-            [month]: updatedOldMonthDetails,
-            [newMonth]: updatedNewMonthDetails
-          };
+        setHistoricalFlowsState(prevFlows => {
+          return prevFlows.map(f => {
+            if (f.month === month) {
+              const totalIngresos = updatedMonthDetails.ingresos.reduce((sum, it) => sum + it.value, 0);
+              const totalEgresos = updatedMonthDetails.egresos.reduce((sum, it) => sum + it.value, 0);
+              const balance = totalIngresos - totalEgresos;
 
-          setHistoricalFlowsState(prevFlows => {
-            return prevFlows.map(f => {
-              if (f.month === month) {
-                const totalIngresos = updatedOldMonthDetails.ingresos.reduce((sum, it) => sum + it.value, 0);
-                const totalEgresos = updatedOldMonthDetails.egresos.reduce((sum, it) => sum + it.value, 0);
-                const balance = totalIngresos - totalEgresos;
-                
-                if (currentUser && currentUser.provider === 'supabase') {
-                  supabase.from('flujos_historicos').update({ ingresos: totalIngresos, egresos: totalEgresos, balance }).eq('user_id', currentUser.id).eq('month', month)
-                    .then(({ error: flowsErr }) => { if (flowsErr) console.error(flowsErr); });
-                }
-                return { ...f, ingresos: totalIngresos, egresos: totalEgresos, balance };
-              } else if (f.month === newMonth) {
-                const totalIngresos = updatedNewMonthDetails.ingresos.reduce((sum, it) => sum + it.value, 0);
-                const totalEgresos = updatedNewMonthDetails.egresos.reduce((sum, it) => sum + it.value, 0);
-                const balance = totalIngresos - totalEgresos;
-                
-                if (currentUser && currentUser.provider === 'supabase') {
-                  supabase.from('flujos_historicos').update({ ingresos: totalIngresos, egresos: totalEgresos, balance }).eq('user_id', currentUser.id).eq('month', newMonth)
-                    .then(({ error: flowsErr }) => { if (flowsErr) console.error(flowsErr); });
-                }
-                return { ...f, ingresos: totalIngresos, egresos: totalEgresos, balance };
+              if (currentUser && currentUser.provider === 'supabase') {
+                supabase.from('flujos_historicos').update({ ingresos: totalIngresos, egresos: totalEgresos, balance }).eq('user_id', currentUser.id).eq('month', month)
+                  .then(({ error: flowsErr }) => { if (flowsErr) console.error(flowsErr); });
               }
-              return f;
-            });
+              return { ...f, ingresos: totalIngresos, egresos: totalEgresos, balance };
+            }
+            return f;
           });
+        });
 
-          return newDetails;
-        } else {
-          updatedList = updatedList.map((it, idx) => idx === rawIndex ? {
-            ...it,
-            name: taggedName,
-            value: data.item.value,
-            isVariable: data.item.isVariable,
-            paid: data.item.paid !== undefined ? data.item.paid : it.paid,
-            dueDate: data.item.dueDate || "",
-            reminderEnabled: data.item.reminderEnabled || false,
-            reminderEmail: data.item.reminderEmail || "",
-            reminderTime: data.item.reminderTime || "3_days_before"
-          } : it);
-
-          const updatedMonthDetails = {
-            ...monthObj,
-            [type]: updatedList
-          };
-
-          const newDetails = {
-            ...prevDetails,
-            [month]: updatedMonthDetails
-          };
-
-          setHistoricalFlowsState(prevFlows => {
-            return prevFlows.map(f => {
-              if (f.month === month) {
-                const totalIngresos = updatedMonthDetails.ingresos.reduce((sum, it) => sum + it.value, 0);
-                const totalEgresos = updatedMonthDetails.egresos.reduce((sum, it) => sum + it.value, 0);
-                const balance = totalIngresos - totalEgresos;
-
-                if (currentUser && currentUser.provider === 'supabase') {
-                  supabase.from('flujos_historicos').update({ ingresos: totalIngresos, egresos: totalEgresos, balance }).eq('user_id', currentUser.id).eq('month', month)
-                    .then(({ error: flowsErr }) => { if (flowsErr) console.error(flowsErr); });
-                }
-                return { ...f, ingresos: totalIngresos, egresos: totalEgresos, balance };
-              }
-              return f;
-            });
-          });
-
-          return newDetails;
-        }
+        return newDetails;
       } else {
         if (action === "delete") {
           updatedList = updatedList.filter((_, idx) => idx !== rawIndex);
