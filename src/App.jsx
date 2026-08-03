@@ -599,9 +599,12 @@ export default function App() {
         const monthLabel = getMonthLabelForIndex(startMonth, i);
         const monthObj = monthlyDetailsState[monthLabel];
         if (monthObj) {
-          const matchedPaidTx = (monthObj.egresos || []).find(it => 
-            namesMatch(it.name, debt.name) && it.paid
-          );
+          const matchedPaidTx = (monthObj.egresos || []).find(it => {
+            const txIsPersonal = it.name.includes('[Personal]');
+            const debtIsPersonal = debt.context === 'personal' || debt.name.includes('[Personal]');
+            if (txIsPersonal !== debtIsPersonal) return false;
+            return namesMatch(it.name, debt.name) && it.paid;
+          });
           if (matchedPaidTx) {
             if (!newCuotas[i]) {
               newCuotas[i] = true;
@@ -637,6 +640,10 @@ export default function App() {
     
     const isMatchedByActiveDebt = (tx, month, debts) => {
       return debts.some(debt => {
+        const txIsPersonal = tx.name.includes('[Personal]');
+        const debtIsPersonal = debt.context === 'personal' || debt.name.includes('[Personal]');
+        if (txIsPersonal !== debtIsPersonal) return false;
+
         if (!namesMatch(tx.name, debt.name)) return false;
         
         if (debt.tipo === "fija" || (debt.cuotasTotales && debt.cuotasTotales > 1)) {
@@ -1893,6 +1900,10 @@ export default function App() {
         
         const isMatchedByActiveDebt = (tx, month, debts) => {
           return debts.some(debt => {
+            const txIsPersonal = tx.name.includes('[Personal]');
+            const debtIsPersonal = debt.context === 'personal' || debt.name.includes('[Personal]');
+            if (txIsPersonal !== debtIsPersonal) return false;
+
             if (!namesMatch(tx.name, debt.name)) return false;
             
             if (debt.tipo === "fija" || (debt.cuotasTotales && debt.cuotasTotales > 1)) {
