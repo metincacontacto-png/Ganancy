@@ -1687,7 +1687,7 @@ export default function FlujoMensualView({
                       top: 'calc(100% + 4px)',
                       left: 0,
                       right: 0,
-                      background: 'var(--bg-card)',
+                      background: 'var(--bg-secondary)',
                       border: '1px solid var(--border-color)',
                       borderRadius: '8px',
                       boxShadow: 'var(--shadow-lg)',
@@ -1798,7 +1798,7 @@ export default function FlujoMensualView({
                       onChange={() => setFormContext('empresa')}
                       style={{ display: 'none' }}
                     />
-                    🏢 Negocio
+                    <Briefcase size={14} style={{ marginRight: '4px' }} /> Negocio
                   </label>
                   <label style={{
                     flex: 1,
@@ -1822,7 +1822,7 @@ export default function FlujoMensualView({
                       onChange={() => setFormContext('personal')}
                       style={{ display: 'none' }}
                     />
-                    🏠 Personal
+                    <Home size={14} style={{ marginRight: '4px' }} /> Personal
                   </label>
                 </div>
               </div>
