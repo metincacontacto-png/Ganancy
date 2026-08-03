@@ -3,7 +3,7 @@ import {
   Calendar, X, Plus, Trash2, Edit2, Bell, Check, Send, Paperclip, FileText,
   Home, Zap, ShoppingCart, Car, Activity, Scale, Users, Megaphone, 
   GraduationCap, Laptop, CreditCard, Sparkles, Briefcase, TrendingUp, Coins,
-  Search
+  Search, BarChart3
 } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
@@ -1643,7 +1643,7 @@ export default function FlujoMensualView({
                 onClick={() => setShowCategoryBreakdown(!showCategoryBreakdown)}
               >
                 <h4 style={{ fontSize: '14.5px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                  📊 Resumen de Saldos por Categoría ({selectedMonthDetail})
+                  <BarChart3 size={16} style={{ color: 'var(--accent)' }} /> Resumen de Saldos por Categoría ({selectedMonthDetail})
                 </h4>
                 <span style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   {showCategoryBreakdown ? 'Ocultar detalles' : 'Mostrar desglose'}
