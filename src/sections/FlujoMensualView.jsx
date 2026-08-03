@@ -333,6 +333,7 @@ export default function FlujoMensualView({
   const [formCategory, setFormCategory] = useState("");
   const [showCategoryBreakdown, setShowCategoryBreakdown] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null);
   
   // New reminder configuration states
   const [formReminderEnabled, setFormReminderEnabled] = useState(false);
@@ -609,6 +610,21 @@ export default function FlujoMensualView({
     
     return breakdown;
   }, [currentDetails, ingresosFijos, ingresosVariables, egresosFijos, egresosVariables]);
+
+  const activeCategories = React.useMemo(() => {
+    const cats = new Set();
+    const allItems = [
+      ...ingresosFijos,
+      ...ingresosVariables,
+      ...egresosFijos,
+      ...egresosVariables
+    ];
+    allItems.forEach(it => {
+      const cat = getCategoryFromName(it.name);
+      if (cat) cats.add(cat);
+    });
+    return Array.from(cats);
+  }, [ingresosFijos, ingresosVariables, egresosFijos, egresosVariables]);
 
   const togglePanel = (panelKey) => {
     setActivePanel(prev => prev === panelKey ? null : panelKey);
