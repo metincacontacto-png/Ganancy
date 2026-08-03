@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Calendar, X, Plus, Trash2, Edit2, Bell, Check, Send, Paperclip, FileText } from 'lucide-react';
+import { 
+  Calendar, X, Plus, Trash2, Edit2, Bell, Check, Send, Paperclip, FileText,
+  Home, Zap, ShoppingCart, Car, Activity, Scale, Users, Megaphone, 
+  GraduationCap, Laptop, CreditCard, Sparkles, Briefcase, TrendingUp, Coins
+} from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
 function renderFormattedToastMessage(message) {
@@ -58,27 +62,27 @@ const getQuarterInfo = (monthStr, startMonthStr) => {
   return { id, label, qIndex };
 };
 export const INCOME_CATEGORIES = [
-  { value: "sueldo", label: "💵 Sueldo / Salarios" },
-  { value: "ventas", label: "💼 Ventas / Clientes" },
-  { value: "inversiones", label: "📈 Inversiones" },
-  { value: "rentas", label: "🏠 Rentas / Alquileres" },
-  { value: "otros", label: "✨ Otros Ingresos" }
+  { value: "sueldo", label: "Sueldo / Salarios", icon: Coins },
+  { value: "ventas", label: "Ventas / Clientes", icon: Briefcase },
+  { value: "inversiones", label: "Inversiones", icon: TrendingUp },
+  { value: "rentas", label: "Rentas / Alquileres", icon: Home },
+  { value: "otros", label: "Otros Ingresos", icon: Sparkles }
 ];
 
 export const EXPENSE_CATEGORIES = [
-  { value: "vivienda", label: "🏠 Vivienda / Alquiler" },
-  { value: "servicios", label: "⚡ Servicios (Luz, Agua, Internet)" },
-  { value: "alimentacion", label: "🛒 Alimentación / Supermercado" },
-  { value: "transporte", label: "🚗 Transporte / Combustible" },
-  { value: "salud_seguros", label: "🏥 Salud / Seguros / Isapre" },
-  { value: "impuestos", label: "⚖️ Impuestos / Tasas" },
-  { value: "personal_sueldos", label: "👥 Personal / Sueldos" },
-  { value: "marketing", label: "📢 Marketing / Publicidad" },
-  { value: "educacion", label: "🎓 Educación" },
-  { value: "ocio", label: "🎉 Entretenimiento / Ocio" },
-  { value: "suscripciones", label: "💻 Suscripciones / Software" },
-  { value: "prestamos", label: "💳 Préstamos / Deudas" },
-  { value: "otros", label: "✨ Otros Egresos" }
+  { value: "vivienda", label: "Vivienda / Alquiler", icon: Home },
+  { value: "servicios", label: "Servicios (Luz, Agua, Internet)", icon: Zap },
+  { value: "alimentacion", label: "Alimentación / Supermercado", icon: ShoppingCart },
+  { value: "transporte", label: "Transporte / Combustible", icon: Car },
+  { value: "salud_seguros", label: "Salud / Seguros / Isapre", icon: Activity },
+  { value: "impuestos", label: "Impuestos / Tasas", icon: Scale },
+  { value: "personal_sueldos", label: "Personal / Sueldos", icon: Users },
+  { value: "marketing", label: "Marketing / Publicidad", icon: Megaphone },
+  { value: "educacion", label: "Educación", icon: GraduationCap },
+  { value: "ocio", label: "Entretenimiento / Ocio", icon: Sparkles },
+  { value: "suscripciones", label: "Suscripciones / Software", icon: Laptop },
+  { value: "prestamos", label: "Préstamos / Deudas", icon: CreditCard },
+  { value: "otros", label: "Otros Egresos", icon: Sparkles }
 ];
 
 export const getCategoryFromName = (name) => {
@@ -168,21 +172,23 @@ export default function FlujoMensualView({
     const catList = itemType === 'ingresos' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
     const matched = catList.find(c => c.value === categoryKey);
     const label = matched ? matched.label : categoryKey;
+    const IconComponent = matched ? matched.icon : Sparkles;
     
     return (
       <span style={{
         background: 'rgba(255, 255, 255, 0.05)',
         color: 'var(--text-secondary)',
         border: '1px solid var(--border-color)',
-        fontSize: '10px',
+        fontSize: '10.5px',
         fontWeight: 600,
-        padding: '2px 6px',
-        borderRadius: '4px',
+        padding: '3px 7px',
+        borderRadius: '6px',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '4px',
+        gap: '5px',
         verticalAlign: 'middle'
       }}>
+        <IconComponent size={11} style={{ opacity: 0.8 }} />
         {label}
       </span>
     );
@@ -326,6 +332,7 @@ export default function FlujoMensualView({
   const [formContext, setFormContext] = useState("empresa");
   const [formCategory, setFormCategory] = useState("");
   const [showCategoryBreakdown, setShowCategoryBreakdown] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   
   // New reminder configuration states
   const [formReminderEnabled, setFormReminderEnabled] = useState(false);
@@ -457,6 +464,7 @@ export default function FlujoMensualView({
     setFormReminderTime("3_days_before");
     setFormContext(currentContext === 'personal' ? 'personal' : 'empresa');
     setFormCategory("");
+    setCategoryDropdownOpen(false);
     setTransModalOpen(true);
   };
 
@@ -479,6 +487,7 @@ export default function FlujoMensualView({
     setFormReminderEnabled(item.reminderEnabled || false);
     setFormReminderEmail(item.reminderEmail || "");
     setFormReminderTime(item.reminderTime || "3_days_before");
+    setCategoryDropdownOpen(false);
     setTransModalOpen(true);
   };
 
@@ -1429,10 +1438,14 @@ export default function FlujoMensualView({
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {Object.entries(categoryBreakdown.ingresos).map(([catKey, total]) => {
                           const matched = INCOME_CATEGORIES.find(c => c.value === catKey);
-                          const label = matched ? matched.label : catKey === 'otros' ? '✨ Otros Ingresos' : catKey;
+                          const label = matched ? matched.label : catKey === 'otros' ? 'Otros Ingresos' : catKey;
+                          const IconComponent = matched ? matched.icon : Sparkles;
                           return (
                             <div key={catKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                              <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{label}</span>
+                              <span style={{ fontSize: '13px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <IconComponent size={13} style={{ color: 'var(--success)', opacity: 0.8 }} />
+                                {label}
+                              </span>
                               <strong style={{ fontSize: '13px', color: 'var(--success)' }}>{formatCLP(total)}</strong>
                             </div>
                           );
@@ -1452,10 +1465,14 @@ export default function FlujoMensualView({
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {Object.entries(categoryBreakdown.egresos).map(([catKey, total]) => {
                           const matched = EXPENSE_CATEGORIES.find(c => c.value === catKey);
-                          const label = matched ? matched.label : catKey === 'otros' ? '✨ Otros Egresos' : catKey;
+                          const label = matched ? matched.label : catKey === 'otros' ? 'Otros Egresos' : catKey;
+                          const IconComponent = matched ? matched.icon : Sparkles;
                           return (
                             <div key={catKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                              <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{label}</span>
+                              <span style={{ fontSize: '13px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <IconComponent size={13} style={{ color: 'var(--danger)', opacity: 0.8 }} />
+                                {label}
+                              </span>
                               <strong style={{ fontSize: '13px', color: 'var(--danger)' }}>{formatCLP(total)}</strong>
                             </div>
                           );
@@ -1539,30 +1556,117 @@ export default function FlujoMensualView({
                 />
               </div>
  
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Categoría</label>
-                <select
-                  value={formCategory}
-                  onChange={e => setFormCategory(e.target.value)}
+                
+                {/* Custom Select Trigger */}
+                <div
+                  onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
                   style={{
                     background: 'var(--bg-primary)',
                     border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)',
+                    color: formCategory ? 'var(--text-primary)' : 'var(--text-secondary)',
                     padding: '10px 14px',
                     borderRadius: '8px',
                     fontSize: '14px',
-                    outline: 'none',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     cursor: 'pointer',
-                    fontFamily: 'inherit'
+                    userSelect: 'none',
+                    height: '42px',
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <option value="">-- Sin Categoría --</option>
-                  {(transModalType === 'ingresos' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </option>
-                  ))}
-                </select>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    {(() => {
+                      const matchedCat = (transModalType === 'ingresos' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).find(c => c.value === formCategory);
+                      const SelectedIcon = matchedCat ? matchedCat.icon : Sparkles;
+                      const selectedLabel = matchedCat ? matchedCat.label : "-- Sin Categoría --";
+                      return (
+                        <>
+                          <SelectedIcon size={16} style={{ color: matchedCat ? 'var(--accent)' : 'var(--text-secondary)', opacity: matchedCat ? 1 : 0.5 }} />
+                          <span>{selectedLabel}</span>
+                        </>
+                      );
+                    })()}
+                  </span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                    {categoryDropdownOpen ? '▲' : '▼'}
+                  </span>
+                </div>
+
+                {/* Custom Select Options List */}
+                {categoryDropdownOpen && (
+                  <>
+                    <div 
+                      onClick={() => setCategoryDropdownOpen(false)} 
+                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      left: 0,
+                      right: 0,
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      boxShadow: 'var(--shadow-lg)',
+                      zIndex: 1000,
+                      maxHeight: '220px',
+                      overflowY: 'auto',
+                      padding: '4px 0'
+                    }}>
+                      <div
+                        onClick={() => {
+                          setFormCategory("");
+                          setCategoryDropdownOpen(false);
+                        }}
+                        style={{
+                          padding: '10px 14px',
+                          fontSize: '14px',
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          background: formCategory === "" ? 'rgba(10, 132, 255, 0.08)' : 'transparent',
+                          transition: 'background 0.15s'
+                        }}
+                      >
+                        <Sparkles size={16} style={{ color: 'var(--text-secondary)', opacity: 0.5 }} />
+                        <span style={{ color: 'var(--text-secondary)' }}>-- Sin Categoría --</span>
+                      </div>
+                      
+                      {(transModalType === 'ingresos' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => {
+                        const IconComponent = cat.icon;
+                        return (
+                          <div
+                            key={cat.value}
+                            onClick={() => {
+                              setFormCategory(cat.value);
+                              setCategoryDropdownOpen(false);
+                            }}
+                            style={{
+                              padding: '10px 14px',
+                              fontSize: '14px',
+                              color: 'var(--text-primary)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              background: formCategory === cat.value ? 'rgba(10, 132, 255, 0.08)' : 'transparent',
+                              transition: 'background 0.15s'
+                            }}
+                          >
+                            <IconComponent size={16} style={{ color: formCategory === cat.value ? 'var(--accent)' : 'var(--text-secondary)' }} />
+                            <span>{cat.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
