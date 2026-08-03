@@ -335,6 +335,8 @@ export default function FlujoMensualView({
   const [showCategoryBreakdown, setShowCategoryBreakdown] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedContextFilter, setSelectedContextFilter] = useState(null);
   
   // New reminder configuration states
   const [formReminderEnabled, setFormReminderEnabled] = useState(false);
@@ -712,7 +714,41 @@ export default function FlujoMensualView({
     );
   };
 
+  const isItemMatched = (item) => {
+    if (searchQuery.trim()) {
+      const cleanName = getCleanName(item.name).toLowerCase();
+      const query = searchQuery.trim().toLowerCase();
+      if (!cleanName.includes(query)) return false;
+    }
+    
+    if (selectedContextFilter) {
+      const isPersonal = item.name.includes('[Personal]');
+      const matchesContext = (selectedContextFilter === 'personal' && isPersonal) ||
+                             (selectedContextFilter === 'empresa' && !isPersonal);
+      if (!matchesContext) return false;
+    }
+
+    if (selectedCategoryFilter) {
+      const cat = getCategoryFromName(item.name);
+      if (cat !== selectedCategoryFilter) return false;
+    }
+
+    const isAnyFilterActive = !!(searchQuery.trim() || selectedContextFilter || selectedCategoryFilter);
+    return isAnyFilterActive;
+  };
+
   const renderTransactionTable = (items, type, montoLabel, emptyMessage) => {
+    const isAnyFilterActive = !!(searchQuery.trim() || selectedContextFilter || selectedCategoryFilter);
+    const sortedItems = isAnyFilterActive 
+      ? [...items].sort((a, b) => {
+          const matchA = isItemMatched(a);
+          const matchB = isItemMatched(b);
+          if (matchA && !matchB) return -1;
+          if (!matchA && matchB) return 1;
+          return 0;
+        })
+      : items;
+
     return (
       <div className="table-responsive">
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -725,10 +761,20 @@ export default function FlujoMensualView({
             </tr>
           </thead>
           <tbody>
-            {items.map(item => {
+            {sortedItems.map(item => {
               const isExpense = type === "egresos";
+              const isHighlighted = isItemMatched(item);
               return (
-                <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)', height: '54px' }}>
+                <tr 
+                  key={item.id} 
+                  style={{ 
+                    borderBottom: '1px solid var(--border-color)', 
+                    height: '54px',
+                    background: isHighlighted ? 'rgba(10, 132, 255, 0.05)' : 'transparent',
+                    borderLeft: isHighlighted ? '3px solid var(--accent)' : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
                   {/* Checkbox column */}
                   <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
                     <span
