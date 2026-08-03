@@ -1407,68 +1407,174 @@ export default function FlujoMensualView({
               </div>
             </div>
 
-            {/* Category Filter Chips */}
-            {activeCategories.length > 0 && (
-              <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  🔍 Priorizar Categoría al inicio de las listas:
-                </span>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <div
-                    onClick={() => setSelectedCategoryFilter(null)}
+            {/* Unified Filter & Search Panel */}
+            <div style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {/* Search Input */}
+                <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+                  <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+                    <Search size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Filtrar por concepto (subirá al inicio)..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      padding: '10px 12px 10px 36px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {searchQuery && (
+                    <span 
+                      onClick={() => setSearchQuery("")}
+                      style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={14} />
+                    </span>
+                  )}
+                </div>
+
+                {/* Context Filter Buttons */}
+                <div style={{ display: 'flex', background: 'var(--bg-primary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <button
+                    onClick={() => setSelectedContextFilter(null)}
                     style={{
                       padding: '6px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
                       fontWeight: 600,
                       cursor: 'pointer',
-                      background: selectedCategoryFilter === null ? 'var(--accent)' : 'var(--bg-secondary)',
-                      color: selectedCategoryFilter === null ? '#ffffff' : 'var(--text-primary)',
-                      border: '1px solid var(--border-color)',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      userSelect: 'none'
+                      border: 'none',
+                      background: selectedContextFilter === null ? 'var(--accent)' : 'transparent',
+                      color: selectedContextFilter === null ? '#ffffff' : 'var(--text-secondary)',
+                      transition: 'all 0.15s'
                     }}
                   >
-                    <span>Mostrar Todos</span>
-                  </div>
-                  {activeCategories.map(catKey => {
-                    const isMatchedIncome = INCOME_CATEGORIES.find(c => c.value === catKey);
-                    const isMatchedExpense = EXPENSE_CATEGORIES.find(c => c.value === catKey);
-                    const matched = isMatchedIncome || isMatchedExpense;
-                    if (!matched) return null;
-                    const IconComponent = matched.icon;
-                    const isActive = selectedCategoryFilter === catKey;
-                    
-                    return (
-                      <div
-                        key={catKey}
-                        onClick={() => setSelectedCategoryFilter(isActive ? null : catKey)}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          background: isActive ? 'var(--accent)' : 'var(--bg-secondary)',
-                          color: isActive ? '#ffffff' : 'var(--text-primary)',
-                          border: '1px solid var(--border-color)',
-                          transition: 'all 0.2s',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          userSelect: 'none'
-                        }}
-                      >
-                        <IconComponent size={13} style={{ color: isActive ? '#ffffff' : 'var(--text-secondary)' }} />
-                        <span>{matched.label}</span>
-                      </div>
-                    );
-                  })}
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => setSelectedContextFilter('empresa')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: 'none',
+                      background: selectedContextFilter === 'empresa' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                      color: selectedContextFilter === 'empresa' ? '#38bdf8' : 'var(--text-secondary)',
+                      transition: 'all 0.15s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Briefcase size={13} /> Negocio
+                  </button>
+                  <button
+                    onClick={() => setSelectedContextFilter('personal')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: 'none',
+                      background: selectedContextFilter === 'personal' ? 'rgba(251, 113, 133, 0.2)' : 'transparent',
+                      color: selectedContextFilter === 'personal' ? '#fb7185' : 'var(--text-secondary)',
+                      transition: 'all 0.15s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Home size={13} /> Personal
+                  </button>
                 </div>
               </div>
-            )}
+
+              {/* Category Filter Chips Row */}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', paddingTop: '8px', borderTop: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, marginRight: '4px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                  Categorías:
+                </span>
+                {activeCategories.length === 0 ? (
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                    Sin categorías en este mes
+                  </span>
+                ) : (
+                  <>
+                    <div
+                      onClick={() => setSelectedCategoryFilter(null)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        fontSize: '11.5px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: selectedCategoryFilter === null ? 'var(--accent)' : 'var(--bg-primary)',
+                        color: selectedCategoryFilter === null ? '#ffffff' : 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
+                        transition: 'all 0.15s',
+                        userSelect: 'none'
+                      }}
+                    >
+                      Todas
+                    </div>
+                    {activeCategories.map(catKey => {
+                      const isMatchedIncome = INCOME_CATEGORIES.find(c => c.value === catKey);
+                      const isMatchedExpense = EXPENSE_CATEGORIES.find(c => c.value === catKey);
+                      const matched = isMatchedIncome || isMatchedExpense;
+                      if (!matched) return null;
+                      const IconComponent = matched.icon;
+                      const isActive = selectedCategoryFilter === catKey;
+                      
+                      return (
+                        <div
+                          key={catKey}
+                          onClick={() => setSelectedCategoryFilter(isActive ? null : catKey)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '11.5px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            background: isActive ? 'var(--accent)' : 'var(--bg-primary)',
+                            color: isActive ? '#ffffff' : 'var(--text-primary)',
+                            border: '1px solid var(--border-color)',
+                            transition: 'all 0.15s',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            userSelect: 'none'
+                          }}
+                        >
+                          <IconComponent size={11} style={{ color: isActive ? '#ffffff' : 'var(--text-secondary)' }} />
+                          <span>{matched.label.split(' / ')[0]}</span>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            </div>
 
             {/* Collapsible Category Breakdown Summary */}
             <div style={{
