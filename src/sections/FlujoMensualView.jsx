@@ -1391,6 +1391,69 @@ export default function FlujoMensualView({
               </div>
             </div>
 
+            {/* Category Filter Chips */}
+            {activeCategories.length > 0 && (
+              <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🔍 Priorizar Categoría al inicio de las listas:
+                </span>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div
+                    onClick={() => setSelectedCategoryFilter(null)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      background: selectedCategoryFilter === null ? 'var(--accent)' : 'var(--bg-secondary)',
+                      color: selectedCategoryFilter === null ? '#ffffff' : 'var(--text-primary)',
+                      border: '1px solid var(--border-color)',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <span>Mostrar Todos</span>
+                  </div>
+                  {activeCategories.map(catKey => {
+                    const isMatchedIncome = INCOME_CATEGORIES.find(c => c.value === catKey);
+                    const isMatchedExpense = EXPENSE_CATEGORIES.find(c => c.value === catKey);
+                    const matched = isMatchedIncome || isMatchedExpense;
+                    if (!matched) return null;
+                    const IconComponent = matched.icon;
+                    const isActive = selectedCategoryFilter === catKey;
+                    
+                    return (
+                      <div
+                        key={catKey}
+                        onClick={() => setSelectedCategoryFilter(isActive ? null : catKey)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: isActive ? 'var(--accent)' : 'var(--bg-secondary)',
+                          color: isActive ? '#ffffff' : 'var(--text-primary)',
+                          border: '1px solid var(--border-color)',
+                          transition: 'all 0.2s',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <IconComponent size={13} style={{ color: isActive ? '#ffffff' : 'var(--text-secondary)' }} />
+                        <span>{matched.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Collapsible Category Breakdown Summary */}
             <div style={{
               marginBottom: '20px',
