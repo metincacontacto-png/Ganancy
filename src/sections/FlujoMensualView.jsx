@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   Calendar, X, Plus, Trash2, Edit2, Bell, Check, Send, Paperclip, FileText,
   Home, Zap, ShoppingCart, Car, Activity, Scale, Users, Megaphone, 
-  GraduationCap, Laptop, CreditCard, Sparkles, Briefcase, TrendingUp, Coins
+  GraduationCap, Laptop, CreditCard, Sparkles, Briefcase, TrendingUp, Coins,
+  Search
 } from 'lucide-react';
 import { formatCLP } from '../data/financialData';
 
