@@ -550,8 +550,10 @@ export default function App() {
 
   const namesMatch = React.useCallback((nameA, nameB) => {
     if (!nameA || !nameB) return false;
-    const cleanA = nameA.replace(/\[personal\]|\[empresa\]/gi, "");
-    const cleanB = nameB.replace(/\[personal\]|\[empresa\]/gi, "");
+    const baseA = nameA.split(' ||| ')[0];
+    const baseB = nameB.split(' ||| ')[0];
+    const cleanA = baseA.replace(/\[personal\]|\[empresa\]/gi, "");
+    const cleanB = baseB.replace(/\[personal\]|\[empresa\]/gi, "");
     
     const wordsA = cleanA.split(/[\s/_-]+/).map(normalizeWord).filter(Boolean);
     const wordsB = cleanB.split(/[\s/_-]+/).map(normalizeWord).filter(Boolean);

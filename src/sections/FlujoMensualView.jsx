@@ -57,7 +57,49 @@ const getQuarterInfo = (monthStr, startMonthStr) => {
   
   return { id, label, qIndex };
 };
+export const INCOME_CATEGORIES = [
+  { value: "sueldo", label: "💵 Sueldo / Salarios" },
+  { value: "ventas", label: "💼 Ventas / Clientes" },
+  { value: "inversiones", label: "📈 Inversiones" },
+  { value: "rentas", label: "🏠 Rentas / Alquileres" },
+  { value: "otros", label: "✨ Otros Ingresos" }
+];
 
+export const EXPENSE_CATEGORIES = [
+  { value: "vivienda", label: "🏠 Vivienda / Alquiler" },
+  { value: "servicios", label: "⚡ Servicios (Luz, Agua, Internet)" },
+  { value: "alimentacion", label: "🛒 Alimentación / Supermercado" },
+  { value: "transporte", label: "🚗 Transporte / Combustible" },
+  { value: "salud_seguros", label: "🏥 Salud / Seguros / Isapre" },
+  { value: "impuestos", label: "⚖️ Impuestos / Tasas" },
+  { value: "personal_sueldos", label: "👥 Personal / Sueldos" },
+  { value: "marketing", label: "📢 Marketing / Publicidad" },
+  { value: "educacion", label: "🎓 Educación" },
+  { value: "ocio", label: "🎉 Entretenimiento / Ocio" },
+  { value: "suscripciones", label: "💻 Suscripciones / Software" },
+  { value: "prestamos", label: "💳 Préstamos / Deudas" },
+  { value: "otros", label: "✨ Otros Egresos" }
+];
+
+export const getCategoryFromName = (name) => {
+  if (!name) return "";
+  const parts = name.split(' ||| ');
+  for (let part of parts) {
+    if (part.startsWith('category:')) {
+      return part.replace('category:', '');
+    }
+  }
+  return "";
+};
+
+export const appendCategoryToName = (name, category) => {
+  if (!name) return "";
+  const parts = name.split(' ||| ').filter(p => !p.startsWith('category:'));
+  if (category) {
+    parts.push(`category:${category}`);
+  }
+  return parts.join(' ||| ');
+};
 export default function FlujoMensualView({ 
   historicalFlowsState, 
   monthlyDetailsState, 
@@ -118,7 +160,32 @@ export default function FlujoMensualView({
         </span>
       );
     }
-    return null;
+  };
+
+  const renderCategoryBadge = (name, itemType) => {
+    const categoryKey = getCategoryFromName(name);
+    if (!categoryKey) return null;
+    const catList = itemType === 'ingresos' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    const matched = catList.find(c => c.value === categoryKey);
+    const label = matched ? matched.label : categoryKey;
+    
+    return (
+      <span style={{
+        background: 'rgba(255, 255, 255, 0.05)',
+        color: 'var(--text-secondary)',
+        border: '1px solid var(--border-color)',
+        fontSize: '10px',
+        fontWeight: 600,
+        padding: '2px 6px',
+        borderRadius: '4px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        verticalAlign: 'middle'
+      }}>
+        {label}
+      </span>
+    );
   };
 
   // Accounting start date states
@@ -257,6 +324,8 @@ export default function FlujoMensualView({
   const [formPaid, setFormPaid] = useState(false);
   const [formDueDate, setFormDueDate] = useState("");
   const [formContext, setFormContext] = useState("empresa");
+  const [formCategory, setFormCategory] = useState("");
+  const [showCategoryBreakdown, setShowCategoryBreakdown] = useState(false);
   
   // New reminder configuration states
   const [formReminderEnabled, setFormReminderEnabled] = useState(false);
@@ -387,6 +456,7 @@ export default function FlujoMensualView({
     setFormReminderEmail("");
     setFormReminderTime("3_days_before");
     setFormContext(currentContext === 'personal' ? 'personal' : 'empresa');
+    setFormCategory("");
     setTransModalOpen(true);
   };
 
@@ -400,6 +470,7 @@ export default function FlujoMensualView({
     const cleanName = item.name.split(' ||| ')[0].replace(' [Personal]', '').replace(' [Empresa]', '');
     setFormName(cleanName);
     setFormContext(hasPersonalTag ? 'personal' : 'empresa');
+    setFormCategory(getCategoryFromName(item.name));
 
     setFormValue(item.value);
     setFormIsVariable(item.isVariable !== undefined ? item.isVariable : true);
@@ -419,7 +490,7 @@ export default function FlujoMensualView({
 
     if (transModalMode === "add") {
       updateMonthlyTransaction(selectedMonthDetail, transModalType, "add", {
-        name: formName,
+        name: appendCategoryToName(formName, formCategory),
         value,
         isVariable: formIsVariable,
         paid: formPaid,
@@ -434,7 +505,7 @@ export default function FlujoMensualView({
         id: editingId,
         index: editingIndex,
         item: {
-          name: formName,
+          name: appendCategoryToName(formName, formCategory),
           value,
           isVariable: formIsVariable,
           paid: formPaid,
@@ -507,6 +578,28 @@ export default function FlujoMensualView({
   const totalEgresosFijos = egresosFijos.reduce((sum, item) => sum + item.value, 0);
   const totalIngresosVariables = ingresosVariables.reduce((sum, item) => sum + item.value, 0);
   const totalEgresosVariables = egresosVariables.reduce((sum, item) => sum + item.value, 0);
+
+  const categoryBreakdown = React.useMemo(() => {
+    if (!currentDetails) return { ingresos: {}, egresos: {} };
+    
+    const breakdown = { ingresos: {}, egresos: {} };
+    
+    // Group incomes
+    const allIncomes = [...ingresosFijos, ...ingresosVariables];
+    allIncomes.forEach(it => {
+      const catKey = getCategoryFromName(it.name) || "otros";
+      breakdown.ingresos[catKey] = (breakdown.ingresos[catKey] || 0) + it.value;
+    });
+    
+    // Group expenses
+    const allExpenses = [...egresosFijos, ...egresosVariables];
+    allExpenses.forEach(it => {
+      const catKey = getCategoryFromName(it.name) || "otros";
+      breakdown.egresos[catKey] = (breakdown.egresos[catKey] || 0) + it.value;
+    });
+    
+    return breakdown;
+  }, [currentDetails, ingresosFijos, ingresosVariables, egresosFijos, egresosVariables]);
 
   const togglePanel = (panelKey) => {
     setActivePanel(prev => prev === panelKey ? null : panelKey);
@@ -647,6 +740,7 @@ export default function FlujoMensualView({
                           {getCleanName(item.name)}
                         </span>
                         {renderContextBadge(item.name)}
+                        {renderCategoryBadge(item.name, type)}
                         
                         {/* If it's real/receipt we show a badge */}
                         {item.receiptUrl && (
@@ -1288,6 +1382,91 @@ export default function FlujoMensualView({
               </div>
             </div>
 
+            {/* Collapsible Category Breakdown Summary */}
+            <div style={{
+              marginBottom: '20px',
+              background: 'var(--bg-secondary)',
+              padding: '14px 18px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-color)',
+              transition: 'all 0.25s ease-in-out'
+            }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}
+                onClick={() => setShowCategoryBreakdown(!showCategoryBreakdown)}
+              >
+                <h4 style={{ fontSize: '14.5px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                  📊 Resumen de Saldos por Categoría ({selectedMonthDetail})
+                </h4>
+                <span style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {showCategoryBreakdown ? 'Ocultar detalles' : 'Mostrar desglose'}
+                </span>
+              </div>
+              
+              {showCategoryBreakdown && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '24px',
+                  marginTop: '14px',
+                  borderTop: '1px solid var(--border-color)',
+                  paddingTop: '14px'
+                }}>
+                  {/* Incomes Column */}
+                  <div>
+                    <h5 style={{ fontSize: '12px', color: 'var(--success)', fontWeight: 700, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 10px 0' }}>
+                      Ingresos por Categoría
+                    </h5>
+                    {Object.keys(categoryBreakdown.ingresos).length === 0 ? (
+                      <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: 0 }}>No hay ingresos registrados en este mes.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {Object.entries(categoryBreakdown.ingresos).map(([catKey, total]) => {
+                          const matched = INCOME_CATEGORIES.find(c => c.value === catKey);
+                          const label = matched ? matched.label : catKey === 'otros' ? '✨ Otros Ingresos' : catKey;
+                          return (
+                            <div key={catKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{label}</span>
+                              <strong style={{ fontSize: '13px', color: 'var(--success)' }}>{formatCLP(total)}</strong>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Expenses Column */}
+                  <div>
+                    <h5 style={{ fontSize: '12px', color: 'var(--danger)', fontWeight: 700, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 10px 0' }}>
+                      Egresos por Categoría
+                    </h5>
+                    {Object.keys(categoryBreakdown.egresos).length === 0 ? (
+                      <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: 0 }}>No hay egresos registrados en este mes.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {Object.entries(categoryBreakdown.egresos).map(([catKey, total]) => {
+                          const matched = EXPENSE_CATEGORIES.find(c => c.value === catKey);
+                          const label = matched ? matched.label : catKey === 'otros' ? '✨ Otros Egresos' : catKey;
+                          return (
+                            <div key={catKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{label}</span>
+                              <strong style={{ fontSize: '13px', color: 'var(--danger)' }}>{formatCLP(total)}</strong>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Accordion Stack for the 4 modules - 2 and 2 Layout */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
               {/* Row 1: Fijos */}
@@ -1358,6 +1537,32 @@ export default function FlujoMensualView({
                     outline: 'none'
                   }}
                 />
+              </div>
+ 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 500 }}>Categoría</label>
+                <select
+                  value={formCategory}
+                  onChange={e => setFormCategory(e.target.value)}
+                  style={{
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-primary)',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <option value="">-- Sin Categoría --</option>
+                  {(transModalType === 'ingresos' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

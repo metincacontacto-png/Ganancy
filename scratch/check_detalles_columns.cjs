@@ -15,17 +15,23 @@ const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-async function checkColumns() {
+async function checkCategoryColumn() {
   try {
-    const { data, error } = await supabase.from('detalles_mensuales').select('id, user_id, month, type, name, value, paid, is_variable, due_date, reminder_enabled, reminder_email, reminder_time, receipt_url').limit(1);
-    if (error) {
-      console.log("Error details:", error.message);
+    const { data: catCol, error: err1 } = await supabase.from('detalles_mensuales').select('category').limit(1);
+    if (err1) {
+      console.log("Error selecting category:", err1.message);
+      const { data: categoriaCol, error: err2 } = await supabase.from('detalles_mensuales').select('categoria').limit(1);
+      if (err2) {
+        console.log("Error selecting categoria:", err2.message);
+      } else {
+        console.log("Column 'categoria' exists!");
+      }
     } else {
-      console.log("All columns exist! Data:", data);
+      console.log("Column 'category' exists!");
     }
   } catch (err) {
     console.error(err);
   }
 }
 
-checkColumns();
+checkCategoryColumn();
